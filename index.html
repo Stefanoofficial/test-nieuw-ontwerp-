@@ -1857,95 +1857,75 @@ body.dark-theme .sharedListInviteLink{color:#dff1e2}
 body.dark-theme .sharedListInviteBox{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.10)}body.dark-theme .sharedListInviteCode{color:#dff1e2}.sharedListEmpty{padding:10px 7px;color:#8b928d;font-size:11px;line-height:1.35}
 </style>
 
-<style id="modern-login-screen">
-/* Modern rustig inlogscherm — alleen vormgeving; bestaande Firebase/login-functies blijven intact. */
+<style id="modern-login-real">
+/* Modern login — bestaande login/Firebase-logica blijft intact */
 #loginScreen{
-  position:fixed !important; inset:0 !important; z-index:1000 !important;
-  display:flex !important; align-items:center !important; justify-content:center !important;
-  padding:24px 18px !important;
   background:
-    radial-gradient(circle at 15% 10%, rgba(224,239,230,.95) 0 18%, transparent 42%),
-    radial-gradient(circle at 90% 85%, rgba(232,241,235,.95) 0 16%, transparent 40%),
-    #f4f7f3 !important;
-  overflow:auto !important;
-}
-#loginScreen::before{
-  content:""; position:absolute; width:360px; height:360px; border-radius:50%;
-  background:rgba(49,95,73,.055); top:-150px; right:-120px; pointer-events:none;
-}
-#loginScreen::after{
-  content:""; position:absolute; width:280px; height:280px; border-radius:50%;
-  background:rgba(49,95,73,.045); bottom:-130px; left:-100px; pointer-events:none;
+    radial-gradient(circle at 50% -10%,rgba(224,239,228,.98),transparent 42%),
+    linear-gradient(180deg,#f7f9f6 0%,#edf3ee 100%) !important;
+  padding:20px 14px !important;
 }
 #loginScreen .loginBox{
-  position:relative; z-index:1; width:min(100%,430px) !important; max-width:430px !important;
-  margin:0 !important; padding:30px 24px 22px !important;
-  text-align:left !important; background:rgba(255,255,255,.94) !important;
-  border:1px solid rgba(49,95,73,.10) !important; border-radius:32px !important;
-  box-shadow:0 28px 70px rgba(35,58,45,.13) !important;
-  backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
+  width:min(100%,430px) !important;
+  margin:auto !important;
+  padding:30px 22px 24px !important;
+  border-radius:30px !important;
+  background:rgba(255,255,255,.97) !important;
+  border:1px solid #e1e8e3 !important;
+  box-shadow:0 28px 80px rgba(30,61,43,.16) !important;
 }
-#loginScreen .welcome{margin:0 0 24px !important; text-align:left !important}
-#loginScreen .welcome::before{
-  content:"🛒"; display:grid; place-items:center; width:64px; height:64px;
-  margin-bottom:18px; border-radius:21px; background:#315f49; color:#fff; font-size:30px;
-  box-shadow:0 12px 26px rgba(49,95,73,.20);
-}
+#loginScreen .welcome h1,
 #loginScreen .welcome h2{
-  margin:0 !important; color:#24312a !important; font-size:29px !important;
-  line-height:1.08 !important; letter-spacing:-.7px !important; font-weight:850 !important;
+  color:#25322b !important;
+  font-weight:850 !important;
+  letter-spacing:-.7px !important;
 }
-#loginScreen .welcome h2:nth-of-type(2){display:none}
 #loginScreen .welcome p{
-  margin:9px 0 0 !important; color:#7b8780 !important; font-size:15px !important; line-height:1.45 !important;
+  color:#7c8780 !important;
 }
-#loginScreen .inputBox{
-  height:56px !important; margin:0 0 11px !important; padding:0 14px !important;
-  border:1px solid #e2e9e4 !important; border-radius:17px !important;
-  background:#f7f9f7 !important; transition:border-color .2s, box-shadow .2s, background .2s;
+#loginScreen input{
+  background:#f5f7f5 !important;
+  border:1px solid #e1e8e3 !important;
+  border-radius:16px !important;
+  color:#25322b !important;
+  min-height:50px !important;
 }
-#loginScreen .inputBox:focus-within{
-  background:#fff !important; border-color:#9eb7a7 !important;
-  box-shadow:0 0 0 4px rgba(49,95,73,.08) !important;
+#loginScreen input:focus{
+  border-color:#315f49 !important;
+  box-shadow:0 0 0 3px rgba(49,95,73,.10) !important;
 }
-#loginScreen .inputBox span{margin-right:10px !important; color:#718078 !important}
-#loginScreen .inputBox span i{font-size:17px !important; color:#718078 !important}
-#loginScreen .inputBox input{
-  height:54px !important; font-size:16px !important; color:#24312a !important;
+#loginScreen .loginButton,
+#loginScreen button[type="submit"]{
+  min-height:50px !important;
+  border:0 !important;
+  border-radius:16px !important;
+  background:#315f49 !important;
+  color:#fff !important;
+  font-weight:850 !important;
+  box-shadow:0 8px 18px rgba(49,95,73,.20) !important;
 }
-#loginScreen .inputBox input::placeholder{color:#a3aca6 !important}
-#loginScreen .togglePassword{color:#7b8780 !important; font-size:17px !important}
-#loginScreen .forgotPassword{
-  margin:4px 2px 17px !important; color:#315f49 !important; font-size:13px !important;
-  font-weight:750 !important; text-align:right !important; cursor:pointer;
-}
-#loginScreen > .loginBox > button:not(.togglePassword):not(.registerButton){
-  height:54px !important; width:100% !important; border:0 !important; border-radius:17px !important;
-  background:#315f49 !important; color:#fff !important; font-size:17px !important; font-weight:850 !important;
-  box-shadow:0 10px 22px rgba(49,95,73,.18) !important; transition:transform .16s, filter .16s;
-}
-#loginScreen > .loginBox > button:not(.togglePassword):not(.registerButton):active{transform:scale(.985)}
-#loginScreen > .loginBox > button:disabled{opacity:.65;cursor:wait}
-#loginScreen .loginOr{margin:18px 0 !important; color:#9aa49d !important; font-size:12px !important}
-#loginScreen .loginOr span{height:1px !important;background:#e4e9e5 !important}
 #loginScreen .registerButton{
-  width:100% !important; height:52px !important; margin:0 !important; padding:0 16px !important;
-  display:flex !important; align-items:center !important; justify-content:center !important; gap:9px !important;
-  border:1px solid #d8e3dc !important; border-radius:17px !important;
-  background:#eaf2ec !important; color:#315f49 !important; font-size:16px !important; font-weight:800 !important;
+  min-height:50px !important;
+  border-radius:16px !important;
+  background:#e7f0e9 !important;
+  color:#244b38 !important;
+  border:1px solid #dce8df !important;
+  font-weight:850 !important;
 }
-#loginScreen .registerButton i{font-size:15px !important}
-#loginScreen .version{margin-top:20px !important;color:#9aa49d !important;font-size:11px !important;text-align:center !important}
-#loginScreen .copyright{margin-top:4px !important;color:#b0b8b3 !important;font-size:10px !important;text-align:center !important}
-/* Rustige overgang tussen inloggen en de app. */
-.app{opacity:0;transform:translateX(28px);transition:opacity .34s ease,transform .38s cubic-bezier(.22,.8,.3,1)}
-body.logged-in .app{opacity:1;transform:translateX(0)}
-#loginScreen{transform:translateX(0);opacity:1;transition:transform .38s cubic-bezier(.22,.8,.3,1),opacity .28s ease}
-#loginScreen.loginScreenLeaving{transform:translateX(-28px);opacity:0;pointer-events:none}
-@media(max-width:430px){
-  #loginScreen{padding:18px 12px !important}
-  #loginScreen .loginBox{padding:26px 18px 20px !important;border-radius:28px !important}
+#loginScreen .forgotPassword,
+#loginScreen a{
+  color:#315f49 !important;
+  font-weight:750 !important;
 }
+#loginScreen .togglePassword{
+  border-radius:12px !important;
+  color:#315f49 !important;
+}
+@keyframes loginEnter{
+  from{opacity:0;transform:translateY(12px) scale(.985)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+#loginScreen .loginBox{animation:loginEnter .42s ease-out both}
 </style>
 
 </head>
@@ -1954,8 +1934,9 @@ body.logged-in .app{opacity:1;transform:translateX(0)}
 <div id="loginScreen">
   <div class="loginBox">
     <div class="welcome">
-  <h2>Welkom terug</h2>
-  <p>Log in en ga verder met je boodschappen.</p>
+  <h2>Welkom bij</h2>
+  <h2>Boodschappenlijst</h2>
+  <p>Jouw lijst, altijd bij de hand</p>
 </div>
 <div class="inputBox">
   <span><i class="fa-solid fa-envelope"></i></span>
