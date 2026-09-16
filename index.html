@@ -74,6 +74,146 @@ h1{font-size:31px;line-height:1.05;margin:7px 0 8px;letter-spacing:-.045em}
 <script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-database-compat.js"></script>
+
+/* ===== Premium popup system ===== */
+.familyDialogOverlay{
+  position:fixed !important;
+  inset:0 !important;
+  z-index:9999 !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  padding:20px !important;
+  background:rgba(18,28,23,.42) !important;
+  backdrop-filter:blur(14px) saturate(110%) !important;
+  -webkit-backdrop-filter:blur(14px) saturate(110%) !important;
+  opacity:0 !important;
+  transition:opacity .22s ease !important;
+  overflow:auto !important;
+}
+.familyDialogOverlay.familyDialogShown{opacity:1 !important}
+.familyDialogOverlay.familyDialogClosing{opacity:0 !important}
+
+.familyDialog{
+  width:min(430px,100%) !important;
+  max-height:min(82vh,720px) !important;
+  overflow:auto !important;
+  margin:auto !important;
+  padding:22px !important;
+  border:1px solid var(--line) !important;
+  border-radius:28px !important;
+  background:var(--surface) !important;
+  color:var(--ink) !important;
+  box-shadow:0 30px 90px rgba(0,0,0,.25) !important;
+  transform:translateY(10px) scale(.97) !important;
+  transition:transform .24s cubic-bezier(.2,.8,.2,1) !important;
+}
+.familyDialogShown .familyDialog{transform:translateY(0) scale(1) !important}
+
+.familyDialogHeader{
+  display:flex !important;
+  align-items:center !important;
+  gap:13px !important;
+  margin-bottom:17px !important;
+}
+.familyDialogIcon{
+  width:48px !important;
+  height:48px !important;
+  flex:0 0 48px !important;
+  display:grid !important;
+  place-items:center !important;
+  border-radius:16px !important;
+  background:rgba(47,118,95,.11) !important;
+  color:var(--green) !important;
+  font-size:19px !important;
+}
+.familyDialogTitle{
+  font-size:20px !important;
+  line-height:1.15 !important;
+  font-weight:800 !important;
+  letter-spacing:-.025em !important;
+}
+.familyDialogBody{color:var(--ink) !important}
+.familyDialogText{
+  color:var(--muted) !important;
+  font-size:14px !important;
+  line-height:1.5 !important;
+  white-space:pre-line !important;
+}
+.familyDialogInput{
+  width:100% !important;
+  min-height:50px !important;
+  margin-top:12px !important;
+  padding:12px 14px !important;
+  border:1px solid var(--line) !important;
+  border-radius:15px !important;
+  background:var(--surface2) !important;
+  color:var(--ink) !important;
+  outline:none !important;
+}
+.familyDialogInput:focus{
+  border-color:var(--green) !important;
+  box-shadow:0 0 0 3px rgba(47,118,95,.12) !important;
+}
+.familyDialogCode{
+  margin-top:13px !important;
+  padding:15px !important;
+  border-radius:17px !important;
+  background:var(--surface2) !important;
+  color:var(--green) !important;
+  text-align:center !important;
+  font-size:27px !important;
+  font-weight:850 !important;
+  letter-spacing:.12em !important;
+}
+.familyDialogActions{
+  display:flex !important;
+  gap:9px !important;
+  margin-top:19px !important;
+}
+.familyDialogBtn{
+  flex:1 !important;
+  min-height:48px !important;
+  padding:0 15px !important;
+  border:1px solid var(--line) !important;
+  border-radius:15px !important;
+  background:var(--surface2) !important;
+  color:var(--ink) !important;
+  font-weight:800 !important;
+}
+.familyDialogPrimary{
+  background:var(--green) !important;
+  border-color:var(--green) !important;
+  color:#fff !important;
+}
+.familyDialogDanger{
+  background:#b74b4b !important;
+  border-color:#b74b4b !important;
+  color:#fff !important;
+}
+.sharedListAction{
+  min-height:46px !important;
+  padding:0 15px !important;
+  border:1px solid var(--line) !important;
+  border-radius:14px !important;
+  background:var(--surface2) !important;
+  color:var(--ink) !important;
+  font-weight:750 !important;
+}
+.familyDialogList{display:grid !important;gap:8px !important;margin-top:12px !important}
+.familyDialogMember{
+  padding:12px 14px !important;
+  border:1px solid var(--line) !important;
+  border-radius:14px !important;
+  background:var(--surface2) !important;
+  font-weight:700 !important;
+}
+@media(max-width:520px){
+  .familyDialogOverlay{padding:14px !important}
+  .familyDialog{padding:19px !important;border-radius:24px !important;max-height:84vh !important}
+  .familyDialogTitle{font-size:19px !important}
+}
+
 </head>
 <body>
 <div id="loginScreen" class="modal" style="display:flex">
