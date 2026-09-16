@@ -46,4 +46,14 @@ async function loadPrivateList(){const u=auth.currentUser;if(!u)return;try{state
 async function logout(){if(state.sharedUnsub)state.sharedUnsub();state={...state,items:[],householdId:null,sharedId:null,sharedCode:null,active:'family'};await auth.signOut();openLogin();renderSettings();toast('Uitgelogd')}
 auth.onAuthStateChanged(async u=>{if(u){$('login').classList.remove('show');try{const code=new URLSearchParams(location.search).get('deellijst');if(code){await joinByInvite(code);return}const household=await getHousehold();if(household){state.active='family';await loadFamily()}else{const mode=localStorage.getItem('boodschappenUseMode_'+u.uid);if(mode==='private'){await loadPrivateList()}else{state.items=[];renderList();openUseModeModal()}}}catch(e){console.error(e)}renderSettings();renderFamily()}else{$('login').classList.add('show');state.householdId=null;state.active='private';state.items=[];renderList();renderSettings();renderFamily()}});
 async function joinByInvite(code){try{const s=await db.ref(`sharedListCodes/${code}`).once('value'),id=s.val();if(!id)return toast('Deze uitnodigingslink is niet geldig');const l=await db.ref(`sharedLists/${id}`).once('value'),v=l.val();if(v.members?.[auth.currentUser.uid]!==true){if(!confirm(`Deelnemen aan “${v.name}”?`))return;await db.ref(`sharedLists/${id}/members/${auth.currentUser.uid}`).set(true);await db.ref(`sharedLists/${id}/memberNames/${auth.currentUser.uid}`).set(auth.currentUser.email||'Lid');await db.ref(`userSharedLists/${auth.currentUser.uid}/${id}`).set(true)}await openSharedList(id)}catch(e){toast('Uitnodiging kon niet worden verwerkt')}}
-$('newItem').addEventListener('keydown',e=>{if(e.key==='Enter')addItem()});$('items').addEventListener('click',e=>{});renderSuggestions();renderList();state.saved=JSON.parse(localStorage.getItem('savedLists')||'[]');renderSaved();
+function bindAuthButtons(){
+  $('loginBtn')?.addEventListener('click',login);
+  $('openRegisterBtn')?.addEventListener('click',openRegister);
+  $('closeRegisterBtn')?.addEventListener('click',closeRegister);
+  $('registerBtn')?.addEventListener('click',register);
+  $('successCloseBtn')?.addEventListener('click',closeSuccessModal);
+}
+$('newItem').addEventListener('keydown',e=>{if(e.key==='Enter')addItem()});
+$('items').addEventListener('click',e=>{});
+bindAuthButtons();
+renderSuggestions();renderList();state.saved=JSON.parse(localStorage.getItem('savedLists')||'[]');renderSaved();

@@ -32,14 +32,14 @@
     <div class="field"><label>E-mailadres</label><input id="registerEmail" type="email" placeholder="E-mailadres" autocomplete="email"></div>
     <div class="field"><label>Wachtwoord</label><input id="registerPassword" type="password" placeholder="Minimaal 6 tekens" autocomplete="new-password"></div>
     <div class="field"><label>Wachtwoord opnieuw</label><input id="registerPasswordConfirm" type="password" placeholder="Wachtwoord opnieuw" autocomplete="new-password"></div>
-    <div class="actions"><button class="secondary" onclick="closeRegister()">Terug</button><button class="primary" style="height:44px" onclick="register()">Account aanmaken</button></div>
+    <div class="actions"><button id="closeRegisterBtn" class="secondary" type="button">Terug</button><button id="registerBtn" class="primary" style="height:44px" type="button">Account aanmaken</button></div>
   </section>
 </div>
 <div id="successModal" class="modal" aria-hidden="true">
   <section class="modalBox">
     <h2>Account succesvol aangemaakt</h2>
     <p>Je account is aangemaakt. Je kunt nu inloggen.</p>
-    <div class="actions"><button class="primary" style="height:44px" onclick="closeSuccessModal()">Sluiten</button></div>
+    <div class="actions"><button id="successCloseBtn" class="primary" style="height:44px" type="button">Sluiten</button></div>
   </section>
 </div>
 <div id="useModeModal" class="modal" aria-hidden="true">
@@ -54,5 +54,5 @@
   </section>
 </div>
 
-<div id="login" class="login show"><section class="loginBox"><div class="welcome"><h2>Welkom terug</h2><p>Log in en ga verder met je boodschappen.</p></div><div class="loginInput">✉ <input id="email" type="email" placeholder="E-mailadres" autocomplete="email"></div><div class="loginInput">● <input id="password" type="password" placeholder="Wachtwoord" autocomplete="current-password"></div><div class="forgot" onclick="resetPassword()">Wachtwoord vergeten?</div><button class="loginBtn" onclick="login()">Inloggen</button><div class="or"><span></span>Of<span></span></div><button class="register" onclick="openRegister()">＋ Account aanmaken</button><div class="version">Versie 1.0<br>© 2026 Boodschappenlijst</div></section></div><div id="toast" class="toast"></div>
+<div id="login" class="login show"><section class="loginBox"><div class="welcome"><h2>Welkom terug</h2><p>Log in en ga verder met je boodschappen.</p></div><div class="loginInput">✉ <input id="email" type="email" placeholder="E-mailadres" autocomplete="email"></div><div class="loginInput">● <input id="password" type="password" placeholder="Wachtwoord" autocomplete="current-password"></div><div class="forgot" onclick="resetPassword()">Wachtwoord vergeten?</div><button id="loginBtn" class="loginBtn" type="button">Inloggen</button><div class="or"><span></span>Of<span></span></div><button id="openRegisterBtn" class="register" type="button">＋ Account aanmaken</button><div class="version">Versie 1.0<br>© 2026 Boodschappenlijst</div></section></div><div id="toast" class="toast"></div>
 <script src="app.js"></script></body></html>
