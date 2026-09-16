@@ -61,64 +61,91 @@ button{cursor:pointer}
 .menuItem.danger{color:var(--danger)}.menuItem.danger .menuIcon{background:#f8e9e7;color:var(--danger)}
 .modalBox{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(90%,430px);background:#fff;border-radius:28px;padding:25px;box-shadow:0 25px 80px rgba(20,35,28,.2)}.modalBox h2{margin:0 0 8px;font-size:24px}.modalBox p{color:var(--muted);line-height:1.5}.modalActions{display:flex;justify-content:flex-end;gap:8px}.secondary{border:0;background:var(--soft);color:var(--green);border-radius:15px;padding:12px 18px;font-weight:800}
 .toast{position:fixed;left:50%;bottom:94px;transform:translate(-50%,20px);background:#26352d;color:#fff;padding:12px 17px;border-radius:16px;opacity:0;pointer-events:none;transition:.25s;z-index:100;font-weight:700}.toast.show{opacity:1;transform:translate(-50%,0)}
-/* Nieuw login-design: alleen de vormgeving; het echte login-systeem komt later. */
+/* Login design: overgenomen als uiterlijk, bestaande werking behouden. */
+
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+body{overflow-x:hidden}
 .loginLayer{
-  position:fixed;inset:0;z-index:60;opacity:0;pointer-events:none;
-  transition:.25s;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  position:fixed;inset:0;
+  display:block;
+  padding:70px 18px 120px;
+  overflow-y:auto;-webkit-overflow-scrolling:touch;
   background:
     radial-gradient(circle at 15% 10%,rgba(224,239,230,.95) 0 18%,transparent 42%),
     radial-gradient(circle at 90% 85%,rgba(232,241,235,.95) 0 16%,transparent 40%),
     #f4f7f3;
+  overflow:auto;
 }
-.loginLayer:before{
+.loginLayer::before{
   content:"";position:absolute;width:360px;height:360px;border-radius:50%;
   background:rgba(49,95,73,.055);top:-150px;right:-120px;pointer-events:none;
 }
-.loginLayer:after{
+.loginLayer::after{
   content:"";position:absolute;width:280px;height:280px;border-radius:50%;
   background:rgba(49,95,73,.045);bottom:-130px;left:-100px;pointer-events:none;
 }
-.loginLayer.show{opacity:1;pointer-events:auto}
 .loginBox{
-  position:relative;z-index:1;width:min(calc(100% - 36px),430px);
-  margin:0 auto;top:50%;transform:translateY(-50%);
-  padding:30px 24px 22px;text-align:left;background:rgba(255,255,255,.94);
+  position:relative;z-index:1;
+  width:min(100%,430px);max-width:430px;
+  margin:0 auto 70px;padding:30px 24px 22px;
+  text-align:left;background:rgba(255,255,255,.94);
   border:1px solid rgba(49,95,73,.10);border-radius:32px;
   box-shadow:0 28px 70px rgba(35,58,45,.13);
   backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
 }
-.loginWelcome{margin:0 0 24px;text-align:left}
-.loginWelcome:before{
+.welcome{margin:0 0 24px;text-align:left}
+.welcome::before{
   content:"🛒";display:grid;place-items:center;width:64px;height:64px;
   margin-bottom:18px;border-radius:21px;background:#315f49;color:#fff;font-size:30px;
   box-shadow:0 12px 26px rgba(49,95,73,.20);
 }
-.loginWelcome h2{margin:0;color:#24312a;font-size:29px;line-height:1.08;letter-spacing:-.7px;font-weight:850}
-.loginWelcome p{margin:9px 0 0;color:#7b8780;font-size:15px;line-height:1.45}
-.loginInputBox{
-  height:56px;margin:0 0 11px;padding:0 14px;display:flex;align-items:center;
+.welcome h2{
+  margin:0;color:#24312a;font-size:29px;line-height:1.08;
+  letter-spacing:-.7px;font-weight:850;
+}
+.welcome p{
+  margin:9px 0 0;color:#7b8780;font-size:15px;line-height:1.45;
+}
+.inputBox{
+  height:56px;margin:0 0 11px;padding:0 14px;
+  display:flex;align-items:center;
   border:1px solid #e2e9e4;border-radius:17px;background:#f7f9f7;
 }
-.loginInputBox span{margin-right:10px;color:#718078;font-size:17px}
-.loginInputBox input{flex:1;min-width:0;height:54px;border:0;outline:0;background:transparent;color:#24312a;font-size:16px}
-.loginInputBox input::placeholder{color:#a3aca6}
-.loginForgotNew{margin:4px 2px 17px;color:#315f49;font-size:13px;font-weight:750;text-align:right;text-decoration:underline}
-.loginBtnNew{
-  height:54px;width:100%;border:0;border-radius:17px;background:#315f49;color:#fff;
-  font-size:17px;font-weight:850;box-shadow:0 10px 22px rgba(49,95,73,.18)
+.inputBox span{margin-right:10px;color:#718078;font-size:17px}
+.inputBox input{
+  flex:1;min-width:0;height:54px;border:0;outline:0;
+  background:transparent;color:#24312a;font-size:16px;
 }
-.loginOrNew{display:flex;align-items:center;gap:14px;margin:18px 0;color:#9aa49d;font-size:12px}
-.loginOrNew span{height:1px;background:#e4e9e5;flex:1}
-.registerBtnNew{
-  width:100%;height:52px;margin:0;padding:0 16px;display:flex;align-items:center;
-  justify-content:center;gap:9px;border:1px solid #d8e3dc;border-radius:17px;
-  background:#eaf2ec;color:#315f49;font-size:16px;font-weight:800
+.inputBox input::placeholder{color:#a3aca6}
+.forgotPassword{
+  margin:4px 2px 17px;color:#315f49;font-size:13px;
+  font-weight:750;text-align:right;text-decoration:underline;
 }
-.loginVersion{margin-top:20px;color:#9aa49d;font-size:11px;text-align:center}
-.loginCopyright{margin-top:4px;color:#b0b8b3;font-size:10px;text-align:center}
+.loginButton{
+  height:54px;width:100%;border:0;border-radius:17px;
+  background:#315f49;color:#fff;font-size:17px;font-weight:850;
+  box-shadow:0 10px 22px rgba(49,95,73,.18);
+}
+.loginOr{
+  display:flex;align-items:center;gap:14px;margin:18px 0;
+  color:#9aa49d;font-size:12px;
+}
+.loginOr span{height:1px;background:#e4e9e5;flex:1}
+.loginOr b{font-weight:400}
+.registerButton{
+  width:100%;height:52px;margin:0;padding:0 16px;
+  display:flex;align-items:center;justify-content:center;gap:9px;
+  border:1px solid #d8e3dc;border-radius:17px;
+  background:#eaf2ec;color:#315f49;font-size:16px;font-weight:800;
+}
+.version{margin-top:20px;color:#9aa49d;font-size:11px;text-align:center}
+.copyright{margin-top:4px;color:#b0b8b3;font-size:10px;text-align:center}
 @media(max-width:430px){
-  .loginBox{width:calc(100% - 24px);padding:26px 18px 20px;border-radius:28px}
+  .loginLayer{padding:18px 12px}
+  .loginBox{padding:26px 18px 20px;border-radius:28px}
 }
+
 </style>
 </head>
 <body>
@@ -187,33 +214,33 @@ button{cursor:pointer}
 
 <div id="loginLayer" class="loginLayer" onclick="if(event.target===this)closeLogin()">
   <section class="loginBox">
-    <div class="loginWelcome">
+    <div class="welcome">
       <h2>Welkom terug</h2>
       <p>Log in en ga verder met je boodschappen.</p>
     </div>
 
-    <div class="loginInputBox">
+    <div class="inputBox">
       <span>✉</span>
       <input id="loginEmail" type="email" placeholder="E-mailadres" autocomplete="off">
     </div>
 
-    <div class="loginInputBox">
+    <div class="inputBox">
       <span>●</span>
       <input id="loginPassword" type="password" placeholder="Wachtwoord" autocomplete="off">
     </div>
 
-    <div class="loginForgotNew" onclick="toast('Wachtwoord herstellen wordt later gekoppeld')">Wachtwoord vergeten?</div>
+    <div class="forgotPassword" onclick="toast('Wachtwoord herstellen wordt later gekoppeld')">Wachtwoord vergeten?</div>
 
-    <button class="loginBtnNew" type="button" onclick="toast('Login wordt later gekoppeld')">Inloggen</button>
+    <button class="loginButton" type="button" onclick="toast('Login wordt later gekoppeld')">Inloggen</button>
 
-    <div class="loginOrNew"><span></span><b style="font-weight:400">Of</b><span></span></div>
+    <div class="loginOr"><span></span><b>Of</b><span></span></div>
 
-    <button class="registerBtnNew" type="button" onclick="toast('Account aanmaken wordt later gekoppeld')">
+    <button class="registerButton" type="button" onclick="toast('Account aanmaken wordt later gekoppeld')">
       <span>＋</span><span>Account aanmaken</span>
     </button>
 
-    <div class="loginVersion">Versie 1.0</div>
-    <div class="loginCopyright">© 2026 Boodschappenlijst</div>
+    <div class="version">Versie 1.0</div>
+    <div class="copyright">© 2026 Boodschappenlijst</div>
   </section>
 </div>
 
