@@ -3,156 +3,51 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#f3f7f4">
-<title>Boodschappenlijst — nieuw ontwerp</title>
+<meta name="theme-color" content="#f4f7f3">
+<title>Boodschappen — nieuw ontwerp</title>
 <style>
 :root{
-  --bg:#f3f7f4;--card:#fff;--soft:#edf3ee;--ink:#26352d;--muted:#7f8a84;
-  --green:#35644f;--green-dark:#294f3e;--line:#dfe7e2;--danger:#b64e49;
-  --shadow:0 18px 55px rgba(42,72,56,.10);--radius:28px;
+  --bg:#f4f7f3;--surface:#fff;--surface2:#edf3ee;--ink:#24312a;--muted:#7b8780;
+  --green:#315f49;--green2:#e3efe7;--line:#e2e9e4;--danger:#b6534a;
+  --shadow:0 18px 50px rgba(38,65,50,.10);--r:24px;
 }
-*{box-sizing:border-box}
-html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink)}
-body{overflow-x:hidden}
-button,input{font:inherit}
-button{cursor:pointer}
-.app{width:min(100%,600px);margin:auto;padding:18px 16px 105px;min-height:100vh}
-.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:4px 2px 18px}
-.brand{display:flex;align-items:center;gap:12px;min-width:0}
-.logo{width:52px;height:52px;border-radius:18px;background:var(--green);display:grid;place-items:center;font-size:27px;box-shadow:0 10px 25px rgba(53,100,79,.15)}
-.brandText strong{display:block;font-size:22px;letter-spacing:-.6px}
-.brandText small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
-.iconBtn{width:48px;height:48px;border:1px solid var(--line);background:var(--card);border-radius:17px;color:var(--green);font-size:21px;box-shadow:0 6px 20px rgba(42,72,56,.05)}
-.page{display:none;animation:pageIn .28s ease both}
-.page.active{display:block}
-@keyframes pageIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
-.hero{background:var(--green);color:#fff;border-radius:32px;padding:27px 25px;margin-bottom:16px;box-shadow:var(--shadow)}
-.hero small{font-size:15px;opacity:.72}.hero h1{font-size:34px;line-height:1.05;letter-spacing:-1.1px;margin:8px 0}.hero p{margin:0;font-size:17px;opacity:.78}
-.addCard{display:flex;gap:10px;padding:9px;background:var(--card);border:1px solid var(--line);border-radius:25px;box-shadow:var(--shadow)}
-.addCard input{flex:1;min-width:0;border:0;outline:0;background:var(--soft);border-radius:18px;padding:0 17px;height:58px;font-size:18px;color:var(--ink)}
-.addCard input::placeholder{color:#a4ada8}
-.primary{border:0;background:var(--green);color:#fff;border-radius:18px;padding:0 22px;font-weight:800;font-size:17px;min-height:58px}
-.sectionHead{display:flex;align-items:center;justify-content:space-between;margin:25px 4px 10px}
-.sectionHead h2{font-size:21px;margin:0;letter-spacing:-.4px}.link{border:0;background:none;color:var(--green);font-weight:800;font-size:14px}
-.search{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:0 17px;margin-bottom:12px}
-.search span{font-size:20px}.search input{width:100%;border:0;outline:0;height:56px;font-size:17px;background:transparent}
-.list{display:grid;gap:10px}
-.item{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:23px;padding:13px 12px 13px 14px;box-shadow:0 8px 25px rgba(42,72,56,.05)}
-.check{width:40px;height:40px;border-radius:13px;border:2px solid #b8c5be;background:#fff;color:#fff;flex:0 0 40px;font-weight:900}
-.item.done .check{background:var(--green);border-color:var(--green)}
-.name{font-size:18px;font-weight:750;flex:1;min-width:0}.item.done .name{text-decoration:line-through;color:#9aa39e}
-.emoji{font-size:25px}.mini{width:40px;height:40px;border:0;border-radius:14px;background:var(--soft);color:#718078;font-size:21px}
-.empty{text-align:center;background:var(--card);border:1px dashed #cfd9d3;border-radius:23px;padding:30px;color:var(--muted)}
-.card{background:var(--card);border:1px solid var(--line);border-radius:26px;padding:16px;box-shadow:var(--shadow)}
-.row{display:flex;align-items:center;gap:13px;padding:12px 2px}.row+.row{border-top:1px solid var(--line)}
-.avatar{width:46px;height:46px;border-radius:16px;background:var(--soft);display:grid;place-items:center;font-size:22px;flex:0 0 46px}
-.rowText{flex:1;min-width:0}.rowText strong{display:block;font-size:17px}.rowText small{display:block;color:var(--muted);margin-top:3px}
-.saveBtn{width:100%;margin-top:14px;background:var(--soft);color:var(--green);border:1px solid var(--line);min-height:54px;border-radius:18px;font-weight:800}
-.bottom{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);width:min(calc(100% - 26px),570px);display:grid;grid-template-columns:repeat(4,1fr);gap:5px;padding:7px;background:rgba(255,255,255,.94);border:1px solid var(--line);border-radius:25px;box-shadow:0 16px 45px rgba(42,72,56,.14);z-index:30;backdrop-filter:blur(16px)}
-.nav{border:0;background:transparent;border-radius:19px;min-height:62px;color:#7b8780;font-weight:750;font-size:12px}.nav b{display:block;font-size:21px;margin-bottom:4px}.nav.active{background:#e4efe8;color:var(--green)}
-.menuOverlay,.modal,.loginLayer{position:fixed;inset:0;background:rgba(31,48,40,.25);backdrop-filter:blur(8px);z-index:60;opacity:0;pointer-events:none;transition:.25s}
-.menuOverlay.show,.modal.show,.loginLayer.show{opacity:1;pointer-events:auto}
-.menu{position:absolute;right:12px;top:12px;bottom:12px;width:min(92%,420px);background:var(--card);border-radius:30px;padding:20px;transform:translateX(110%);transition:.3s;box-shadow:0 25px 80px rgba(20,35,28,.22);overflow:auto}
-.menuOverlay.show .menu{transform:none}
-.menuTop{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.menuTop h2{margin:0;font-size:27px}.menuTop button{width:44px;height:44px;border:0;border-radius:15px;background:var(--soft);font-size:22px;color:var(--green)}
-.menuGrid{display:grid;gap:9px}
-.menuItem{display:flex;align-items:center;gap:12px;width:100%;min-height:62px;padding:8px 12px;border:1px solid var(--line);background:#fff;border-radius:20px;color:var(--ink);font-weight:750;text-align:left}
-.menuItem span:last-child{margin-left:auto;color:#a0aaa5;font-size:25px}.menuIcon{width:42px;height:42px;border-radius:14px;background:var(--soft);display:grid;place-items:center;font-style:normal;color:var(--green);font-size:20px}
-.menuItem.danger{color:var(--danger)}.menuItem.danger .menuIcon{background:#f8e9e7;color:var(--danger)}
-.modalBox{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(90%,430px);background:#fff;border-radius:28px;padding:25px;box-shadow:0 25px 80px rgba(20,35,28,.2)}.modalBox h2{margin:0 0 8px;font-size:24px}.modalBox p{color:var(--muted);line-height:1.5}.modalActions{display:flex;justify-content:flex-end;gap:8px}.secondary{border:0;background:var(--soft);color:var(--green);border-radius:15px;padding:12px 18px;font-weight:800}
-.toast{position:fixed;left:50%;bottom:94px;transform:translate(-50%,20px);background:#26352d;color:#fff;padding:12px 17px;border-radius:16px;opacity:0;pointer-events:none;transition:.25s;z-index:100;font-weight:700}.toast.show{opacity:1;transform:translate(-50%,0)}
-/* Login design: overgenomen als uiterlijk, bestaande werking behouden. */
-
-*{box-sizing:border-box}
-html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-body{overflow-x:hidden}
-.loginLayer{
-  position:fixed;inset:0;
-  display:block;
-  padding:70px 18px 120px;
-  overflow-y:auto;-webkit-overflow-scrolling:touch;
-  background:
-    radial-gradient(circle at 15% 10%,rgba(224,239,230,.95) 0 18%,transparent 42%),
-    radial-gradient(circle at 90% 85%,rgba(232,241,235,.95) 0 16%,transparent 40%),
-    #f4f7f3;
-  overflow:auto;
-}
-.loginLayer::before{
-  content:"";position:absolute;width:360px;height:360px;border-radius:50%;
-  background:rgba(49,95,73,.055);top:-150px;right:-120px;pointer-events:none;
-}
-.loginLayer::after{
-  content:"";position:absolute;width:280px;height:280px;border-radius:50%;
-  background:rgba(49,95,73,.045);bottom:-130px;left:-100px;pointer-events:none;
-}
-.loginBox{
-  position:relative;z-index:1;
-  width:min(100%,430px);max-width:430px;
-  margin:0 auto 70px;padding:30px 24px 22px;
-  text-align:left;background:rgba(255,255,255,.94);
-  border:1px solid rgba(49,95,73,.10);border-radius:32px;
-  box-shadow:0 28px 70px rgba(35,58,45,.13);
-  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
-}
-.welcome{margin:0 0 24px;text-align:left}
-.welcome::before{
-  content:"🛒";display:grid;place-items:center;width:64px;height:64px;
-  margin-bottom:18px;border-radius:21px;background:#315f49;color:#fff;font-size:30px;
-  box-shadow:0 12px 26px rgba(49,95,73,.20);
-}
-.welcome h2{
-  margin:0;color:#24312a;font-size:29px;line-height:1.08;
-  letter-spacing:-.7px;font-weight:850;
-}
-.welcome p{
-  margin:9px 0 0;color:#7b8780;font-size:15px;line-height:1.45;
-}
-.inputBox{
-  height:56px;margin:0 0 11px;padding:0 14px;
-  display:flex;align-items:center;
-  border:1px solid #e2e9e4;border-radius:17px;background:#f7f9f7;
-}
-.inputBox span{margin-right:10px;color:#718078;font-size:17px}
-.inputBox input{
-  flex:1;min-width:0;height:54px;border:0;outline:0;
-  background:transparent;color:#24312a;font-size:16px;
-}
-.inputBox input::placeholder{color:#a3aca6}
-.forgotPassword{
-  margin:4px 2px 17px;color:#315f49;font-size:13px;
-  font-weight:750;text-align:right;text-decoration:underline;
-}
-.loginButton{
-  height:54px;width:100%;border:0;border-radius:17px;
-  background:#315f49;color:#fff;font-size:17px;font-weight:850;
-  box-shadow:0 10px 22px rgba(49,95,73,.18);
-}
-.loginOr{
-  display:flex;align-items:center;gap:14px;margin:18px 0;
-  color:#9aa49d;font-size:12px;
-}
-.loginOr span{height:1px;background:#e4e9e5;flex:1}
-.loginOr b{font-weight:400}
-.registerButton{
-  width:100%;height:52px;margin:0;padding:0 16px;
-  display:flex;align-items:center;justify-content:center;gap:9px;
-  border:1px solid #d8e3dc;border-radius:17px;
-  background:#eaf2ec;color:#315f49;font-size:16px;font-weight:800;
-}
-.version{margin-top:20px;color:#9aa49d;font-size:11px;text-align:center}
-.copyright{margin-top:4px;color:#b0b8b3;font-size:10px;text-align:center}
-@media(max-width:430px){
-  .loginLayer{padding:18px 12px}
-  .loginBox{padding:26px 18px 20px;border-radius:28px}
-}
-
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink)}
+button,input{font:inherit}button{cursor:pointer}
+.app{width:min(100%,560px);margin:auto;min-height:100vh;padding:16px 15px 100px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:4px 0 18px}
+.brand{display:flex;align-items:center;gap:10px}.logo{width:46px;height:46px;border-radius:16px;background:var(--green);color:#fff;display:grid;place-items:center;font-size:22px}
+.brand strong{font-size:21px;letter-spacing:-.5px}.brand small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.iconBtn{width:44px;height:44px;border:1px solid var(--line);background:#fff;border-radius:15px;color:var(--green);font-size:19px}
+.hero{background:var(--green);color:white;border-radius:28px;padding:22px;margin-bottom:14px;box-shadow:var(--shadow)}
+.hero small{opacity:.75}.hero h1{font-size:29px;line-height:1.05;margin:7px 0}.hero p{margin:0;opacity:.82;font-size:14px}
+.sectionHead{display:flex;align-items:center;justify-content:space-between;margin:22px 3px 10px}.sectionHead h2{font-size:18px;margin:0}.link{border:0;background:none;color:var(--green);font-weight:800;font-size:13px}
+.addCard{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:7px;display:flex;gap:7px;box-shadow:var(--shadow)}
+.addCard input{min-width:0;flex:1;border:0;background:#f5f7f5;border-radius:16px;padding:0 14px;height:48px;outline:0;color:var(--ink)}
+.primary{border:0;background:var(--green);color:#fff;border-radius:16px;padding:0 17px;height:48px;font-weight:850}
+.search{height:46px;background:#fff;border:1px solid var(--line);border-radius:16px;display:flex;align-items:center;gap:9px;padding:0 13px;margin:10px 0}
+.search input{border:0;outline:0;flex:1;min-width:0;background:none;color:var(--ink)}
+.cards{display:grid;gap:9px}.item{display:flex;align-items:center;gap:11px;background:#fff;border:1px solid var(--line);border-radius:19px;padding:10px 11px;min-height:62px;box-shadow:0 5px 18px rgba(38,65,50,.05)}
+.check{width:25px;height:25px;border-radius:8px;border:2px solid #b7c4bb;background:#fff;display:grid;place-items:center;color:#fff;flex:none}.item.done .check{background:var(--green);border-color:var(--green)}.item.done .name{text-decoration:line-through;color:#8a948e}.name{flex:1;font-size:16px;font-weight:750}.emoji{font-size:22px}.mini{border:0;background:#f1f5f2;width:35px;height:35px;border-radius:11px;color:#738078}
+.empty{text-align:center;padding:30px 15px;color:var(--muted);background:#fff;border:1px dashed var(--line);border-radius:20px}
+.bottom{position:fixed;left:50%;bottom:12px;transform:translateX(-50%);width:min(calc(100% - 24px),530px);background:rgba(255,255,255,.94);backdrop-filter:blur(16px);border:1px solid var(--line);border-radius:22px;padding:7px;display:grid;grid-template-columns:repeat(4,1fr);box-shadow:0 15px 40px rgba(28,54,39,.16);z-index:40}
+.nav{border:0;background:transparent;color:#7b8780;border-radius:16px;padding:8px 3px;font-size:11px;font-weight:750}.nav b{display:block;font-size:19px;margin-bottom:2px}.nav.active{background:var(--green2);color:var(--green)}
+.page{display:none}.page.active{display:block}
+.panel{background:#fff;border:1px solid var(--line);border-radius:24px;padding:15px;box-shadow:var(--shadow)}
+.menuOverlay,.modal{position:fixed;inset:0;background:rgba(25,39,31,.42);backdrop-filter:blur(6px);z-index:80;display:none;padding:16px;align-items:flex-start;justify-content:center}.menuOverlay.show,.modal.show{display:flex}
+.menu{width:min(100%,420px);margin-top:8px;background:#fff;border-radius:28px;padding:12px;border:1px solid var(--line);box-shadow:0 30px 80px rgba(20,40,28,.24)}
+.menuTop{display:flex;align-items:center;justify-content:space-between;padding:8px 8px 12px}.menuTop h2{margin:0;font-size:20px}.menuTop button{border:0;background:#f0f4f1;border-radius:12px;width:38px;height:38px}
+.menuGrid{display:grid;gap:7px}.menuItem{display:flex;align-items:center;gap:12px;width:100%;border:1px solid transparent;background:#f6f8f6;border-radius:18px;padding:9px 11px;text-align:left;color:var(--ink);min-height:56px;font-weight:800}.menuIcon{width:37px;height:37px;border-radius:50%;display:grid;place-items:center;background:var(--green2);color:var(--green);font-size:17px}.menuItem span:last-child{margin-left:auto;color:#9aa49d}.menuItem.danger{background:#fff2f0;color:var(--danger)}.menuItem.danger .menuIcon{background:#f9dcd8;color:var(--danger)}
+.modalBox{width:min(100%,410px);margin-top:16vh;background:#fff;border-radius:28px;padding:20px;border:1px solid var(--line);box-shadow:0 30px 80px rgba(20,40,28,.25)}.modalBox h2{margin:0 0 7px}.modalBox p{color:var(--muted);line-height:1.5}.modalActions{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}.secondary{border:1px solid var(--line);background:#f5f7f5;color:var(--ink);border-radius:14px;height:44px;padding:0 15px;font-weight:800}
+.row{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--line)}.row:last-child{border-bottom:0}.avatar{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:var(--green2);color:var(--green);font-weight:900}.rowText{flex:1}.rowText strong{display:block}.rowText small{color:var(--muted)}
+.switch{margin-left:auto;width:50px;height:30px;border:0;border-radius:20px;background:#ccd5cf;padding:3px}.switch i{display:block;width:24px;height:24px;background:#fff;border-radius:50%;transition:.2s}.switch.on{background:var(--green)}.switch.on i{transform:translateX(20px)}
+.toast{position:fixed;left:50%;bottom:90px;transform:translate(-50%,20px);background:#24312a;color:#fff;border-radius:14px;padding:11px 15px;font-size:13px;opacity:0;pointer-events:none;transition:.2s;z-index:100}.toast.show{opacity:1;transform:translate(-50%,0)}
+@media(max-width:420px){.app{padding:12px 11px 100px}.hero{padding:20px}.hero h1{font-size:26px}.primary{padding:0 13px}.bottom{bottom:8px}}
 </style>
 </head>
 <body>
-
 <div class="app">
   <header class="top">
-    <div class="brand"><div class="logo">🛒</div><div class="brandText"><strong>Boodschappen</strong><small>rustig geregeld</small></div></div>
+    <div class="brand"><div class="logo">🛒</div><div><strong>Boodschappen</strong><small>rustig geregeld</small></div></div>
     <button class="iconBtn" onclick="openMenu()" aria-label="Menu">☰</button>
   </header>
 
@@ -161,30 +56,35 @@ body{overflow-x:hidden}
     <div class="addCard"><input id="newItem" placeholder="Wat heb je nodig?" onkeydown="if(event.key==='Enter')addItem()"><button class="primary" onclick="addItem()">Toevoegen</button></div>
     <div class="sectionHead"><h2>Mijn lijst</h2><button class="link" onclick="clearDone()">Afgerond wissen</button></div>
     <div class="search"><span>⌕</span><input id="search" placeholder="Zoek in je lijst" oninput="render()"></div>
-    <div id="items" class="list"></div>
-    <button class="saveBtn" onclick="saveCurrentList()">＋ Lijst opslaan</button>
+    <div id="items" class="cards"></div>
   </main>
 
   <main id="family" class="page">
-    <section class="hero"><small>Samen</small><h1>Mijn familie</h1><p>Een rustige plek voor gezamenlijke boodschappen.</p></section>
-    <div class="card">
-      <div class="row"><div class="avatar">👥</div><div class="rowText"><strong>Familielijst</strong><small><span id="familyCount">0</span> producten</small></div><button class="mini" onclick="go('home')">›</button></div>
-      <div class="row"><div class="avatar">👤</div><div class="rowText"><strong>Familieleden</strong><small>Deze nieuwe versie gebruikt voorlopig lokale testgegevens.</small></div></div>
-      <button class="saveBtn" onclick="toast('Samenwerken wordt in de volgende stap gekoppeld')">Familie instellen</button>
+    <section class="hero"><small>Samen</small><h1>Mijn familie</h1><p>Alles wat jullie samen nodig hebben.</p></section>
+    <div class="panel">
+      <div class="sectionHead" style="margin-top:0"><h2>Familieleden</h2><span style="color:var(--muted)">2 leden</span></div>
+      <div class="row"><div class="avatar">S</div><div class="rowText"><strong>Stefano</strong><small>Eigenaar</small></div><span>👑</span></div>
+      <div class="row"><div class="avatar">A</div><div class="rowText"><strong>Familielid</strong><small>Lid</small></div><span>✓</span></div>
     </div>
+    <div class="sectionHead"><h2>Samenlijst</h2></div>
+    <div class="panel"><p style="color:var(--muted);margin-top:0">De familielijst gebruikt dezelfde eenvoudige lijstweergave, maar is bedoeld om samen te gebruiken.</p><button class="primary" onclick="go('home')">Naar mijn lijst</button></div>
   </main>
 
   <main id="saved" class="page">
-    <section class="hero"><small>Bewaren</small><h1>Opgeslagen lijsten</h1><p>Je lijsten met aantallen, klaar voor later.</p></section>
-    <div id="savedLists" class="list"></div>
+    <section class="hero"><small>Bewaren</small><h1>Opgeslagen lijsten</h1><p>Handige lijsten voor later.</p></section>
+    <div class="panel">
+      <div class="row"><div class="avatar">🛒</div><div class="rowText"><strong>Weekboodschappen</strong><small>12 producten</small></div><button class="mini" onclick="toast('Lijst geopend')">›</button></div>
+      <div class="row"><div class="avatar">🎉</div><div class="rowText"><strong>Feestje</strong><small>8 producten</small></div><button class="mini" onclick="toast('Lijst geopend')">›</button></div>
+      <div class="row"><div class="avatar">🏕️</div><div class="rowText"><strong>Weekend</strong><small>6 producten</small></div><button class="mini" onclick="toast('Lijst geopend')">›</button></div>
+    </div>
   </main>
 
   <main id="account" class="page">
-    <section class="hero"><small>Persoonlijk</small><h1>Mijn account</h1><p>Inloggen is nu niet verplicht. We bouwen eerst de nieuwe app.</p></section>
-    <div class="card">
-      <div class="row"><div class="avatar">👤</div><div class="rowText"><strong>Gastmodus</strong><small>Je kunt de app direct gebruiken.</small></div></div>
-      <button class="saveBtn" onclick="openLogin()">Inloggen / account gebruiken</button>
-      <div class="row"><div class="rowText"><strong>Rustige weergave</strong><small>De nieuwe vormgeving gebruikt bewust veel witruimte.</small></div><button class="mini" onclick="toggleTheme()">◐</button></div>
+    <section class="hero"><small>Persoonlijk</small><h1>Mijn account</h1><p>Jouw voorkeuren en app-instellingen.</p></section>
+    <div class="panel">
+      <div class="row"><div class="avatar">S</div><div class="rowText"><strong>Stefano</strong><small>Persoonlijk account</small></div><button class="mini" onclick="toast('Profiel bewerken')">✎</button></div>
+      <div class="row"><div class="rowText"><strong>Productsuggesties</strong><small>Handige aanvullingen tijdens het typen</small></div><button id="suggestSwitch" class="switch on" onclick="toggleSwitch(this)"><i></i></button></div>
+      <div class="row"><div class="rowText"><strong>Rustige weergave</strong><small>Minder afleiding in de lijst</small></div><button id="quietSwitch" class="switch on" onclick="toggleSwitch(this)"><i></i></button></div>
     </div>
   </main>
 </div>
@@ -205,82 +105,40 @@ body{overflow-x:hidden}
       <button class="menuItem" onclick="goFromMenu('saved')"><i class="menuIcon">▣</i>Opgeslagen<span>›</span></button>
       <button class="menuItem" onclick="openAbout()"><i class="menuIcon">i</i>Over de app<span>›</span></button>
       <button class="menuItem" onclick="goFromMenu('account')"><i class="menuIcon">⚙</i>Instellingen<span>›</span></button>
-      <button class="menuItem danger" onclick="resetDemo()"><i class="menuIcon">↺</i>Lijst terugzetten<span>›</span></button>
+      <button class="menuItem danger" onclick="confirmReset()"><i class="menuIcon">↺</i>Lijst terugzetten<span>›</span></button>
     </div>
   </section>
 </div>
 
 <div id="modal" class="modal" onclick="if(event.target===this)closeModal()"><section class="modalBox"><h2 id="modalTitle"></h2><p id="modalText"></p><div class="modalActions"><button class="secondary" onclick="closeModal()">Sluiten</button></div></section></div>
-
-<div id="loginLayer" class="loginLayer" onclick="if(event.target===this)closeLogin()">
-  <section class="loginBox">
-    <div class="welcome">
-      <h2>Welkom terug</h2>
-      <p>Log in en ga verder met je boodschappen.</p>
-    </div>
-
-    <div class="inputBox">
-      <span>✉</span>
-      <input id="loginEmail" type="email" placeholder="E-mailadres" autocomplete="off">
-    </div>
-
-    <div class="inputBox">
-      <span>●</span>
-      <input id="loginPassword" type="password" placeholder="Wachtwoord" autocomplete="off">
-    </div>
-
-    <div class="forgotPassword" onclick="toast('Wachtwoord herstellen wordt later gekoppeld')">Wachtwoord vergeten?</div>
-
-    <button class="loginButton" type="button" onclick="toast('Login wordt later gekoppeld')">Inloggen</button>
-
-    <div class="loginOr"><span></span><b>Of</b><span></span></div>
-
-    <button class="registerButton" type="button" onclick="toast('Account aanmaken wordt later gekoppeld')">
-      <span>＋</span><span>Account aanmaken</span>
-    </button>
-
-    <div class="version">Versie 1.0</div>
-    <div class="copyright">© 2026 Boodschappenlijst</div>
-  </section>
-</div>
-
 <div id="toast" class="toast"></div>
 
 <script>
-const DEFAULT=[["Koffie","☕"],["Melk","🥛"],["Brood","🍞"],["Bananen","🍌"]];
-let items=JSON.parse(localStorage.getItem("newDesignItems")||"null")||DEFAULT.map((x,i)=>({id:Date.now()+i,name:x[0],emoji:x[1],done:false}));
-let saved=JSON.parse(localStorage.getItem("newDesignSaved")||"null")||[];
-const icons={"koffie":"☕","melk":"🥛","brood":"🍞","banaan":"🍌","bananen":"🍌","ei":"🥚","eieren":"🥚","kaas":"🧀","appel":"🍎","appels":"🍎","water":"💧","curry":"🥫","curry saus":"🥫","vlees":"🥩","groente":"🥦","groenten":"🥦"};
-function persist(){localStorage.setItem("newDesignItems",JSON.stringify(items));localStorage.setItem("newDesignSaved",JSON.stringify(saved))}
-function addItem(){const el=document.getElementById("newItem"),name=el.value.trim();if(!name)return;items.unshift({id:Date.now(),name,emoji:icons[name.toLowerCase()]||"🛒",done:false});el.value="";persist();render();toast("Toegevoegd")}
-function toggle(id){const x=items.find(i=>i.id===id);if(x)x.done=!x.done;persist();render()}
-function removeItem(id){items=items.filter(i=>i.id!==id);persist();render();toast("Product verwijderd")}
-function clearDone(){const n=items.filter(i=>i.done).length;items=items.filter(i=>!i.done);persist();render();toast(n?n+" afgerond product(en) gewist":"Geen afgeronde producten")}
+const defaultItems=[["Koffie","☕"],["Melk","🥛"],["Brood","🍞"],["Bananen","🍌"],["Curry saus","🥫"]];
+let items=JSON.parse(localStorage.getItem("demoShoppingItems")||"null")||defaultItems.map((x,i)=>({id:Date.now()+i,name:x[0],emoji:x[1],done:false}));
+function save(){localStorage.setItem("demoShoppingItems",JSON.stringify(items))}
+function addItem(){
+ const el=document.getElementById("newItem"), name=el.value.trim(); if(!name)return;
+ const emoji={"koffie":"☕","melk":"🥛","brood":"🍞","banaan":"🍌","bananen":"🍌","ei":"🥚","eieren":"🥚","kaas":"🧀","appel":"🍎","water":"💧","curry":"🥫"}[name.toLowerCase()]||"🛒";
+ items.unshift({id:Date.now(),name,emoji,done:false}); el.value=""; save(); render(); toast("Toegevoegd aan je lijst");
+}
+function toggle(id){const x=items.find(i=>i.id===id);if(x)x.done=!x.done;save();render()}
+function remove(id){items=items.filter(i=>i.id!==id);save();render();toast("Product verwijderd")}
+function clearDone(){const n=items.filter(i=>i.done).length;items=items.filter(i=>!i.done);save();render();toast(n?n+" afgerond product(en) gewist":"Geen afgeronde producten")}
 function render(){
- const q=(document.getElementById("search")?.value||"").toLowerCase();
- const list=items.filter(i=>i.name.toLowerCase().includes(q));
- document.getElementById("count").textContent=items.filter(i=>!i.done).length;
- document.getElementById("familyCount").textContent=items.length;
- document.getElementById("items").innerHTML=list.length?list.map(i=>`<div class="item ${i.done?"done":""}"><button class="check" onclick="toggle(${i.id})">${i.done?"✓":""}</button><span class="name">${esc(i.name)}</span><span class="emoji">${i.emoji}</span><button class="mini" onclick="removeItem(${i.id})">×</button></div>`).join(""):'<div class="empty">Je lijst is leeg.<br><small>Voeg hierboven je eerste product toe.</small></div>';
- renderSaved();
+ const q=document.getElementById("search").value.toLowerCase(), box=document.getElementById("items");
+ const list=items.filter(i=>i.name.toLowerCase().includes(q)); document.getElementById("count").textContent=items.filter(i=>!i.done).length;
+ box.innerHTML=list.length?list.map(i=>`<div class="item ${i.done?"done":""}"><button class="check" onclick="toggle(${i.id})">${i.done?"✓":""}</button><span class="name">${esc(i.name)}</span><span class="emoji">${i.emoji}</span><button class="mini" onclick="remove(${i.id})">×</button></div>`).join(""):`<div class="empty">Je lijst is leeg.<br><small>Voeg hierboven je eerste product toe.</small></div>`;
 }
-function renderSaved(){
- const box=document.getElementById("savedLists");
- box.innerHTML=saved.length?saved.map((x,i)=>`<div class="item"><div class="avatar">${x.icon}</div><div class="name">${esc(x.name)}<div style="font-size:13px;color:var(--muted);font-weight:500;margin-top:4px">${x.count} producten</div></div><button class="mini" onclick="loadSaved(${i})">›</button></div>`).join(""):'<div class="empty">Nog geen opgeslagen lijsten.<br><small>Gebruik “Lijst opslaan” op Start.</small></div>';
-}
-function saveCurrentList(){if(!items.length){toast("Je lijst is leeg");return}const name=prompt("Naam van deze lijst","Weekboodschappen");if(!name)return;saved.unshift({name:name.trim()||"Nieuwe lijst",count:items.length,icon:"🛒",items:JSON.parse(JSON.stringify(items))});persist();render();toast("Lijst opgeslagen")}
-function loadSaved(i){items=JSON.parse(JSON.stringify(saved[i].items||[]));persist();go("home");render();toast("Lijst geopend")}
+function esc(s){return s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]))}
 function go(page){document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));document.getElementById(page).classList.add("active");document.querySelectorAll(".nav").forEach(x=>x.classList.toggle("active",x.dataset.page===page));closeMenu()}
-function goFromMenu(p){go(p)}
 function openMenu(){document.getElementById("menuOverlay").classList.add("show")}
 function closeMenu(){document.getElementById("menuOverlay").classList.remove("show")}
-function openAbout(){document.getElementById("modalTitle").textContent="Over de app";document.getElementById("modalText").textContent="Een volledig nieuwe, rustige boodschappenapp. Deze versie gebruikt alleen lokale testgegevens; Firebase en echte accounts koppelen we pas wanneer de nieuwe basis helemaal staat.";document.getElementById("modal").classList.add("show");closeMenu()}
+function goFromMenu(p){go(p)}
+function openAbout(){document.getElementById("modalTitle").textContent="Over deze app";document.getElementById("modalText").textContent="Een rustige boodschappenapp die is ontworpen om snel producten toe te voegen, samen te werken met familie en lijsten overzichtelijk te bewaren.";document.getElementById("modal").classList.add("show");closeMenu()}
 function closeModal(){document.getElementById("modal").classList.remove("show")}
-function resetDemo(){items=DEFAULT.map((x,i)=>({id:Date.now()+i,name:x[0],emoji:x[1],done:false}));persist();render();closeMenu();toast("Voorbeeldlijst teruggezet")}
-function openLogin(){document.getElementById("loginLayer").classList.add("show")}
-function closeLogin(){document.getElementById("loginLayer").classList.remove("show")}
-function toggleTheme(){document.body.classList.toggle("dark");toast("Thema wordt later uitgebreid")}
-function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]))}
+function confirmReset(){document.getElementById("modalTitle").textContent="Lijst terugzetten";document.getElementById("modalText").textContent="Dit demo-ontwerp gebruikt alleen lokale testgegevens op dit apparaat. Je kunt de lijst terugzetten naar de voorbeeldproducten.";document.getElementById("modal").classList.add("show");closeMenu()}
+function toggleSwitch(el){el.classList.toggle("on")}
 let toastTimer;function toast(t){const x=document.getElementById("toast");x.textContent=t;x.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>x.classList.remove("show"),1800)}
 render();
 </script>
