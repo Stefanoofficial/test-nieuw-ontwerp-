@@ -1,102 +1,2985 @@
-const firebaseConfig={apiKey:"AIzaSyCtuUMTbByy39KxAbLdw5GUkO_cHmfZHHc",authDomain:"boodschappenthuis1.firebaseapp.com",databaseURL:"https://boodschappenthuis1-default-rtdb.firebaseio.com",projectId:"boodschappenthuis1",storageBucket:"boodschappenthuis1.firebasestorage.app",messagingSenderId:"845995010779",appId:"1:845995010779:web:5896c89bde8b3ace507afe"};
-firebase.initializeApp(firebaseConfig);const auth=firebase.auth(),db=firebase.database();auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(console.error);
-let state={items:[],saved:[],householdId:null,sharedId:null,sharedCode:null,active:"family",screen:0,sharedUnsub:null};
-const catalog=[['Melk','🥛'],['Brood','🍞'],['Eieren','🥚'],['Kaas','🧀'],['Boter','🧈'],['Yoghurt','🥣'],['Appels','🍎'],['Bananen','🍌'],['Tomaten','🍅'],['Komkommer','🥒'],['Aardappelen','🥔'],['Uien','🧅'],['Kip','🍗'],['Rijst','🍚'],['Pasta','🍝'],['Koffie','☕'],['Thee','🍵'],['Water','💧'],['Chips','🥔'],['Wc-papier','🧻']];
-const $=id=>document.getElementById(id);const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
-function toast(t){$('toast').textContent=t;$('toast').classList.add('show');setTimeout(()=>$('toast').classList.remove('show'),2200)}
-function go(i){state.screen=i;$('track').style.transform=`translateX(-${i*100}%)`;document.querySelectorAll('.nav').forEach(b=>b.classList.toggle('active',+b.dataset.i===i));if(i===1)renderFamily();if(i===2)renderSaved();if(i===3)renderSettings()}
-function openDrawer(){$('drawerWrap').classList.add('show')}function closeDrawer(){$('drawerWrap').classList.remove('show')}
-function openModal(title,body){$('mTitle').textContent=title;$('mBody').innerHTML=body;$('modal').classList.add('show')}function closeModal(){$('modal').classList.remove('show')}
-function normalize(arr){return (Array.isArray(arr)?arr:[]).map((x,i)=>typeof x==='string'?{name:x,done:false,id:'legacy-'+i}:({...x,id:x.id||crypto.randomUUID()}))}
-function currentPath(){if(state.active==='shared'&&state.sharedId)return db.ref(`sharedLists/${state.sharedId}/boodschappen`);if(state.householdId)return db.ref(`households/${state.householdId}/boodschappen`);return null}
-async function saveItems(){const ref=currentPath();if(ref)await ref.set(state.items);else localStorage.setItem('boodschappenPrivate_'+auth.currentUser.uid,JSON.stringify(state.items))}
-function renderSuggestions(){const box=$('suggestions');if(!box)return;const names=catalog.slice(0,10);box.innerHTML=names.map(x=>`<button class="suggestion" onclick="addSuggested('${esc(x[0])}')"><span>${x[1]}</span>${esc(x[0])}</button>`).join('')}
-function renderList(){const q=$('search').value.trim().toLowerCase();const shown=state.items.filter(x=>x.name.toLowerCase().includes(q));$('count').textContent=state.items.filter(x=>!x.done).length;const box=$('items');if(!shown.length){box.innerHTML='<div class="empty">Je lijst is nog leeg.<br><br>Voeg bovenaan je eerste product toe.</div>';return}box.innerHTML=shown.map(x=>`<div class="item ${x.done?'done':''}"><button class="check" onclick="toggleItem('${x.id}')">${x.done?'✓':''}</button><div class="itemIcon">${esc(x.icon||'🛒')}</div><div class="itemName">${esc(x.name)}<div class="meta">${x.done&&x.completedBy?'Afgerond door '+esc(x.completedBy):'Nog te doen'}</div></div><div class="itemActions"><button class="edit" onclick="editItem('${x.id}')">✎</button><button class="trash" onclick="removeItem('${x.id}')">⌫</button></div></div>`).join('')}
-async function addSuggested(name){const product=catalog.find(x=>x[0]===name);if(!product)return;state.items.push({id:crypto.randomUUID(),name:product[0],icon:product[1],done:false});await saveItems();renderList();toast(product[0]+' toegevoegd')}
-async function editItem(id){const x=state.items.find(x=>x.id===id);if(!x)return;const name=prompt('Product aanpassen',x.name);if(name===null)return;const clean=name.trim();if(!clean)return toast('Vul een productnaam in');x.name=clean;await saveItems();renderList();toast('Product aangepast')}
-async function addItem(){const input=$('newItem'),name=input.value.trim();if(!name)return;const product=catalog.find(x=>x[0].toLowerCase()===name.toLowerCase());state.items.push({id:crypto.randomUUID(),name:product?product[0]:name,icon:product?.[1]||'🛒',done:false});input.value='';await saveItems();renderList()}
-async function toggleItem(id){const x=state.items.find(x=>x.id===id);if(!x)return;x.done=!x.done;x.completedBy=x.done?(auth.currentUser?.displayName||auth.currentUser?.email||'Jij'):'';await saveItems();renderList()}
-async function removeItem(id){state.items=state.items.filter(x=>x.id!==id);await saveItems();renderList()}
-async function clearDone(){state.items=state.items.filter(x=>!x.done);await saveItems();renderList()}
-async function saveCurrentList(){if(!state.items.length)return toast('Je lijst is leeg');state.saved.unshift({name:'Boodschappen '+new Date().toLocaleDateString('nl-NL'),items:JSON.parse(JSON.stringify(state.items)),createdAt:Date.now()});localStorage.setItem('savedLists',JSON.stringify(state.saved));renderSaved();toast('Lijst opgeslagen')}
-function renderSaved(){const box=$('saved');if(!state.saved.length){box.innerHTML='<div class="empty">Nog geen opgeslagen lijsten.</div>';return}box.innerHTML=state.saved.map((x,i)=>`<div class="item"><div class="itemName">${esc(x.name)}<div class="meta">${x.items.length} producten</div></div><button class="secondary" onclick="loadSaved(${i})">Open</button></div>`).join('')}
-async function loadSaved(i){state.items=normalize(state.saved[i].items);state.active='private';await saveItems();go(0);renderList();toast('Lijst geopend')}
-async function getHousehold(){const u=auth.currentUser;if(!u)return null;const snap=await db.ref(`users/${u.uid}/householdId`).once('value');const id=snap.val();if(!id)return null;const hs=await db.ref(`households/${id}`).once('value');if(!hs.exists()){await db.ref(`users/${u.uid}/householdId`).remove();return null}const h=hs.val()||{};if(h.owner!==u.uid&&!(h.members&&h.members[u.uid]))return null;state.householdId=String(id);return state.householdId}
-async function loadFamily(){state.active='family';state.sharedId=null;if(state.sharedUnsub){state.sharedUnsub();state.sharedUnsub=null}const ref=currentPath();if(ref){const s=await ref.once('value');state.items=normalize(s.val()||[])}else state.items=normalize(JSON.parse(localStorage.getItem('boodschappenPrivate_'+auth.currentUser.uid)||'[]'));renderList()}
-async function renderFamily(){const u=auth.currentUser;if(!u){$('familySub').textContent='Log in om je familielijst te gebruiken.';$('familyCard').innerHTML='<button class="primary" style="width:100%;height:54px" onclick="openLogin()">Inloggen</button>';return}const h=state.householdId?await db.ref(`households/${state.householdId}`).once('value'):null;const v=h?.val()||{};const members=v.members?Object.keys(v.members).filter(k=>v.members[k]===true):[];$('familySub').textContent=state.householdId?'Jouw gezamenlijke boodschappenlijst.':'Je hebt nog geen familie.';$('familyCard').innerHTML=`<div class="member"><div class="memberIcon">👥</div><div style="flex:1"><b>${state.householdId?'Familielijst':'Geen familie ingesteld'}</b><div class="meta">${members.length||(!state.householdId?0:1)} leden</div></div></div>${state.householdId?`<button class="secondary" style="width:100%;margin-top:10px" onclick="loadFamily();go(0)">Familielijst openen</button>`:`<button class="primary" style="width:100%;height:54px;margin-top:10px" onclick="familySetup()">Familie instellen</button>`}`}
-async function familySetup(){const u=auth.currentUser;if(!u)return openLogin();await openUseModeModal()}
-async function createNewFamily(){const u=auth.currentUser;if(!u)return;try{let existing=await getHousehold();if(existing){state.householdId=existing;closeUseModeModal();await loadFamily();go(0);return}let code=null,created=false,lastErr=null;for(let i=0;i<8&&!created;i++){code=String(Math.floor(100000+Math.random()*900000));try{await db.ref(`households/${code}`).set({owner:u.uid,name:'Mijn familie',members:{[u.uid]:true},memberNames:{[u.uid]:u.displayName||u.email||'Lid'},boodschappen:[]});created=true}catch(e){lastErr=e}}if(!created)throw lastErr||new Error('Familie kon niet worden aangemaakt.');await db.ref(`users/${u.uid}/householdId`).set(code);state.householdId=code;localStorage.setItem('boodschappenUseMode_'+u.uid,'family');closeUseModeModal();await loadFamily();renderFamily();go(0);openModal('Nieuwe familie aangemaakt',`<p>Je nieuwe familie is aangemaakt.</p><div class="code">${esc(code)}</div><p>Dit is je familiecode. Deel deze code met de mensen die je wilt toevoegen.</p>`)}catch(e){console.error(e);toast(e.message||'Nieuwe familie aanmaken mislukt')}}
-async function enterFamilyCode(){const u=auth.currentUser;if(!u)return;openModal('Familiecode invoeren',`<p>Voer de 6-cijferige familiecode in.</p><div class="field"><input id="familyCodeInput" inputmode="numeric" maxlength="6" placeholder="6 cijfers"></div><div class="actions"><button class="secondary" onclick="closeModal();openUseModeModal()">Terug</button><button class="primary" style="height:44px" onclick="joinFamilyByCode()">Doorgaan</button></div>`)}
-async function joinFamilyByCode(){const u=auth.currentUser,code=($('familyCodeInput')?.value||'').trim();if(!/^\d{6}$/.test(code))return toast('Vul een geldige 6-cijferige familiecode in');try{const ref=db.ref(`households/${code}`),snap=await ref.once('value');if(!snap.exists())throw new Error('Deze familiecode bestaat niet.');const h=snap.val()||{};await ref.child(`members/${u.uid}`).set(true);await ref.child(`memberNames/${u.uid}`).set(u.displayName||u.email||'Lid');await db.ref(`users/${u.uid}/householdId`).set(code);state.householdId=code;localStorage.setItem('boodschappenUseMode_'+u.uid,'family');closeModal();closeUseModeModal();await loadFamily();renderFamily();go(0);toast('Je bent toegevoegd aan de familie')}catch(e){toast(e.message||'Familiecode invoeren mislukt')}}
-async function leaveFamily(){const u=auth.currentUser;if(!u||!state.householdId)return toast('Je zit niet in een familie');if(!confirm('Weet je zeker dat je de familie wilt verlaten?'))return;await db.ref(`households/${state.householdId}/members/${u.uid}`).remove();await db.ref(`users/${u.uid}/householdId`).remove();state.householdId=null;await loadFamily();renderFamily();toast('Je hebt de familie verlaten')}
-async function openSharedMenu(){closeDrawer();const u=auth.currentUser;if(!u)return openLogin();const snap=await db.ref(`userSharedLists/${u.uid}`).once('value');const ids=Object.keys(snap.val()||{});let rows='<button class="primary" style="height:50px;width:100%;margin-bottom:12px" onclick="newSharedList()">＋ Nieuwe deellijst</button>';if(!ids.length)rows+='<div class="empty">Nog geen deellijsten.</div>';else for(const id of ids){const s=await db.ref(`sharedLists/${id}`).once('value'),v=s.val();if(v)rows+=`<button class="menuBtn" style="margin-bottom:8px" onclick="openSharedList('${id}')"><i class="mi">↗</i>${esc(v.name||'Deellijst')}<span>›</span></button>`}openModal('Deellijsten',rows)}
-async function newSharedList(){const name=prompt('Naam van de deellijst');if(!name?.trim())return;const u=auth.currentUser,ref=db.ref('sharedLists').push(),id=ref.key;let code;do{code=String(Math.floor(100000+Math.random()*900000));}while((await db.ref(`sharedListCodes/${code}`).once('value')).exists());const data={name:name.trim(),owner:u.uid,members:{[u.uid]:true},memberNames:{[u.uid]:u.displayName||u.email||'Lid'},inviteCode:code,boodschappen:[]};await ref.set(data);await db.ref(`sharedListCodes/${code}`).set(id);await db.ref(`userSharedLists/${u.uid}/${id}`).set(true);closeModal();await openSharedList(id);toast('Deellijst aangemaakt')}
-async function openSharedList(id){const u=auth.currentUser;if(!u)return openLogin();if(state.sharedUnsub){state.sharedUnsub();state.sharedUnsub=null}const s=await db.ref(`sharedLists/${id}`).once('value'),v=s.val();if(!v||v.members?.[u.uid]!==true)return toast('Je hebt geen toegang');state.active='shared';state.sharedId=id;state.sharedCode=v.inviteCode||null;state.items=normalize(v.boodschappen||[]);const ref=db.ref(`sharedLists/${id}/boodschappen`);const fn=ss=>{state.items=normalize(ss.val()||[]);renderList()};ref.on('value',fn);state.sharedUnsub=()=>ref.off('value',fn);closeModal();go(0);toast(v.name||'Deellijst geopend')}
-async function showSharedInfo(){if(!state.sharedId)return;const s=await db.ref(`sharedLists/${state.sharedId}`).once('value'),v=s.val()||{};const ids=Object.keys(v.members||{}).filter(k=>v.members[k]);let members=ids.map(id=>`<div class="member"><div class="memberIcon">${id===v.owner?'👑':'👤'}</div><div>${esc(v.memberNames?.[id]||'Lid')}</div></div>`).join('');openModal('Deellijst',`<p><b>${esc(v.name||'Deellijst')}</b></p><div class="code">${esc(v.inviteCode||'')}</div><button class="primary" style="width:100%;height:50px" onclick="navigator.clipboard.writeText('${esc(v.inviteCode||'')}');toast('Deelcode gekopieerd')">Kopiëren</button><h3>Leden (${ids.length})</h3>${members}`)}
-function openSettingsMenu(){closeDrawer();go(3)}function openAbout(){closeDrawer();openModal('Over de app','<p>Een nieuwe Boodschappenlijst, vanaf nul opgebouwd. De vormgeving en navigatie zijn nieuw; Firebase blijft de basis voor accounts, families en gedeelde lijsten.</p><p>Versie 1.0</p>')}
-function renderSettings(){const u=auth.currentUser;$('accountSub').textContent=u?(u.displayName||u.email||'Ingelogd'):'Nog niet ingelogd.';$('settingsCard').innerHTML=u?`<div class="member"><div class="memberIcon">👤</div><div style="flex:1"><b>${esc(u.displayName||'Account')}</b><div class="meta">${esc(u.email||'')}</div></div></div><button class="secondary" style="width:100%;margin-top:10px" onclick="showSharedInfo()">Actieve deellijst</button><button class="secondary" style="width:100%;margin-top:8px" onclick="logout()">Uitloggen</button>`:'<div class="empty">Log in om je account en instellingen te beheren.</div>'}
-async function login(){const email=$('email').value.trim(),pass=$('password').value;if(!email||!pass)return toast('Vul je e-mailadres en wachtwoord in');try{await auth.signInWithEmailAndPassword(email,pass);toast('Welkom terug')}catch(e){let m='Inloggen is niet gelukt.';if(e.code==='auth/invalid-credential'||e.code==='auth/wrong-password')m='E-mailadres of wachtwoord is onjuist.';else if(e.code==='auth/user-not-found')m='Er bestaat geen account met dit e-mailadres.';else if(e.code==='auth/invalid-email')m='Het e-mailadres is niet geldig.';toast(m)}}
-function openRegister(){$('registerModal').classList.add('show')}function closeRegister(){$('registerModal').classList.remove('show')}function closeSuccessModal(){$('successModal').classList.remove('show');$('successModal').setAttribute('aria-hidden','true');$('loginScreen').classList.remove('hidden')}
-async function register(){const name=($('registerName').value||'').trim(),email=($('registerEmail').value||'').trim(),pass=$('registerPassword').value||'',confirmPass=$('registerPasswordConfirm').value||'';if(!name||!email||!pass||!confirmPass)return toast('Vul alle velden in');if(pass!==confirmPass)return toast('De wachtwoorden komen niet overeen');if(pass.length<6)return toast('Het wachtwoord moet minimaal 6 tekens bevatten');try{const c=await auth.createUserWithEmailAndPassword(email,pass);await db.ref(`users/${c.user.uid}`).set({email:c.user.email,name});await auth.signOut();['registerName','registerEmail','registerPassword','registerPasswordConfirm'].forEach(id=>$(id).value='');closeRegister();$('loginScreen').classList.remove('hidden');$('successModal').classList.add('show');$('successModal').setAttribute('aria-hidden','false')}catch(e){let m='Account aanmaken mislukt.';if(e.code==='auth/email-already-in-use')m='Dit e-mailadres is al in gebruik.';else if(e.code==='auth/invalid-email')m='Vul een geldig e-mailadres in.';else if(e.code==='auth/weak-password')m='Het wachtwoord is te zwak. Gebruik minimaal 6 tekens.';toast(m)}}
-async function resetPassword(){const email=$('email').value.trim();if(!email)return toast('Vul eerst je e-mailadres in');try{await auth.sendPasswordResetEmail(email);toast('Er is een e-mail gestuurd om je wachtwoord opnieuw in te stellen.')}catch(e){toast('Wachtwoord resetten mislukt')}}
-function openLogin(){$('loginScreen').classList.remove('hidden')}
-function openUseModeModal(){$('useModeModal').classList.add('show');$('useModeModal').setAttribute('aria-hidden','false')}function closeUseModeModal(){$('useModeModal').classList.remove('show');$('useModeModal').setAttribute('aria-hidden','true')}
-async function chooseUseMode(mode){const u=auth.currentUser;if(!u)return;if(mode==='family')return createNewFamily();if(mode==='code')return enterFamilyCode();if(mode==='private'){state.active='private';state.householdId=null;localStorage.setItem('boodschappenUseMode_'+u.uid,'private');closeUseModeModal();await loadPrivateList();go(0);toast('Privélijst geopend')}}
-async function loadPrivateList(){const u=auth.currentUser;if(!u)return;try{state.items=normalize(JSON.parse(localStorage.getItem('boodschappenPrivate_'+u.uid)||'[]'));state.active='private';state.householdId=null;state.sharedId=null;renderList()}catch(e){state.items=[];renderList()}}
-async function logout(){if(state.sharedUnsub)state.sharedUnsub();state={...state,items:[],householdId:null,sharedId:null,sharedCode:null,active:'family'};await auth.signOut();openLogin();renderSettings();toast('Uitgelogd')}
-auth.onAuthStateChanged(async u=>{if(u){$('loginScreen').classList.add('hidden');try{const code=new URLSearchParams(location.search).get('deellijst');if(code){await joinByInvite(code);return}const household=await getHousehold();if(household){state.active='family';await loadFamily()}else{const mode=localStorage.getItem('boodschappenUseMode_'+u.uid);if(mode==='private'){await loadPrivateList()}else{state.items=[];renderList();openUseModeModal()}}}catch(e){console.error(e)}renderSettings();renderFamily()}else{$('loginScreen').classList.remove('hidden');state.householdId=null;state.active='private';state.items=[];renderList();renderSettings();renderFamily()}});
-async function joinByInvite(code){try{const s=await db.ref(`sharedListCodes/${code}`).once('value'),id=s.val();if(!id)return toast('Deze uitnodigingslink is niet geldig');const l=await db.ref(`sharedLists/${id}`).once('value'),v=l.val();if(v.members?.[auth.currentUser.uid]!==true){if(!confirm(`Deelnemen aan “${v.name}”?`))return;await db.ref(`sharedLists/${id}/members/${auth.currentUser.uid}`).set(true);await db.ref(`sharedLists/${id}/memberNames/${auth.currentUser.uid}`).set(auth.currentUser.email||'Lid');await db.ref(`userSharedLists/${auth.currentUser.uid}/${id}`).set(true)}await openSharedList(id)}catch(e){toast('Uitnodiging kon niet worden verwerkt')}}
-function bindAuthButtons(){
-  $('loginBtn')?.addEventListener('click',login);
-  $('openRegisterBtn')?.addEventListener('click',openRegister);
-  $('closeRegisterBtn')?.addEventListener('click',closeRegister);
-  $('registerBtn')?.addEventListener('click',register);
-  $('successCloseBtn')?.addEventListener('click',closeSuccessModal);
-}
-$('newItem').addEventListener('keydown',e=>{if(e.key==='Enter')addItem()});
-$('items').addEventListener('click',e=>{});
-bindAuthButtons();
-renderSuggestions();renderList();state.saved=JSON.parse(localStorage.getItem('savedLists')||'[]');renderSaved();
 
 
-// --- Nieuwe registratieflow ---
-function openRegister(){
-  const m=document.getElementById('registerModal');
-  if(m) m.classList.remove('hidden');
-  const e=document.getElementById('registerError'); if(e) e.textContent='';
+
+
+let boodschappen = [];
+let selectedIndex = -1;
+
+function getActiveTheme() {
+  const saved = localStorage.getItem("boodschappenTheme") || "light";
+  if (saved === "system") {
+    return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+  return saved;
 }
-function closeRegister(){
-  const m=document.getElementById('registerModal');
-  if(m) m.classList.add('hidden');
+
+function applyTheme() {
+  const saved = localStorage.getItem("boodschappenTheme") || "light";
+  const active = getActiveTheme();
+  document.body.classList.toggle("dark-theme", active === "dark");
+  const icon = document.getElementById("themeButtonIcon");
+  if (icon) icon.className = active === "dark" ? "fa-solid fa-sun" : "fa-solid fa-moon";
 }
-async function registerUser(){
-  const name=(document.getElementById('regName')?.value||'').trim();
-  const email=(document.getElementById('regEmail')?.value||'').trim();
-  const p1=document.getElementById('regPassword')?.value||'';
-  const p2=document.getElementById('regPassword2')?.value||'';
-  const err=document.getElementById('registerError');
-  if(err) err.textContent='';
-  if(!name || !email || !p1 || !p2){ if(err) err.textContent='Vul alle velden in.'; return; }
-  if(p1!==p2){ if(err) err.textContent='De wachtwoorden komen niet overeen.'; return; }
-  if(p1.length<6){ if(err) err.textContent='Het wachtwoord moet minimaal 6 tekens bevatten.'; return; }
-  try{
-    if(typeof createUserWithEmailAndPassword!=='function'){
-      throw new Error('Registratie is nog niet gekoppeld aan Firebase Authentication.');
+
+function setTheme(theme) {
+  localStorage.setItem("boodschappenTheme", theme);
+  applyTheme();
+  closeThemePicker();
+}
+
+function toggleThemePicker() {
+  const familyMenu = document.getElementById("familyMenu");
+  if (familyMenu) closeFamilyMenu();
+  const picker = document.getElementById("themePicker");
+  const button = document.getElementById("themeButton");
+  if (!picker) return;
+
+  const open = !picker.classList.contains("open");
+  if (open) {
+    // Eerst zichtbaar maken in de beginstand, daarna pas de open-klasse toevoegen.
+    // Zo ziet de browser daadwerkelijk de startpositie en schuift het maanmenu
+    // bij het openen omhoog, in plaats van direct op zijn eindpositie te verschijnen.
+    picker.classList.remove("theme-closing");
+    picker.style.display = "block";
+    picker.classList.remove("open");
+    void picker.offsetWidth;
+    requestAnimationFrame(() => picker.classList.add("open"));
+  } else {
+    picker.classList.add("theme-closing");
+    picker.classList.remove("open");
+    setTimeout(() => {
+      if (!picker.classList.contains("open")) {
+        picker.classList.remove("theme-closing");
+        picker.style.display = "none";
+      }
+    }, 260);
+  }
+  picker.setAttribute("aria-hidden", open ? "false" : "true");
+  if (button) button.setAttribute("aria-expanded", open ? "true" : "false");
+}
+function closeThemePicker() {
+  const picker = document.getElementById("themePicker");
+  const button = document.getElementById("themeButton");
+  if (picker && (picker.classList.contains("open") || picker.style.display === "block")) {
+    picker.classList.add("theme-closing");
+    picker.classList.remove("open");
+    setTimeout(() => {
+      if (!picker.classList.contains("open")) {
+        picker.classList.remove("theme-closing");
+        picker.style.display = "none";
+      }
+    }, 260);
+  }
+  if (picker) picker.setAttribute("aria-hidden", "true");
+  if (button) button.setAttribute("aria-expanded", "false");
+}
+function toggleTheme() {
+  setTheme(getActiveTheme() === "dark" ? "light" : "dark");
+}
+
+function closeFamilyMenu() {
+  if (__menuTransitionTimer) { clearTimeout(__menuTransitionTimer); __menuTransitionTimer = null; }
+  const menu = document.getElementById("familyMenu");
+  if (!menu) return;
+
+  menu.classList.remove("menu-open");
+
+  setTimeout(() => {
+    if (menu.classList.contains("menu-open")) return;
+
+    menu.style.display = "none";
+
+    // Always reset the menu to the main page when it closes.
+    // This prevents a submenu (for example Deellijst) from
+    // remaining visible as a long bar the next time the menu is opened.
+    const pageIds = [
+      "familyMenuSub",
+      "sharedListsMenuSub",
+      "sharedListActiveMenuSub",
+      "settingsMenuSub",
+      "savedListsMenuSub",
+      "accountMenuSub",
+      "aboutMenuSub"
+    ];
+
+    pageIds.forEach(id => {
+      const page = document.getElementById(id);
+      if (page) {
+        page.style.display = "none";
+        page.classList.remove("familyMenuSubEnter", "familyMenuSubExit");
+      }
+    });
+
+    const main = document.getElementById("familyMenuMain");
+    if (main) {
+      main.style.display = "block";
+      main.classList.remove("familyMenuMainEnter", "familyMenuMainExit");
     }
-    const cred=await createUserWithEmailAndPassword(auth,email,p1);
-    if(typeof setDoc==='function' && typeof doc==='function'){
-      await setDoc(doc(db,'users',cred.user.uid),{
-        name:name,
-        email:email,
-        householdId:null,
-        useMode:null
-      },{merge:true});
+  }, 290);
+}
+
+
+function closeOpenMenusOnOutsideClick(event) {
+  const target = event.target;
+  const themePicker = document.getElementById("themePicker");
+  const themeButton = document.getElementById("themeButton");
+  const familyMenu = document.getElementById("familyMenu");
+  const familyButton = document.querySelector(".familyButton");
+
+  if (themePicker && themePicker.contains(target)) return;
+  if (themeButton && themeButton.contains(target)) return;
+  if (familyMenu && familyMenu.contains(target)) return;
+  if (familyButton && familyButton.contains(target)) return;
+
+  closeThemePicker();
+  closeFamilyMenu();
+}
+
+document.addEventListener("click", closeOpenMenusOnOutsideClick);
+
+
+function openFamilySubmenu(event) {
+  if (event) event.stopPropagation();
+  const mainCount = document.getElementById("memberCount");
+  const subCount = document.getElementById("memberCountSub");
+  if (mainCount && subCount) subCount.innerText = mainCount.innerText;
+  const mainLabel = document.getElementById("memberLabel");
+  const subLabel = document.getElementById("memberLabelSub");
+  if (mainLabel && subLabel) subLabel.innerHTML = mainLabel.innerHTML;
+  switchMenuPage("familyMenuSub", event);
+}
+function closeFamilySubmenu(event) { returnMenuToMain("familyMenuSub", event); }
+function openSettingsSubmenu(event) {
+  if (event) event.stopPropagation();
+  const main = document.getElementById("familyMenuMain");
+  const family = document.getElementById("familyMenuSub");
+  const settings = document.getElementById("settingsMenuSub");
+  const savedLists = document.getElementById("savedListsMenuSub");
+  const sharedLists = document.getElementById("sharedListsMenuSub");
+  if (!main || !settings) return;
+
+  main.classList.remove("familyMenuMainEnter");
+  main.classList.add("familyMenuMainExit");
+  setTimeout(() => {
+    main.style.display = "none";
+    if (family) { family.style.display = "none"; family.classList.remove("familyMenuSubEnter", "familyMenuSubExit"); }
+    if (savedLists) { savedLists.style.display = "none"; savedLists.classList.remove("familyMenuSubEnter", "familyMenuSubExit"); }
+    const account = document.getElementById("accountMenuSub");
+    const about = document.getElementById("aboutMenuSub");
+    if (account) { account.style.display = "none"; account.classList.remove("familyMenuSubEnter", "familyMenuSubExit"); }
+    if (about) { about.style.display = "none"; about.classList.remove("familyMenuSubEnter", "familyMenuSubExit"); }
+    main.classList.remove("familyMenuMainExit");
+    settings.style.display = "block";
+    settings.classList.remove("familyMenuSubExit");
+    void settings.offsetWidth;
+    settings.classList.add("familyMenuSubEnter");
+  }, 170);
+}
+function closeSettingsSubmenu(event) {
+  if (event) event.stopPropagation();
+  const main = document.getElementById("familyMenuMain");
+  const settings = document.getElementById("settingsMenuSub");
+  if (!main || !settings) return;
+
+  settings.classList.remove("familyMenuSubEnter");
+  settings.classList.add("familyMenuSubExit");
+  setTimeout(() => {
+    settings.style.display = "none";
+    settings.classList.remove("familyMenuSubExit");
+    main.style.display = "block";
+    void main.offsetWidth;
+    main.classList.add("familyMenuMainEnter");
+  }, 170);
+}
+
+function openSavedListsSubmenu(event) {
+  if (event) event.stopPropagation();
+  const main = document.getElementById("familyMenuMain");
+  const family = document.getElementById("familyMenuSub");
+  const settings = document.getElementById("settingsMenuSub");
+  const saved = document.getElementById("savedListsMenuSub");
+  if (!main || !saved) return;
+  main.classList.remove("familyMenuMainEnter");
+  main.classList.add("familyMenuMainExit");
+  setTimeout(() => {
+    main.style.display = "none";
+    if (family) { family.style.display = "none"; family.classList.remove("familyMenuSubEnter", "familyMenuSubExit"); }
+    if (settings) { settings.style.display = "none"; settings.classList.remove("familyMenuSubEnter", "familyMenuSubExit"); }
+    main.classList.remove("familyMenuMainExit");
+    saved.style.display = "block";
+    saved.classList.remove("familyMenuSubExit");
+    void saved.offsetWidth;
+    saved.classList.add("familyMenuSubEnter");
+    renderSavedLists();
+  }, 170);
+}
+function closeSavedListsSubmenu(event) {
+  if (event) event.stopPropagation();
+  const main = document.getElementById("familyMenuMain");
+  const saved = document.getElementById("savedListsMenuSub");
+  if (!main || !saved) return;
+  saved.classList.remove("familyMenuSubEnter");
+  saved.classList.add("familyMenuSubExit");
+  setTimeout(() => {
+    saved.style.display = "none";
+    saved.classList.remove("familyMenuSubExit");
+    main.style.display = "block";
+    void main.offsetWidth;
+    main.classList.add("familyMenuMainEnter");
+  }, 170);
+}
+
+let __menuTransitionTimer = null;
+let __menuCurrentPage = "familyMenuMain";
+
+function __resetMenuPageClasses(el){
+  if(!el) return;
+  el.classList.remove("familyMenuMainEnter","familyMenuSubEnter","familyMenuMainExit","familyMenuSubExit",
+    "menuSlideOutLeft","menuSlideInRight","menuSlideOutRight","menuSlideInLeft");
+}
+
+function switchMenuPage(pageId, event) {
+  if (event) event.stopPropagation();
+  const page = document.getElementById(pageId);
+  if (!page) return;
+
+  if (__menuTransitionTimer) { clearTimeout(__menuTransitionTimer); __menuTransitionTimer = null; }
+
+  const pageIds = ["familyMenuMain","familyMenuSub","sharedListsMenuSub","sharedListActiveMenuSub",
+    "settingsMenuSub","savedListsMenuSub","accountMenuSub","aboutMenuSub"];
+  let current = document.getElementById(__menuCurrentPage);
+  if (!current || current === page || getComputedStyle(current).display === "none") {
+    current = pageIds.map(id=>document.getElementById(id)).find(el => el && el !== page && getComputedStyle(el).display !== "none") || null;
+  }
+  if (current === page) return;
+
+  const forward = true;
+  if (current) {
+    __resetMenuPageClasses(current);
+    current.classList.add("menuSlideOutLeft");
+  }
+  __resetMenuPageClasses(page);
+  page.style.display = "block";
+  page.classList.add("menuSlideInRight");
+  __menuCurrentPage = pageId;
+
+  __menuTransitionTimer = setTimeout(()=>{
+    if(current && current !== page){ current.style.display="none"; __resetMenuPageClasses(current); }
+    __resetMenuPageClasses(page);
+    __menuTransitionTimer=null;
+  },290);
+}
+
+function returnMenuToMain(pageId, event) {
+  if (event) event.stopPropagation();
+  const page = document.getElementById(pageId);
+  const main = document.getElementById("familyMenuMain");
+  if (!page || !main) return;
+
+  if (__menuTransitionTimer) { clearTimeout(__menuTransitionTimer); __menuTransitionTimer=null; }
+  __resetMenuPageClasses(page);
+  __resetMenuPageClasses(main);
+  page.style.display="block";
+  main.style.display="block";
+  page.classList.add("menuSlideOutRight");
+  main.classList.add("menuSlideInLeft");
+  __menuCurrentPage="familyMenuMain";
+
+  __menuTransitionTimer=setTimeout(()=>{
+    page.style.display="none";
+    __resetMenuPageClasses(page);
+    __resetMenuPageClasses(main);
+    __menuTransitionTimer=null;
+  },290);
+}
+function openAccountSubmenu(event) {
+
+  switchMenuPage("accountMenuSub", event);
+  const user = auth && auth.currentUser;
+  const email = document.getElementById("accountMenuEmail");
+  if (email) email.textContent = user ? (user.email || "") : "";
+}
+function closeAccountSubmenu(event) { returnMenuToMain("accountMenuSub", event); }
+function openAboutSubmenu(event) { switchMenuPage("aboutMenuSub", event); }
+function closeAboutSubmenu(event) { returnMenuToMain("aboutMenuSub", event); }
+async function showAccountName() {
+  const user = auth && auth.currentUser;
+  if (!user) return;
+  const snap = await database.ref("users/" + user.uid + "/name").once("value");
+  const name = snap.val() || user.email || "Gebruiker";
+  const overlay = familyDialogBase("fa-user", "Mijn naam", `<div class="familyDialogText">Je naam wordt in je familie gebruikt.</div><input id="accountNameInput" class="familyDialogInput" type="text" maxlength="40" value="${String(name).replace(/"/g,'&quot;')}">`, `<button type="button" class="familyDialogBtn familyDialogCancel">Annuleren</button><button type="button" class="familyDialogBtn familyDialogPrimary">Opslaan</button>`);
+  const input=overlay.querySelector("#accountNameInput");
+  overlay.querySelector(".familyDialogCancel").addEventListener("click",()=>closeFamilyDialog(overlay));
+  overlay.querySelector(".familyDialogPrimary").addEventListener("click",async()=>{
+    const next=(input.value||"").trim();
+    if(!next){ input.focus(); return; }
+    try {
+      await database.ref("users/" + user.uid + "/name").set(next);
+      closeFamilyDialog(overlay);
+      await updateMemberCount();
+      await familyAlert("Mijn account", "Je naam is opgeslagen.", "fa-user");
+    } catch(error) {
+      await familyAlert("Mijn account", "Je naam kon niet worden opgeslagen.", "fa-triangle-exclamation");
     }
-    await signOut(auth);
-    closeRegister();
-    alert('Account succesvol aangemaakt. Je kunt nu inloggen.');
-    document.querySelectorAll('#loginScreen input').forEach(i=>i.value='');
-  }catch(e){
-    if(err) err.textContent=e?.message||'Account aanmaken is niet gelukt.';
+  });
+  setTimeout(()=>input.focus(),30);
+}
+async function changeAccountPassword() {
+  const user = auth && auth.currentUser;
+  if (!user || !user.email) return;
+  closeFamilyMenuForDialog();
+  try {
+    await auth.sendPasswordResetEmail(user.email);
+    await familyAlert("Wachtwoord wijzigen", "We hebben een e-mail gestuurd naar " + user.email + " waarmee je een nieuw wachtwoord kunt instellen.", "fa-key");
+  } catch(error) {
+    await familyAlert("Wachtwoord wijzigen", "De e-mail kon niet worden verstuurd. Probeer het later opnieuw.", "fa-triangle-exclamation");
   }
 }
+async function logoutFromMenu() {
+  const ok = await familyConfirm("Uitloggen", "Wil je uitloggen?", true);
+  if (!ok) return;
+  try { await auth.signOut(); } catch(error) { await familyAlert("Uitloggen", "Uitloggen is niet gelukt.", "fa-triangle-exclamation"); }
+}
+function showAboutApp() {
+  closeFamilyMenuForDialog();
+  familyAlert("Over de app", "Boodschappenlijst helpt je eenvoudig boodschappen bijhouden en delen met je familie.\n\nDeellijst: maak een aparte lijst voor vrienden, familie of een feestje. Je kunt een Deellijst delen met een deelcode of Deellink en bij Leden de deelnemers bekijken.\n\nVersie 1.0", "fa-circle-info");
+}
+function showAboutHelp() {
+  closeFamilyMenuForDialog();
+  familyAlert("Help & uitleg", "Typ een product en voeg het toe. Tik op een product om het af te vinken. Via Menu vind je je familie, instellingen en opgeslagen lijsten.\n\nDeellijst: ga naar Deellijst om een nieuwe lijst te maken of een deelcode in te voeren. Open Deelcode om de code te kopiëren of een Deellink te delen. Bij Leden zie je automatisch het aantal deelnemers uit de database en na het openen de namen van de leden. Een afgevinkt product laat zien wie het heeft voltooid. Met Familielijst ga je terug naar je gewone familielijst.\n\nJe kunt een lijst opslaan en later opnieuw laden.", "fa-circle-question");
+}
+
+function getSavedListsKey() {
+  const user = auth && auth.currentUser;
+  return user ? "boodschappenSavedLists_" + user.uid : null;
+}
+function readSavedLists() {
+  const key = getSavedListsKey();
+  if (!key) return [];
+  try { return JSON.parse(localStorage.getItem(key) || "[]") || []; }
+  catch (_) { return []; }
+}
+function writeSavedLists(lists) {
+  const key = getSavedListsKey();
+  if (!key) return;
+  localStorage.setItem(key, JSON.stringify(lists));
+}
+function renderSavedLists() {
+  const box = document.getElementById("savedListsContainer");
+  if (!box) return;
+  const lists = readSavedLists();
+  box.innerHTML = "";
+  if (!lists.length) {
+    box.innerHTML = '<div class="savedListsEmpty">Je hebt nog geen opgeslagen lijsten.</div>';
+    return;
+  }
+  lists.forEach((saved, index) => {
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = "savedListRow";
+    row.innerHTML = '<i class="fa-solid fa-list"></i><span></span><small class="savedListCount"></small><i class="fa-solid fa-chevron-right"></i>';
+    row.querySelector("span").textContent = saved.name || "Naamloze lijst";
+    row.querySelector(".savedListCount").textContent = String((saved.items || []).length);
+    row.addEventListener("click", () => loadSavedList(index));
+    box.appendChild(row);
+  });
+}
+function saveCurrentListAs() {
+  if (!boodschappen.length) {
+    familyAlert("Lijst opslaan", "Je lijst is nog leeg. Voeg eerst één of meer producten toe.", "fa-floppy-disk");
+    return;
+  }
+  closeFamilyMenuForDialog();
+  const overlay = familyDialogBase(
+    "fa-floppy-disk", "Lijst opslaan",
+    '<div class="familyDialogText">Geef je lijst een herkenbare naam, bijvoorbeeld Weekboodschappen of BBQ.</div><input id="savedListNameInput" class="familyDialogInput" type="text" maxlength="40" placeholder="Naam van je lijst">',
+    '<button type="button" class="familyDialogBtn familyDialogCancel">Annuleren</button><button type="button" class="familyDialogBtn familyDialogPrimary">Opslaan</button>'
+  );
+  const input = overlay.querySelector("#savedListNameInput");
+  const finish = value => closeFamilyDialog(overlay, value);
+  overlay.querySelector(".familyDialogCancel").addEventListener("click", () => finish(false));
+  overlay.querySelector(".familyDialogPrimary").addEventListener("click", () => {
+    const name = input.value.trim();
+    if (!name) { input.focus(); return; }
+    const lists = readSavedLists();
+    const existing = lists.findIndex(x => String(x.name || "").toLowerCase() === name.toLowerCase());
+    const record = { name, items: normalizeBoodschappen(boodschappen), savedAt: Date.now() };
+    if (existing >= 0) lists[existing] = record; else lists.unshift(record);
+    writeSavedLists(lists);
+    finish(true);
+    setTimeout(() => {
+      const menu = document.getElementById("familyMenu");
+      if (menu) { menu.style.display = "block"; menu.classList.add("menu-open"); }
+      const main = document.getElementById("familyMenuMain");
+      const saved = document.getElementById("savedListsMenuSub");
+      if (main && saved) { main.style.display="none"; saved.style.display="block"; renderSavedLists(); }
+    }, 300);
+  });
+  setTimeout(() => input && input.focus(), 30);
+}
+async function loadSavedList(index) {
+  const lists = readSavedLists();
+  const saved = lists[index];
+  if (!saved) return;
+  const proceed = await familyConfirm("Lijst laden", 'Wil je de huidige lijst vervangen door "' + (saved.name || "deze lijst") + '"?');
+  if (!proceed) return;
+  boodschappen = normalizeBoodschappen(saved.items || []);
+  selectedIndex = -1;
+  showList();
+  await saveList();
+}
+
+function toggleFamilyMenu() {
+  const themePicker = document.querySelector(".themePicker");
+  if (themePicker) themePicker.classList.remove("open");
+  const menu = document.getElementById("familyMenu");
+  const main = document.getElementById("familyMenuMain");
+  const sub = document.getElementById("familyMenuSub");
+  if (!menu) return;
+
+  if (menu.classList.contains("menu-open")) {
+    closeFamilyMenu();
+  } else {
+    if (sub) {
+      sub.style.display = "none";
+      sub.classList.remove("familyMenuSubEnter", "familyMenuSubExit");
+    }
+    const settings = document.getElementById("settingsMenuSub");
+    if (settings) {
+      settings.style.display = "none";
+      settings.classList.remove("familyMenuSubEnter", "familyMenuSubExit");
+    }
+    const savedLists = document.getElementById("savedListsMenuSub");
+  const sharedLists = document.getElementById("sharedListsMenuSub");
+    if (savedLists) {
+      savedLists.style.display = "none";
+      savedLists.classList.remove("familyMenuSubEnter", "familyMenuSubExit");
+    }
+    const account = document.getElementById("accountMenuSub");
+    if (account) { account.style.display = "none"; account.classList.remove("familyMenuSubEnter", "familyMenuSubExit"); }
+    const about = document.getElementById("aboutMenuSub");
+    if (about) { about.style.display = "none"; about.classList.remove("familyMenuSubEnter", "familyMenuSubExit"); }
+    if (main) {
+      main.style.display = "block";
+      main.classList.remove("familyMenuMainExit", "familyMenuMainEnter");
+    }
+    menu.style.display = "block";
+    requestAnimationFrame(() => menu.classList.add("menu-open"));
+  }
+}
+function openProductSuggestionSettings() {
+  closeFamilyMenuForDialog();
+  const enabled = localStorage.getItem("boodschappenSuggestionsEnabled") !== "false";
+  const overlay = familyDialogBase(
+    "fa-wand-magic-sparkles", "Suggesties",
+    '<div class="familyDialogText">Laat automatische productsuggesties zien terwijl je typt.</div><div class="familyMenuItem settingsMenuToggleRow" style="margin-top:10px;background:rgba(255,255,255,.42);"><span>Automatische suggesties</span><button type="button" class="settingsToggle ' + (enabled ? 'on' : '') + '" aria-label="Automatische suggesties"></button></div>',
+    '<button type="button" class="familyDialogBtn familyDialogPrimary">Klaar</button>'
+  );
+  const toggle = overlay.querySelector(".settingsToggle");
+  toggle.addEventListener("click", e => {
+    e.stopPropagation();
+    const next = !toggle.classList.contains("on");
+    toggle.classList.toggle("on", next);
+    localStorage.setItem("boodschappenSuggestionsEnabled", next ? "true" : "false");
+    const box = document.getElementById("productSuggestions");
+    if (!next && box) box.classList.remove("open");
+  });
+  overlay.querySelector(".familyDialogPrimary").addEventListener("click", () => closeFamilyDialog(overlay));
+}
+function openListOptionsSettings() {
+  closeFamilyMenuForDialog();
+  const enabled = localStorage.getItem("boodschappenCompletedBottom") !== "false";
+  const overlay = familyDialogBase(
+    "fa-list-check", "Lijstopties",
+    '<div class="familyDialogText">Bepaal hoe je boodschappenlijst wordt weergegeven.</div><div class="familyMenuItem settingsMenuToggleRow" style="margin-top:10px;background:rgba(255,255,255,.42);"><span>Voltooide producten onderaan</span><button type="button" class="settingsToggle ' + (enabled ? 'on' : '') + '" aria-label="Voltooide producten onderaan"></button></div>',
+    '<button type="button" class="familyDialogBtn familyDialogPrimary">Klaar</button>'
+  );
+  const toggle = overlay.querySelector(".settingsToggle");
+  toggle.addEventListener("click", e => {
+    e.stopPropagation();
+    const next = !toggle.classList.contains("on");
+    toggle.classList.toggle("on", next);
+    localStorage.setItem("boodschappenCompletedBottom", next ? "true" : "false");
+    showList();
+  });
+  overlay.querySelector(".familyDialogPrimary").addEventListener("click", () => closeFamilyDialog(overlay));
+}
+
+  async function updateMemberCount() {
+  const countEl = document.getElementById("memberCount");
+  const subCountEl = document.getElementById("memberCountSub");
+  if (!countEl && !subCountEl) return;
+
+  const user = auth.currentUser;
+  let householdId = currentHouseholdId;
+
+  // Gebruik altijd de werkelijk gekoppelde familie uit Firebase.
+  if (!householdId && user) {
+    try {
+      const snap = await database.ref("users/" + user.uid + "/householdId").once("value");
+      householdId = snap.val() ? String(snap.val()) : null;
+    } catch (error) {
+      console.error("Familie-ID ophalen mislukt:", error);
+    }
+  }
+
+  if (!householdId) {
+    const count = user ? 1 : 0;
+    if (countEl) countEl.innerText = String(count);
+    if (subCountEl) subCountEl.innerText = String(count);
+    const labelEl = document.getElementById("memberLabel");
+    if (labelEl) labelEl.innerHTML = 'Familielid (<span id="memberCount">' + count + '</span>)';
+    return;
+  }
+
+  try {
+    const snapshot = await database.ref("households/" + householdId + "/members").once("value");
+    const members = snapshot.val() || {};
+    const memberIds = new Set(Object.keys(members));
+    if (user && user.uid) memberIds.add(user.uid);
+    const count = memberIds.size;
+
+    currentHouseholdId = householdId;
+    if (countEl) countEl.innerText = String(count);
+    if (subCountEl) subCountEl.innerText = String(count);
+
+    const labelEl = document.getElementById("memberLabel");
+    if (labelEl) labelEl.innerHTML = 'Familielid (<span id="memberCount">' + count + '</span>)';
+  } catch (error) {
+    console.error("Aantal familieleden ophalen mislukt:", error);
+  }
+}
+// Houd het aantal familieleden automatisch actueel, inclusief de ingelogde gebruiker.
+let memberCountListenerHouseholdId = null;
+let memberCountListenerRef = null;
+function watchMemberCount() {
+  const user = auth.currentUser;
+  if (!user) return;
+  database.ref("users/" + user.uid + "/householdId").once("value").then(snap => {
+    const householdId = snap.val() ? String(snap.val()) : null;
+    if (!householdId) {
+      updateMemberCount();
+      if (memberCountListenerRef) {
+        memberCountListenerRef.off("value");
+        memberCountListenerRef = null;
+        memberCountListenerHouseholdId = null;
+      }
+      return;
+    }
+    if (memberCountListenerHouseholdId === householdId && memberCountListenerRef) {
+      updateMemberCount();
+      return;
+    }
+    if (memberCountListenerRef) memberCountListenerRef.off("value");
+    memberCountListenerHouseholdId = householdId;
+    memberCountListenerRef = database.ref("households/" + householdId + "/members");
+    memberCountListenerRef.on("value", () => updateMemberCount());
+    updateMemberCount();
+  }).catch(error => console.error("Familieleden volgen mislukt:", error));
+}
+
+  function searchList() {
+  const search = document.getElementById("searchInput").value.toLowerCase();
+
+  const items = document.querySelectorAll(".item");
+
+  items.forEach(item => {
+    const text = item.innerText.toLowerCase();
+
+    if (text.includes(search)) {
+      item.style.display = "";
+    } else {
+      item.style.display = "none";
+    }
+  });
+}
+
+function clearSearch() {
+  document.getElementById("searchInput").value = "";
+  searchList();
+}
+
+async function loadList() {
+  try {
+    // Een actieve Deellijst mag nooit door deze familielijst-loader worden overschreven.
+    if (activeListType === "shared" && currentSharedListId) return true;
+    activeListType = isPrivateMode() ? "private" : "family";
+
+    // Een privé-lijst wordt lokaal opgeslagen en hoeft dus niet via Firebase geladen te worden.
+    if (isPrivateMode()) {
+      await loadPrivateList();
+      return true;
+    }
+
+    // Ook de keuze "Overslaan" moet bij vernieuwen behouden blijven.
+    const user = auth.currentUser;
+    if (!currentHouseholdId && user && localStorage.getItem("boodschappenUseMode_" + user.uid) === "skip") {
+      openAppWithoutList();
+      return true;
+    }
+
+    if (!currentHouseholdId) {
+      const householdId = await getOrCreateHousehold();
+      if (!householdId) {
+        openUseModeModal();
+        return false;
+      }
+    }
+
+    const snapshot = await database
+      .ref("households/" + currentHouseholdId + "/boodschappen")
+      .once("value");
+
+    const data = snapshot.val();
+
+    if (Array.isArray(data)) {
+      boodschappen = normalizeBoodschappen(data);
+    } else if (data && typeof data === "object") {
+      boodschappen = normalizeBoodschappen(Object.values(data));
+    } else {
+      boodschappen = [];
+    }
+
+    selectedIndex = -1;
+    showList();
+    updateStatus();
+    await updateMemberCount();
+    return true;
+  } catch (error) {
+    console.error("Lijst laden mislukt:", error);
+
+    if (error && (error.code === "PERMISSION_DENIED" || error.code === "permission-denied")) {
+      currentHouseholdId = null;
+      const user = auth.currentUser;
+      if (user) {
+        try {
+          await database.ref("users/" + user.uid + "/householdId").remove();
+        } catch (cleanupError) {
+          console.error("Oude familie-koppeling verwijderen mislukt:", cleanupError);
+        }
+      }
+      openUseModeModal();
+      return false;
+    }
+
+    const status = document.getElementById("status");
+    if (status) status.innerText = "⚠️ De familielijst kon niet worden geladen. Probeer opnieuw.";
+    return false;
+  }
+}
+
+
+function normalizeBoodschappen(data) {
+  if (!Array.isArray(data)) return [];
+
+  return data.map(item => {
+    // Backward compatibility with the old format: "☐ Cola" / "✅ Cola"
+    if (typeof item === "string") {
+      const completed = item.startsWith("✅");
+      const text = item.substring(1).trim();
+      return {
+        text: text,
+        completed: completed,
+        completedBy: "",
+        completedByUid: "",
+        completedAt: null
+      };
+    }
+
+    if (item && typeof item === "object") {
+      return {
+        text: String(item.text ?? item.product ?? "").trim(),
+        completed: item.completed === true,
+        completedBy: item.completedBy ? String(item.completedBy) : "",
+        completedByUid: item.completedByUid ? String(item.completedByUid) : "",
+        completedAt: item.completedAt ? Number(item.completedAt) : null
+      };
+    }
+
+    return {
+      text: String(item ?? "").trim(),
+      completed: false,
+      completedBy: "",
+      completedByUid: "",
+      completedAt: null
+    };
+  }).filter(item => item.text);
+}
+
+function relativeCompletedTime(timestamp) {
+  if (!timestamp) return "";
+  const diff = Math.max(0, Date.now() - Number(timestamp));
+  const minutes = Math.floor(diff / 60000);
+
+  if (minutes < 1) return "zojuist";
+  if (minutes < 60) return minutes + " min geleden";
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return hours + (hours === 1 ? " uur geleden" : " uur geleden");
+
+  const days = Math.floor(hours / 24);
+  return days + (days === 1 ? " dag geleden" : " dagen geleden");
+}
+
+const productCatalog = [
+  // Fruit
+  ["appel", "🍎"], ["appels", "🍎"], ["peer", "🍐"], ["peren", "🍐"],
+  ["banaan", "🍌"], ["bananen", "🍌"], ["sinaas", "🍊"], ["sinaasappel", "🍊"], ["sinaasappels", "🍊"],
+  ["mandarijn", "🍊"], ["mandarijnen", "🍊"], ["citroen", "🍋"], ["citroenen", "🍋"],
+  ["limoen", "🍋"], ["druif", "🍇"], ["druiven", "🍇"], ["aardbei", "🍓"], ["aardbeien", "🍓"],
+  ["framboos", "🫐"], ["frambozen", "🫐"], ["blauwe bessen", "🫐"], ["kiwi", "🥝"],
+  ["ananas", "🍍"], ["mango", "🥭"], ["perzik", "🍑"], ["nectarine", "🍑"],
+  ["pruim", "🫐"], ["kers", "🍒"], ["kersen", "🍒"], ["watermeloen", "🍉"],
+  ["meloen", "🍈"], ["avocado", "🥑"], ["kokosnoot", "🥥"],
+
+  // Groenten
+  ["aardappel", "🥔"], ["aardappelen", "🥔"], ["zoete aardappel", "🍠"],
+  ["tomaat", "🍅"], ["tomaten", "🍅"], ["komkommer", "🥒"], ["wortel", "🥕"], ["wortels", "🥕"],
+  ["ui", "🧅"], ["uien", "🧅"], ["rode ui", "🧅"], ["knoflook", "🧄"],
+  ["paprika", "🫑"], ["rode paprika", "red-bell-pepper"], ["groene paprika", "🫑"], ["gele paprika", "🫑"],
+  ["sla", "🥬"], ["spinazie", "🥬"], ["broccoli", "🥦"], ["bloemkool", "🥦"],
+  ["courgette", "🥒"], ["aubergine", "🍆"], ["prei", "🥬"], ["boerenkool", "🥬"],
+  ["spruitjes", "🥦"], ["asperges", "🌱"], ["mais", "🌽"], ["maïs", "🌽"],
+  ["erwt", "🫛"], ["erwten", "🫛"], ["bonen", "🫘"], ["sperziebonen", "🫛"],
+  ["champignons", "🍄"], ["champignon", "🍄"], ["biet", "🫜"], ["radijs", "🌱"],
+
+  // Brood, ontbijt & beleg
+  ["brood", "🍞"], ["bruin brood", "🍞"], ["wit brood", "🍞"], ["volkoren brood", "🍞"],
+  ["meergranen brood", "🍞"], ["stokbrood", "🥖"], ["baguette", "🥖"], ["croissant", "🥐"],
+  ["bolletjes", "🥯"], ["broodjes", "🥯"], ["beschuit", "🍞"], ["cracker", "🍘"], ["crackers", "🍘"],
+  ["kaas", "🧀"], ["jonge kaas", "🧀"], ["oude kaas", "🧀"], ["ham", "🥓"], ["salami", "🥩"],
+  ["worst", "🌭"], ["pindakaas", "🥜"], ["hagelslag", "🍫"], ["chocopasta", "🍫"],
+  ["jam", "🍓"], ["honing", "🍯"], ["stroop", "🍯"], ["boter", "🧈"], ["margarine", "🧈"],
+
+  // Zuivel & eieren
+  ["melk", "milk-carton"], ["volle melk", "🥛"], ["halfvolle melk", "🥛"], ["magere melk", "🥛"],
+  ["chocomelk", "🥛"], ["karnemelk", "🥛"], ["yoghurt", "🥛"], ["kwark", "🥛"],
+  ["vla", "🍮"], ["slagroom", "🥛"], ["room", "🥛"], ["creme fraiche", "🥛"],
+  ["crème fraîche", "🥛"], ["pudding", "🍮"], ["eieren", "🥚"], ["ei", "🥚"],
+
+  // Vlees, vis & vegetarisch
+  ["kip", "🍗"], ["kipfilet", "🍗"], ["kippenpoten", "🍗"], ["vlees", "🥩"], ["gehakt", "🥩"],
+  ["rundvlees", "🥩"], ["varkensvlees", "🥩"], ["biefstuk", "🥩"], ["schnitzel", "🥩"],
+  ["speklap", "🥓"], ["spek", "🥓"], ["vis", "🐟"], ["zalm", "🐟"], ["tonijn", "🐟"],
+  ["garnalen", "🦐"], ["vega", "🌱"], ["tofu", "🫘"], ["worstjes", "🌭"],
+
+  // Dranken
+  ["water", "💧"], ["mineraalwater", "💧"], ["bruiswater", "💧"], ["cola", "🥤"],
+  ["cola zero", "🥤"], ["frisdrank", "🥤"], ["sinas", "🥤"], ["sprite", "🥤"],
+  ["fanta", "🥤"], ["7up", "🥤"], ["sap", "🧃"], ["appelsap", "🧃"], ["sinaasappelsap", "🧃"],
+  ["dubbelfris", "🧃"], ["limonade", "🧃"], ["energiedrank", "🥤"], ["koffie", "☕"], ["coffee", "☕"],
+  ["koffiebonen", "☕"], ["thee", "🍵"], ["ijsthee", "🍵"], ["cacao", "☕"],
+
+  // Pasta, rijst, potten & koken
+  ["rijst", "🍚"], ["basmatirijst", "🍚"], ["pasta", "🍝"], ["spaghetti", "🍝"],
+  ["macaroni", "🍝"], ["lasagne", "🍝"], ["noedels", "🍜"], ["mie", "🍜"],
+  ["bloem", "🌾"], ["meel", "🌾"], ["suiker", "🧂"], ["poedersuiker", "🧂"],
+  ["zout", "🧂"], ["zwarte peper", "🫙"], ["witte peper", "🫙"], ["peper", "🌶️"], ["olijfolie", "🫒"], ["olie", "🫒"], ["azijn", "🍶"],
+  ["mayonaise", "mayonnaise-bottle"], ["ketchup", "ketchup-bottle"], ["mosterd", "🟡"], ["pesto", "🌿"],
+  ["bouillon", "🍲"], ["soep", "🍲"], ["pastasaus", "🍅"], ["tomatensaus", "🍅"],
+  ["bonen", "🫘"], ["kikkererwten", "🫘"], ["linzen", "🫘"], ["noten", "🥜"],
+
+  // Snacks & zoet
+  ["chips", "chips-bag"], ["pringles", "pringles-tube"], ["nootjes", "🥜"], ["noten", "🥜"], ["popcorn", "🍿"], ["koek", "🍪"],
+  ["koekjes", "🍪"], ["chocolade", "🍫"], ["snoep", "🍬"], ["drop", "🍬"], ["kauwgom", "🍬"],
+  ["ijs", "🍦"], ["ijsjes", "🍦"], ["taart", "🍰"], ["cake", "🍰"], ["pannenkoeken", "🥞"],
+
+  // Diepvries & kant-en-klaar
+  ["pizza", "🍕"], ["friet", "🍟"], ["frietjes", "🍟"], ["ovenfriet", "🍟"],
+  ["diepvriesgroente", "🥦"], ["diepvriesfruit", "🍓"], ["nasi", "🍚"], ["bami", "🍜"],
+
+  // Persoonlijke verzorging
+  ["shampoo", "🧴"], ["conditioner", "🧴"], ["zeep", "🧼"], ["handzeep", "🧼"],
+  ["douchegel", "🧴"], ["tandpasta", "🪥"], ["tandenborstel", "🪥"], ["deodorant", "🧴"],
+  ["scheerschuim", "🪒"], ["scheermes", "🪒"], ["toiletpapier", "toilet-paper"], ["wc papier", "🧻"],
+  ["zakdoekjes", "🤧"], ["wattenstaafjes", "🧴"], ["wattenschijfjes", "🧴"], ["zonnebrand", "🧴"],
+
+  // Schoonmaak & huishouden
+  ["schoonmaakmiddel", "🧴"], ["allesreiniger", "🧴"], ["glasreiniger", "🧴"],
+  ["keukenreiniger", "🧴"], ["badkamerreiniger", "🧴"], ["wc reiniger", "🧴"],
+  ["toilet reiniger", "🧴"], ["afwasmiddel", "🧴"], ["vaatwastabletten", "🧼"],
+  ["wasmiddel", "🧺"], ["wasverzachter", "🧺"], ["vlekkenmiddel", "🧺"],
+  ["bleek", "🧴"], ["schuurmiddel", "🧴"], ["spons", "🧽"], ["sponzen", "🧽"],
+  ["afwasspons", "🧽"], ["keukenrol", "🧻"], ["keukenpapier", "🧻"], ["aluminiumfolie", "📦"],
+  ["vershoudfolie", "📦"], ["vuilniszakken", "🗑️"], ["vuilniszak", "🗑️"],
+  ["stofzuigerzak", "🧹"], ["bezem", "🧹"], ["dweil", "🧹"], ["wc borstel", "🪥"],
+
+  // Baby & huisdieren
+  ["luiers", "👶"], ["luier", "👶"], ["babyvoeding", "🍼"], ["flesvoeding", "🍼"],
+  ["kattenvoer", "🐱"], ["hondenvoer", "🐶"], ["dierenvoer", "🐾"], ["kattenbakvulling", "🐱"],
+  ["hondensnoepjes", "🐶"], ["kattensnoepjes", "🐱"],
+
+  // Overig
+  ["kaarsen", "🕯️"], ["batterijen", "🔋"], ["lucifers", "🔥"], ["aansteker", "🔥"],
+  ["bloemen", "💐"], ["plant", "🪴"], ["tissues", "🧻"], ["servetten", "🧻"],
+  ["curry saus", "curry-sauce"],
+  ["curry", "curry-sauce"],
+  ["toilet papier", "toilet-paper"],]
+/* Algemene iconenbibliotheek: suggesties en iconen gebruiken dezelfde bron. */
+const defaultProductIcon = "🛒";
+const productIconAliases = {
+  "sinaas": "sinaasappel", "orange": "sinaasappel",
+  "appels": "appel", "peren": "peer", "bananen": "banaan",
+  "tomaten": "tomaat", "komkommers": "komkommer",
+  "wortels": "wortel", "aardappelen": "aardappel", "uien": "ui",
+  "ei": "eieren", "toilet papier": "toiletpapier", "wc papier": "toiletpapier"
+};
+function normalizeProductLookup(value) {
+  return String(value || "").toLowerCase().trim().replace(/\s+/g, " ");
+}
+function getProductIcon(productName) {
+  const n = normalizeProductLookup(productName);
+  const key = productIconAliases[n] || n;
+  const exact = productCatalog.find(([name]) => normalizeProductLookup(name) === key);
+  return exact ? exact[1] : defaultProductIcon;
+}
+function getProductSuggestions(query) {
+  const q = normalizeProductLookup(query);
+  if (!q) return [];
+  const result=[], seen=new Set();
+  productCatalog.forEach(([name, icon]) => {
+    const n=normalizeProductLookup(name);
+    if (n.startsWith(q) && !seen.has(n)) {
+      seen.add(n); result.push({name, icon});
+    }
+  });
+  Object.entries(productIconAliases).forEach(([alias, canonical]) => {
+    if (alias.startsWith(q)) {
+      const found=productCatalog.find(([name]) => normalizeProductLookup(name)===canonical);
+      if (found && !seen.has(canonical)) { seen.add(canonical); result.push({name:found[0],icon:found[1]}); }
+    }
+  });
+  return result.slice(0,8);
+}
+;
+
+function normalizeProductName(text) {
+  return String(text || "").toLowerCase().trim();
+}
+
+function productIconMarkup(icon) {
+  if (icon === "red-bell-pepper") {
+    return `<svg class="productInlineIcon" viewBox="0 0 64 64" aria-hidden="true">
+      <path d="M31 14c-1.7-4.4 1.1-8.2 5.1-9.2 1.3-.3 2.6.7 2.4 2-.3 2.3-1.8 4.1-4 5.1l-.4 2.1z" fill="#4f6b42"/>
+      <path d="M27 15c-10.8-.8-19 6.8-19 17.8C8 46 17.7 56 31.8 56S56 46 56 32.8C56 21.4 47.1 14.2 37 15c-3.1.3-6.7.3-10 0Z" fill="#e94a3f"/>
+      <path d="M12 30c1.7-7.2 7.6-11.7 14.7-12.5" fill="none" stroke="#f46c5f" stroke-width="3" stroke-linecap="round"/>
+      <path d="M38 17c3.4 2.6 5.2 6.8 5.2 11.1" fill="none" stroke="#c93431" stroke-width="2.5" stroke-linecap="round" opacity=".7"/>
+    </svg>`;
+  }
+
+  if (icon === "curry-sauce") {
+    return `<svg class="productInlineIcon" viewBox="0 0 64 64" aria-hidden="true">
+      <path d="M22 13h20l-2 8v35H24V21z" fill="#e23a2f" stroke="#b92522" stroke-width="1.5"/>
+      <rect x="24" y="7" width="16" height="9" rx="3" fill="#ef3e2f"/>
+      <path d="M24 28h16v21H24z" fill="#fff"/>
+      <ellipse cx="32" cy="39" rx="7" ry="8" fill="#f2c43d"/>
+      <path d="M28 40c2-4 6-4 8 0" fill="none" stroke="#d98f1f" stroke-width="2" stroke-linecap="round"/>
+    </svg>`;
+  }
+
+  if (icon === "ketchup-bottle") {
+    return `<svg class="productInlineIcon" viewBox="0 0 64 64" aria-hidden="true">
+      <path d="M22 17h20l-2 9v30H24V26z" fill="#e62d28" stroke="#b51e20" stroke-width="1.5"/>
+      <path d="M25 9h14l2 9H23z" fill="#e83a2f"/>
+      <rect x="27" y="6" width="10" height="6" rx="2" fill="#d72724"/>
+      <path d="M25 30h14v17H25z" fill="#fff"/>
+      <path d="M28 38c2-3 6-3 8 0" fill="none" stroke="#e02d2a" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>`;
+  }
+
+  if (icon === "mayonnaise-bottle") {
+    return `<svg class="productInlineIcon" viewBox="0 0 64 64" aria-hidden="true">
+      <path d="M22 17h20l-2 9v30H24V26z" fill="#f5e7b5" stroke="#c9b97b" stroke-width="1.5"/>
+      <path d="M25 9h14l2 9H23z" fill="#f1df91"/>
+      <rect x="27" y="6" width="10" height="6" rx="2" fill="#e8cd6a"/>
+      <path d="M25 30h14v17H25z" fill="#fffdf4"/>
+      <path d="M28 39c2-4 6-4 8 0" fill="none" stroke="#e6c85c" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>`;
+  }
+
+  if (icon === "toilet-paper") {
+    return `<svg class="productInlineIcon" viewBox="0 0 64 64" aria-hidden="true">
+      <ellipse cx="28" cy="22" rx="16" ry="13" fill="#fff" stroke="#d9d9d9" stroke-width="1.5"/>
+      <path d="M12 22v18c0 9 7 15 16 15s16-6 16-15V22" fill="#fff" stroke="#d9d9d9" stroke-width="1.5"/>
+      <ellipse cx="28" cy="22" rx="6" ry="5" fill="#c9a77a"/>
+      <path d="M44 28c7 2 9 7 7 13-2 6-7 9-13 7l-5-2" fill="#fff" stroke="#d9d9d9" stroke-width="1.5"/>
+      <path d="M43 38c4 1 7 3 9 6" fill="none" stroke="#ececec" stroke-width="2"/>
+    </svg>`;
+  }
+
+  if (icon === "milk-carton") {
+    return `<svg class="productInlineIcon" viewBox="0 0 64 64" aria-hidden="true">
+      <path d="M19 17h26v40H19z" fill="#f8fbff" stroke="#cfd8df" stroke-width="1.5"/>
+      <path d="M19 28h26v29H19z" fill="#d9efff"/>
+      <path d="M19 28h26v8H19z" fill="#65b6e8"/>
+      <path d="M24 11h16l5 6H19z" fill="#eaf7ff" stroke="#cfd8df" stroke-width="1.5"/>
+      <path d="M25 13h14v5H25z" fill="#65b6e8"/>
+      <path d="M27 43c2-5 8-5 10 0-2 3-8 3-10 0z" fill="#65b6e8"/>
+      <circle cx="32" cy="43" r="8" fill="none" stroke="#65b6e8" stroke-width="1.5"/>
+    </svg>`;
+  }
+
+  if (icon === "pringles-tube") {
+    return `<svg class="productInlineIcon" viewBox="0 0 64 64" aria-hidden="true">
+      <path d="M19 9h26v47H19z" fill="#d92e2e" stroke="#a91f24" stroke-width="1.5"/>
+      <ellipse cx="32" cy="9" rx="13" ry="4" fill="#f4d9a4" stroke="#a91f24" stroke-width="1.5"/>
+      <ellipse cx="32" cy="56" rx="13" ry="4" fill="#b51f25"/>
+      <ellipse cx="32" cy="24" rx="10" ry="8" fill="#f5d15a"/>
+      <circle cx="28" cy="22" r="2" fill="#222"/>
+      <circle cx="36" cy="22" r="2" fill="#222"/>
+      <path d="M27 27c3 2 7 2 10 0" fill="none" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+      <path d="M24 39h16" stroke="#f6d34f" stroke-width="4" stroke-linecap="round"/>
+    </svg>`;
+  }
+
+  if (icon === "chips-bag") {
+    return `<svg class="chipsBagIcon" viewBox="0 0 64 64" aria-hidden="true">
+      <defs>
+        <linearGradient id="chipsBagRed" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#f0443e"/>
+          <stop offset="1" stop-color="#b9161b"/>
+        </linearGradient>
+      </defs>
+      <path d="M12 9h40l-3 7v34l3 5H12l3-5V16z" fill="url(#chipsBagRed)" stroke="#9f1419" stroke-width="1.5"/>
+      <path d="M12 9h40M12 55h40" stroke="#f78a83" stroke-width="3" stroke-linecap="round"/>
+      <ellipse cx="32" cy="29" rx="13" ry="9" fill="#ffd34d" stroke="#fff0a0" stroke-width="1.5"/>
+      <path d="M21 28c6 3 15 3 22-1" fill="none" stroke="#df2427" stroke-width="5" stroke-linecap="round"/>
+      <path d="M21 39c2-5 7-5 10 0s7 5 10 0c1-2 4-2 5 1" fill="none" stroke="#f8c34a" stroke-width="5" stroke-linecap="round"/>
+    </svg>`;
+  }
+  return icon || "";
+}
+
+function getProductIcon(text) {
+  const value = normalizeProductName(text);
+  if (!value) return "";
+
+  // Explicit fallbacks for common products.
+  // This also catches variants such as "keukenzout" or "zout fijn".
+  if (value === "zout" || value.includes("zout")) return "🧂";
+  if (value === "zwarte peper" || value === "witte peper" ||
+      value.includes("zwarte peper") || value.includes("witte peper")) return "🫙";
+  if (value === "peper" || value === "peperkorrels" || value === "gemalen peper") return "🌶️";
+  if (value === "koffie" || value === "coffee" || value.includes("koffie") || value.includes("coffee")) return "☕";
+
+  const exact = productCatalog.find(([name]) => value === name);
+  if (exact) return exact[1];
+
+  // Match common compound names such as "volle melk" or "bruin brood".
+  const contains = productCatalog
+    .filter(([name]) => value.includes(name))
+    .sort((a, b) => b[0].length - a[0].length)[0];
+  return contains ? contains[1] : "";
+}
+
+function updateProductSuggestions() {
+  const input = document.getElementById("product");
+  const box = document.getElementById("productSuggestions");
+  if (!input || !box) return;
+
+  const query = normalizeProductName(input.value);
+  box.innerHTML = "";
+  if (localStorage.getItem("boodschappenSuggestionsEnabled") === "false") {
+    box.classList.remove("open");
+    return;
+  }
+  if (!query) {
+    box.classList.remove("open");
+    return;
+  }
+
+  const matches = getProductSuggestions(query).slice(0, 5).map(({name}) => [name, getProductIcon(name)]);
+
+  if (!matches.length) {
+    box.classList.remove("open");
+    return;
+  }
+
+  matches.forEach(([name, icon]) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "productSuggestion";
+    button.innerHTML = `<span>${name.charAt(0).toUpperCase() + name.slice(1)}</span><span class="productSuggestionIcon">${productIconMarkup(icon)}</span>`;
+    button.addEventListener("click", () => {
+      input.value = name.charAt(0).toUpperCase() + name.slice(1);
+      box.classList.remove("open");
+      input.focus();
+    });
+    box.appendChild(button);
+  });
+  box.classList.add("open");
+}
+
+function initProductSuggestions() {
+  const input = document.getElementById("product");
+  if (!input) return;
+  input.addEventListener("input", updateProductSuggestions);
+  input.addEventListener("focus", updateProductSuggestions);
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      const box = document.getElementById("productSuggestions");
+      if (box) box.classList.remove("open");
+    }
+  });
+  document.addEventListener("click", (e) => {
+    const wrap = document.querySelector(".input-row-wrap");
+    if (wrap && !wrap.contains(e.target)) {
+      const box = document.getElementById("productSuggestions");
+      if (box) box.classList.remove("open");
+    }
+  });
+}
+
+function showList(animationType = "") {
+  const list = document.getElementById("list");
+  if (!list) return;
+
+  // Keep legacy Firebase entries and new metadata entries consistent.
+  boodschappen = normalizeBoodschappen(boodschappen);
+
+  // Active products first, completed products at the bottom.
+  const completedBottom = localStorage.getItem("boodschappenCompletedBottom") !== "false";
+  const ordered = boodschappen
+    .map((item, index) => ({ item, index }))
+    .sort((a, b) => completedBottom ? Number(a.item.completed) - Number(b.item.completed) : 0);
+
+  list.innerHTML = "";
+
+  ordered.forEach(({ item, index }) => {
+    const div = document.createElement("div");
+    div.className = "item" + (item.completed ? " completed" : "");
+    div.dataset.index = String(index);
+
+    const productText = item.text;
+    const check = item.completed ? "✅ " : "☐ ";
+
+    const productWrap = document.createElement("div");
+    productWrap.className = "itemProductContent";
+
+    const productSpan = document.createElement("span");
+    productSpan.textContent = check + productText;
+    if (item.completed) {
+      productSpan.style.textDecoration = "line-through";
+    }
+    productWrap.appendChild(productSpan);
+
+    const icon = document.createElement("span");
+    icon.className = "productIcon";
+    const iconValue = getProductIcon(productText);
+    icon.innerHTML = productIconMarkup(iconValue);
+    if (!iconValue) icon.style.visibility = "hidden";
+    productWrap.appendChild(icon);
+
+    div.appendChild(productWrap);
+
+    // In zowel de familielijst als een Deellijst is zichtbaar wie een product heeft voltooid.
+    if (item.completed && item.completedBy) {
+      const meta = document.createElement("span");
+      meta.className = "completedMeta";
+      meta.innerHTML = '<i class="fa-solid fa-circle-check" aria-hidden="true"></i>';
+      const metaText = document.createTextNode(
+        "Voltooid door " + item.completedBy +
+        (item.completedAt ? " · " + relativeCompletedTime(item.completedAt) : "")
+      );
+      meta.appendChild(metaText);
+      div.appendChild(meta);
+    }
+
+    if (animationType === "completed" && item.completed && index === selectedIndex) {
+      div.classList.add("completedMoving");
+    }
+    if (animationType === "uncompleted" && !item.completed && index === selectedIndex) {
+      div.classList.add("uncompleting");
+    }
+
+    list.appendChild(div);
+  });
+}
+
+async function saveList() {
+  if (activeListType === "shared" && currentSharedListId) {
+    const user = auth.currentUser;
+    if (!user) return false;
+    try {
+      await database.ref("sharedLists/" + currentSharedListId + "/boodschappen").set(boodschappen);
+      updateStatus();
+      return true;
+    } catch (error) {
+      console.error("Gedeelde lijst opslaan mislukt:", error);
+      const status = document.getElementById("status");
+      if (status) status.innerText = "⚠️ Gedeelde lijst kon niet worden opgeslagen.";
+      return false;
+    }
+  }
+  if (isPrivateMode()) {
+    await savePrivateList();
+    return true;
+  }
+
+  if (!currentHouseholdId) {
+    const householdId = await getOrCreateHousehold();
+    if (!householdId) {
+      const status = document.getElementById("status");
+      if (status) status.innerText = "Kies eerst Nieuwe familie of Familiecode invoeren.";
+      openUseModeModal();
+      return false;
+    }
+  }
+
+  try {
+    await database
+      .ref("households/" + currentHouseholdId + "/boodschappen")
+      .set(boodschappen);
+
+    updateStatus();
+    return true;
+  } catch (error) {
+    console.error("Boodschappen opslaan mislukt:", error);
+    const status = document.getElementById("status");
+    if (status) {
+      if (error && (error.code === "PERMISSION_DENIED" || error.code === "permission-denied")) {
+        status.innerText = "⚠️ Geen toegang tot deze familielijst.";
+      } else {
+        status.innerText = "⚠️ Opslaan van de lijst mislukt.";
+      }
+    }
+    return false;
+  }
+}
+
+async function toggleItem(index) {
+  if (!boodschappen[index]) return;
+
+  selectedIndex = index;
+  const item = boodschappen[index];
+
+  if (!item.completed) {
+    let completedBy = "";
+
+    // Bewaar de naam van degene die het product afvinkt, ook in een Deellijst.
+    if (auth.currentUser) {
+      try {
+        const snap = await database
+          .ref("users/" + auth.currentUser.uid + "/name")
+          .once("value");
+        completedBy = snap.val() || auth.currentUser.email || "Gebruiker";
+      } catch (_) {
+        completedBy = auth.currentUser.email || "Gebruiker";
+      }
+    }
+
+    item.completed = true;
+    item.completedBy = completedBy;
+    item.completedByUid = auth.currentUser ? auth.currentUser.uid : "";
+    item.completedAt = Date.now();
+
+    // Render immediately in its new position; the item gets a subtle slide-down animation.
+    showList("completed");
+    await saveList();
+  } else {
+    item.completed = false;
+    item.completedBy = "";
+    item.completedByUid = "";
+    item.completedAt = null;
+
+    showList("uncompleted");
+    await saveList();
+  }
+}
+
+async function addProduct() {
+  const input = document.getElementById("product");
+  const text = input.value.trim();
+
+  if (text === "") return;
+
+  if (activeListType !== "shared" && !currentHouseholdId && !isPrivateMode()) {
+    const householdId = await getOrCreateHousehold();
+    if (!householdId) {
+      openUseModeModal();
+      return;
+    }
+  }
+
+  boodschappen.push({
+    text: text,
+    completed: false,
+    completedBy: "",
+    completedAt: null
+  });
+  input.value = "";
+  showList();
+  await saveList();
+}
+
+
+async function deleteProduct() {
+
+  if (selectedIndex < 0) return;
+
+  boodschappen.splice(selectedIndex, 1);
+
+  selectedIndex = -1;
+
+  showList();
+  await saveList();
+}
+
+async function clearList() {
+
+  boodschappen = [];
+  selectedIndex = -1;
+
+  showList();
+  await saveList();
+}
+
+
+
+
+
+function updateStatus() {
+
+  const now = new Date();
+
+  const hour =
+    String(now.getHours()).padStart(2, "0");
+
+  const minute =
+    String(now.getMinutes()).padStart(2, "0");
+
+document.getElementById("status").innerHTML =
+  "<i class=\"fa-solid fa-cloud\"></i> Lijst automatisch opgeslagen<span>Laatste update: vandaag "
+  + hour + ":" + minute + "</span>";
+}
+
+
+/* Pull-to-refresh */
+
+let startY = 0;
+let pulling = false;
+
+document.addEventListener("touchstart", function(e) {
+
+  if (window.scrollY === 0) {
+    startY = e.touches[0].clientY;
+    pulling = true;
+  }
+
+});
+
+document.addEventListener("touchmove", function(e) {
+
+  if (!pulling) return;
+
+  const distance =
+    e.touches[0].clientY - startY;
+
+  if (distance > 0 && distance < 100) {
+    document.getElementById("refresh").style.height =
+      distance + "px";
+  }
+
+});
+
+document.addEventListener("touchend", async function(e) {
+
+  if (!pulling) return;
+
+  const distance =
+    e.changedTouches[0].clientY - startY;
+
+  pulling = false;
+
+  document.getElementById("refresh").style.height = "0";
+
+  if (distance > 70) {
+    if (activeListType === "shared" && currentSharedListId) {
+      const sharedSnap = await database.ref("sharedLists/" + currentSharedListId).once("value");
+      const sharedData = sharedSnap.val() || {};
+      boodschappen = normalizeBoodschappen(sharedData.boodschappen || []);
+      showList();
+    } else {
+      await loadList();
+    }
+  }
+
+});
+
+
+
+document.getElementById("list").addEventListener("click", function(e) {
+  const item = e.target.closest(".item");
+  if (!item) return;
+
+  const index = Number(item.dataset.index);
+
+  if (Number.isInteger(index) && index >= 0) {
+    toggleItem(index);
+  }
+});
+
+// Activeer productsuggesties zodra de pagina klaar is.
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initProductSuggestions);
+} else {
+  initProductSuggestions();
+}
+
+
+
+  // Import the functions you need from the SDKs you need
+  
+ // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyCtuUMTbByy39KxAbLdw5GUkO_cHmfZHHc",
+    authDomain: "boodschappenthuis1.firebaseapp.com",
+    databaseURL: "https://boodschappenthuis1-default-rtdb.firebaseio.com",
+    projectId: "boodschappenthuis1",
+    storageBucket: "boodschappenthuis1.firebasestorage.app",
+    messagingSenderId: "845995010779",
+    appId: "1:845995010779:web:5896c89bde8b3ace507afe"
+  };
+
+  // Initialize Firebase
+const app = firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const database = firebase.database();
+// Bewaar de Firebase-inlogsessie lokaal totdat de gebruiker zelf uitlogt.
+const authPersistenceReady = auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(error => {
+  console.error("Loginpersistentie instellen mislukt:", error);
+  throw error;
+});
+let loginFlowActive = false;
+  let currentHouseholdId = null;
+let currentSharedListId = null;
+let currentSharedListInviteCode = null;
+let currentSharedListUnsubscribe = null;
+// Houd de gewone familielijst en een Deellijst strikt gescheiden.
+let activeListType = "family"; // "family" | "shared" | "private"
+
+async function getOrCreateHousehold() {
+  const user = auth.currentUser;
+
+  if (!user) {
+    throw new Error("Je bent niet ingelogd.");
+  }
+
+  const userRef = database.ref("users/" + user.uid + "/householdId");
+  const userSnapshot = await userRef.once("value");
+  const householdId = userSnapshot.val();
+
+  if (!householdId) {
+    currentHouseholdId = null;
+    return null;
+  }
+
+  try {
+    const householdSnapshot = await database
+      .ref("households/" + householdId)
+      .once("value");
+
+    if (!householdSnapshot.exists()) {
+      await userRef.remove();
+      currentHouseholdId = null;
+      return null;
+    }
+
+    const household = householdSnapshot.val() || {};
+    const isOwner = household.owner === user.uid;
+    const isMember = !!(household.members && household.members[user.uid]);
+
+    if (!isOwner && !isMember) {
+      await userRef.remove();
+      currentHouseholdId = null;
+      return null;
+    }
+
+    currentHouseholdId = String(householdId);
+    return currentHouseholdId;
+  } catch (error) {
+    console.error("Familie controleren mislukt:", error);
+    currentHouseholdId = null;
+    throw error;
+  }
+}
+
+async function openSharedListsSubmenu(event) {
+  if (event) event.stopPropagation();
+  switchMenuPage("sharedListsMenuSub", event);
+  const countEl=document.getElementById("sharedMemberCount");
+  if(countEl){
+    if(activeListType==="shared" && currentSharedListId){
+      try{
+        const snap=await database.ref("sharedLists/" + currentSharedListId + "/members").once("value");
+        const members=snap.val()||{};
+        countEl.textContent=String(Object.keys(members).filter(uid=>members[uid]===true).length);
+      }catch(_){
+        countEl.textContent="0";
+      }
+    }else{
+      countEl.textContent="—";
+    }
+  }
+  await renderSharedLists();
+}
+function closeSharedListsSubmenu(event) {
+  if (event) event.stopPropagation();
+
+  // From the Deellijst page, return to the main menu with the exact
+  // same submenu slide used elsewhere.
+  const sharedPage = document.getElementById("sharedListsMenuSub");
+  const main = document.getElementById("familyMenuMain");
+
+  if (sharedPage && getComputedStyle(sharedPage).display !== "none") {
+    returnMenuToMain("sharedListsMenuSub", event);
+  } else if (main) {
+    // When this is used from the main menu, close the complete menu normally.
+    closeFamilyMenu();
+  }
+
+  activeListType = "family";
+  if (currentSharedListUnsubscribe) {
+    currentSharedListUnsubscribe();
+    currentSharedListUnsubscribe = null;
+  }
+  currentSharedListId = null;
+  currentSharedListInviteCode = null;
+
+  const h = document.querySelector(".headerBar h1");
+  if (h) h.textContent = "Boodschappenlijst";
+  loadList().catch(()=>{});
+}
+
+function returnToSharedListsMenu(event){
+  if(event) event.stopPropagation();
+  const from=document.getElementById("sharedListActiveMenuSub");
+  const to=document.getElementById("sharedListsMenuSub");
+  if(!from || !to) return;
+  if(__menuTransitionTimer){ clearTimeout(__menuTransitionTimer); __menuTransitionTimer=null; }
+  __resetMenuPageClasses(from);
+  __resetMenuPageClasses(to);
+  from.style.display="block";
+  to.style.display="block";
+  from.classList.add("menuSlideOutRight");
+  to.classList.add("menuSlideInLeft");
+  __menuCurrentPage="sharedListsMenuSub";
+  __menuTransitionTimer=setTimeout(()=>{
+    from.style.display="none";
+    __resetMenuPageClasses(from);
+    __resetMenuPageClasses(to);
+    __menuTransitionTimer=null;
+    renderSharedLists();
+  },290);
+}
+
+function makeSharedCode(){ return Math.floor(100000 + Math.random()*900000).toString(); }
+function makeSharedListLink(code){
+  const base = window.location.href.split("#")[0].split("?")[0];
+  return base + "?code=" + encodeURIComponent(code);
+}
+
+async function createSharedList(){
+  const user=auth.currentUser;
+  if(!user){ await familyAlert("Inloggen vereist","Je bent niet ingelogd.","fa-user"); return; }
+  const name=await familyTextPrompt("Nieuwe lijst","Geef je lijst een naam, bijvoorbeeld Kerst of BBQ met vrienden.","fa-list");
+  if(!name) return;
+
+  let code=null, id=null;
+  for(let i=0;i<8;i++){
+    const candidate=makeSharedCode();
+    try{
+      const codeSnap=await database.ref("sharedListCodes/" + candidate).once("value");
+      if(codeSnap.exists()) continue;
+
+      const ref=database.ref("sharedLists").push();
+      const listId=ref.key;
+      const listData={
+        name:name,
+        owner:user.uid,
+        inviteCode:candidate,
+        members:{[user.uid]:true},
+        memberNames:{[user.uid]: (user.displayName || user.email || "Gebruiker")},
+        createdAt:Date.now(),
+        boodschappen:[]
+      };
+
+      const updates={};
+      updates["sharedLists/" + listId]=listData;
+      updates["userSharedLists/" + user.uid + "/" + listId]=true;
+      updates["sharedListCodes/" + candidate]=listId;
+      await database.ref().update(updates);
+      id=listId; code=candidate;
+      break;
+    }catch(e){ console.error("Deellijst aanmaken mislukt:",e); }
+  }
+
+  if(!id){
+    await familyAlert("Deellijst","De deellijst kon niet worden aangemaakt. Controleer de Firebase-regels.","fa-triangle-exclamation");
+    return;
+  }
+  await openSharedList(id, true);
+}
+
+async function joinSharedListByCode(){
+  const user=auth.currentUser;
+  if(!user){ await familyAlert("Inloggen vereist","Je bent niet ingelogd.","fa-user"); return; }
+  const code=(await familyPrompt("Deellijstcode","Voer de 6-cijferige code in.","fa-key") || "").trim();
+  if(!code) return;
+
+  try{
+    const codeSnap=await database.ref("sharedListCodes/" + code).once("value");
+    const id=codeSnap.val();
+    if(!id){ await familyAlert("Deellijst","Deze code bestaat niet.","fa-triangle-exclamation"); return; }
+
+    const listSnap=await database.ref("sharedLists/" + id).once("value");
+    const list=listSnap.val();
+    if(!list){ await familyAlert("Deellijst","Deze lijst bestaat niet meer.","fa-triangle-exclamation"); return; }
+    if(list.members && list.members[user.uid]===true){ await openSharedList(id, true); return; }
+
+    const join=await familyConfirm("Deellijst","Wil je deelnemen aan de deellijst “" + (list.name||"Deellijst") + "”?");
+    if(!join) return;
+
+    const updates={};
+    updates["sharedLists/" + id + "/members/" + user.uid]=true;
+    let memberName = user.displayName || user.email || "Gebruiker";
+    try {
+      const nameSnap = await database.ref("users/" + user.uid + "/name").once("value");
+      memberName = nameSnap.val() || memberName;
+    } catch (_) {}
+    updates["sharedLists/" + id + "/memberNames/" + user.uid]=memberName;
+    updates["userSharedLists/" + user.uid + "/" + id]=true;
+    await database.ref().update(updates);
+    await openSharedList(id, true);
+  }catch(error){
+    console.error("Deellijst via code mislukt:",error);
+    await familyAlert("Deellijst","De code kon niet worden verwerkt. Controleer de Firebase-regels.","fa-triangle-exclamation");
+  }
+}
+
+async function renderSharedLists(){
+  const box=document.getElementById("sharedListsContainer"); if(!box) return;
+  const user=auth.currentUser;
+  if(!user){ box.innerHTML='<div class="sharedListEmpty">Log eerst in.</div>'; return; }
+
+  try{
+    const indexSnap=await database.ref("userSharedLists/" + user.uid).once("value");
+    const index=indexSnap.val()||{};
+    const ids=Object.keys(index).filter(id=>index[id]===true);
+
+    if(!ids.length){
+      box.innerHTML='<div class="sharedListEmpty">Nog geen deellijsten. Maak hierboven je eerste lijst.</div>';
+      return;
+    }
+
+    const results=await Promise.all(ids.map(async id=>{
+      try{
+        const snap=await database.ref("sharedLists/" + id).once("value");
+        return snap.exists() ? [id,snap.val()] : null;
+      }catch(e){ return null; }
+    }));
+
+    const mine=results.filter(Boolean).sort((a,b)=>(b[1].createdAt||0)-(a[1].createdAt||0));
+    box.innerHTML="";
+    if(!mine.length){
+      box.innerHTML='<div class="sharedListEmpty">Nog geen deellijsten. Maak hierboven je eerste lijst.</div>';
+      return;
+    }
+
+    mine.forEach(([id,v])=>{
+      const btn=document.createElement("button");
+      btn.type="button";
+      btn.className="savedListRow";
+      btn.innerHTML='<i class="fa-solid fa-people-group"></i><span></span><i class="fa-solid fa-chevron-right familyMenuArrow"></i>';
+      btn.querySelector("span").textContent=v.name||"Deellijst";
+      btn.addEventListener("click",async()=>{
+        await openSharedList(id,false);
+        if(activeListType==="shared" && currentSharedListId===id){
+          switchMenuPage("sharedListActiveMenuSub");
+        }
+      });
+      box.appendChild(btn);
+    });
+  }catch(e){
+    console.error("Mijn deellijsten laden mislukt:",e);
+    box.innerHTML='<div class="sharedListEmpty">De deellijsten konden niet worden geladen.</div>';
+  }
+}
+
+
+async function getCurrentSharedListSnapshot(){
+  const user=auth.currentUser;
+  if(!user || activeListType!="shared" || !currentSharedListId) return null;
+  const snap=await database.ref("sharedLists/" + currentSharedListId).once("value");
+  return snap.exists() ? snap.val() : null;
+}
+
+async function showSharedListCode(){
+  const user=auth.currentUser;
+  if(!user || activeListType!=="shared" || !currentSharedListId) return;
+
+  let list=null;
+  try{
+    list=await getCurrentSharedListSnapshot();
+  }catch(e){
+    console.warn("Deelcode lezen via Firebase mislukt; lokale code wordt gebruikt.",e);
+  }
+
+  const code=String((list && list.inviteCode) || currentSharedListInviteCode || "");
+  if(!list) list={name:"Deellijst"};
+  if(!code){
+    await familyAlert("Deelcode","Voor deze deellijst is geen deelcode beschikbaar.","fa-link");
+    return;
+  }
+
+  currentSharedListInviteCode=code;
+  try{ localStorage.setItem("sharedListInviteCode:"+currentSharedListId,code); }catch(_){}
+
+  const link=makeSharedListLink(code);
+  const safeName=String(list.name || "Deellijst").replace(/[&<>\"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+
+  const overlay=familyDialogBase(
+    "fa-link",
+    "Deelcode",
+    `<div class="familyDialogText">Deel “${safeName}” met anderen.</div>
+     <div class="sharedListInviteBox">
+       <div class="sharedListLinkLabel">Deelcode</div>
+       <div class="sharedListInviteCode" id="sharedCodeDisplay">${code}</div>
+       <div class="sharedListActionRow">
+         <button type="button" class="sharedListAction" id="copyCurrentSharedCode">📋 Kopiëren</button>
+         <button type="button" class="sharedListAction sharedListShareButton" id="shareCurrentSharedLink">🔗 Deellink</button>
+       </div>
+     </div>`,
+    `<button type="button" class="familyDialogBtn familyDialogPrimary" id="closeCurrentSharedCode">Sluiten</button>`
+  );
+
+  async function copyText(value, message){
+    try{
+      if(navigator.clipboard && window.isSecureContext){
+        await navigator.clipboard.writeText(value);
+      }else{
+        const ta=document.createElement("textarea");
+        ta.value=value;
+        ta.setAttribute("readonly","");
+        ta.style.position="fixed";
+        ta.style.opacity="0";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        ta.remove();
+      }
+      await familyAlert("Gekopieerd",message,"fa-check");
+    }catch(e){
+      await familyAlert("Kopiëren","Kopiëren wordt niet ondersteund op dit apparaat.","fa-copy");
+    }
+  }
+
+  overlay.querySelector("#copyCurrentSharedCode").onclick=()=>{
+    copyText(code,"De deelcode is gekopieerd.");
+  };
+
+  overlay.querySelector("#shareCurrentSharedLink").onclick=async()=>{
+    try{
+      if(navigator.share){
+        await navigator.share({
+          title:list.name || "Deellijst",
+          text:"Doe mee met deze deellijst",
+          url:link
+        });
+      }else{
+        await copyText(link,"Deellink is gekopieerd.");
+      }
+    }catch(e){
+      if(e && e.name==="AbortError") return;
+      await copyText(link,"Deellink is gekopieerd.");
+    }
+  };
+
+  overlay.querySelector("#closeCurrentSharedCode").onclick=()=>{
+    closeFamilyDialog(overlay);
+  };
+}
+async function showSharedListMembers(){
+  const user=auth.currentUser;
+  if(!user || activeListType!=="shared" || !currentSharedListId) return;
+
+  try{
+    const snap=await database.ref("sharedLists/" + currentSharedListId).once("value");
+    const list=snap.val();
+
+    if(!list || !list.members){
+      await familyAlert("Leden","De leden van deze deellijst konden niet worden geladen.","fa-users");
+      return;
+    }
+
+    const ownerUid=String(list.owner || "");
+    const memberIds=Object.keys(list.members).filter(uid=>list.members[uid]===true);
+    const memberNames=list.memberNames || {};
+
+    const rows=[];
+    for(const uid of memberIds){
+      let name=memberNames[uid] || "";
+
+      if(!name){
+        try{
+          const ns=await database.ref("users/" + uid + "/name").once("value");
+          name=ns.val() || "";
+        }catch(_){}
+      }
+
+      if(!name) name=uid===user.uid ? (user.displayName || user.email || "Gebruiker") : "Lid";
+
+      const row=document.createElement("div");
+      row.className="familyDialogMember";
+
+      const icon=document.createElement("span");
+      icon.textContent = uid===ownerUid ? "👑" : "👤";
+      icon.setAttribute("aria-hidden","true");
+      icon.className = "sharedMemberEmoji";
+
+      const nameNode=document.createElement("span");
+      nameNode.textContent=name;
+
+      row.appendChild(icon);
+      row.appendChild(nameNode);
+      rows.push(row);
+    }
+
+    rows.sort((a,b)=>{
+      const ai=a.querySelector(".sharedMemberEmoji")?.textContent==="👑" ? 0 : 1;
+      const bi=b.querySelector(".sharedMemberEmoji")?.textContent==="👑" ? 0 : 1;
+      return ai-bi;
+    });
+
+    const wrap=document.createElement("div");
+    wrap.className="familyDialogList";
+    rows.forEach(row=>wrap.appendChild(row));
+
+    const overlay=familyDialogBase(
+      "fa-user-group",
+      "Leden",
+      "",
+      '<button type="button" class="familyDialogBtn familyDialogPrimary" id="closeSharedMembers">Sluiten</button>'
+    );
+
+    const body=overlay.querySelector(".familyDialogBody");
+    body.replaceChildren(wrap);
+
+    const close=()=>closeFamilyDialog(overlay);
+    const closeBtn=overlay.querySelector("#closeSharedMembers");
+    if(closeBtn) closeBtn.addEventListener("click",close);
+    overlay.addEventListener("click",e=>{ if(e.target===overlay) close(); });
+  }catch(error){
+    console.error("Deellijstleden konden niet worden geladen:",error);
+    const detail=error && error.code ? "\n\nFoutcode: " + error.code : "";
+    await familyAlert("Leden","De leden van deze deellijst konden niet worden geladen." + detail,"fa-triangle-exclamation");
+  }
+}
+
+function updateSharedMemberCount(list){
+  const el=document.getElementById("sharedMemberCount");
+  if(!el) return;
+  const members=list && list.members ? Object.keys(list.members).filter(uid=>list.members[uid]===true) : [];
+  el.textContent=String(members.length || 0);
+}
+
+async function openSharedList(id, showInvite){
+  const user=auth.currentUser;
+  if(!user) return;
+
+  // De Deellijst krijgt een eigen modus. Hierdoor kan een gelijktijdige
+  // familielijst-load de inhoud van de Deellijst niet meer overschrijven.
+  const previousSharedId = currentSharedListId;
+  activeListType = "shared";
+  currentSharedListId = id;
+  currentSharedListInviteCode = null;
+
+  if(currentSharedListUnsubscribe){
+    currentSharedListUnsubscribe();
+    currentSharedListUnsubscribe = null;
+  }
+
+  boodschappen=[];
+  selectedIndex=-1;
+  showList();
+
+  try {
+    const snap=await database.ref("sharedLists/" + id).once("value");
+    const v=snap.val();
+    if(!v || !v.members || v.members[user.uid]!==true){
+      activeListType = "family";
+      currentSharedListId = previousSharedId || null;
+      if (!currentSharedListId) await loadList();
+      await familyAlert("Deellijst","Je hebt geen toegang tot deze lijst.","fa-lock");
+      return;
+    }
+
+    boodschappen=normalizeBoodschappen(v.boodschappen||[]);
+    currentSharedListInviteCode = v.inviteCode || null;
+    if(currentSharedListInviteCode){
+      try{ localStorage.setItem("sharedListInviteCode:"+id,String(currentSharedListInviteCode)); }catch(_){}
+    }
+    showList();
+    const h=document.querySelector(".headerBar h1"); if(h) h.textContent=v.name||"Deellijst";
+    updateSharedDeleteButton(v.owner === user.uid);
+    updateSharedMemberCount(v);
+    const activeCount=document.getElementById("sharedMemberCountActive");
+    if(activeCount){
+      const members=v.members||{};
+      activeCount.textContent=String(Object.keys(members).filter(uid=>members[uid]===true).length);
+    }
+    const activeTitle=document.getElementById("sharedListActiveMenuTitle");
+    if(activeTitle) activeTitle.textContent=v.name||"Deellijst";
+    if (!v.memberNames || !v.memberNames[user.uid]) {
+      let ownName = user.displayName || user.email || "Gebruiker";
+      try { const ownNameSnap = await database.ref("users/" + user.uid + "/name").once("value"); ownName = ownNameSnap.val() || ownName; } catch (_) {}
+      try { await database.ref("sharedLists/" + id + "/memberNames/" + user.uid).set(ownName); } catch (_) {}
+    }
+
+    currentSharedListUnsubscribe=database.ref("sharedLists/" + id).on("value",s=>{
+      if (activeListType !== "shared" || currentSharedListId !== id) return;
+      const data=s.val()||{};
+      if(!data.members || data.members[user.uid]!==true){
+        currentSharedListId=null;
+        if(currentSharedListUnsubscribe){ currentSharedListUnsubscribe(); currentSharedListUnsubscribe=null; }
+        activeListType="family";
+        loadList();
+        return;
+      }
+      boodschappen=normalizeBoodschappen(data.boodschappen||[]);
+      showList();
+      const header=document.querySelector(".headerBar h1"); if(header) header.textContent=data.name||"Deellijst";
+      updateSharedMemberCount(data);
+    });
+    if(showInvite){
+      const link=makeSharedListLink(v.inviteCode);
+      const overlay=familyDialogBase("fa-people-group",v.name||"Deellijst",`<div class="familyDialogText">Deel deze code of link met anderen.</div><div class="sharedListInviteBox"><div>Deelcode</div><div class="sharedListInviteCode">${v.inviteCode}</div><div class="sharedListActionRow"><button type="button" class="sharedListAction" id="copySharedCode">📋 Kopiëren</button><button type="button" class="sharedListAction" id="copySharedLink">🔗 Link kopiëren</button></div></div>`,`<button type="button" class="familyDialogBtn familyDialogPrimary">Openen</button>`);
+      const copy=async(text,msg)=>{try{await navigator.clipboard.writeText(text);await familyAlert("Gekopieerd",msg,"fa-check");}catch(e){await familyAlert("Kopiëren","Kopiëren wordt niet ondersteund op dit apparaat. Gebruik de code: "+text,"fa-copy");}};
+      overlay.querySelector("#copySharedCode").onclick=()=>copy(v.inviteCode,"De code is gekopieerd.");
+      overlay.querySelector("#copySharedLink").onclick=()=>copy(link,"De link is gekopieerd.");
+      overlay.querySelector(".familyDialogPrimary").onclick=()=>closeFamilyDialog(overlay);
+    }
+  } catch(error) {
+    console.error("Deellijst openen mislukt:", error);
+    activeListType = "family";
+    currentSharedListId = previousSharedId || null;
+    currentSharedListInviteCode = null;
+    if (!currentSharedListId) await loadList();
+    await familyAlert("Deellijst","Deellijst kon niet worden geopend. Je familielijst is niet gewijzigd.","fa-triangle-exclamation");
+  }
+}
+
+
+function updateSharedDeleteButton(isOwner){
+  const header=document.querySelector(".headerBar");
+  if(!header) return;
+  const old=document.getElementById("deleteSharedListBtn");
+  if(old) old.remove();
+  if(!isOwner || activeListType!=="shared" || !currentSharedListId) return;
+  const btn=document.createElement("button");
+  btn.type="button";
+  btn.id="deleteSharedListBtn";
+  btn.className="familyButton sharedDeleteIconButton";
+  btn.setAttribute("aria-label","Deellijst verwijderen");
+   btn.setAttribute("title","Deellijst verwijderen");
+  btn.innerHTML='<i class="fa-solid fa-trash"></i>';
+  btn.onclick=deleteCurrentSharedList;
+  header.insertBefore(btn, header.querySelector(".familyButton"));
+}
+
+async function deleteCurrentSharedList(){
+  const user=auth.currentUser;
+  const id=currentSharedListId;
+  if(!user || !id) return;
+
+  try{
+    const snap=await database.ref("sharedLists/" + id).once("value");
+    const list=snap.val();
+    if(!list){
+      await familyAlert("Deellijst","Deze lijst bestaat niet meer.","fa-circle-info");
+      returnToFamilyList();
+      return;
+    }
+    if(list.owner !== user.uid){
+      await familyAlert("Deellijst","Alleen de eigenaar kan deze deellijst verwijderen.","fa-lock");
+      return;
+    }
+
+    const ok=await familyConfirm(
+      "Deellijst verwijderen",
+      "Weet je zeker dat je “" + (list.name || "Deellijst") + "” wilt verwijderen? Deze actie kan niet ongedaan worden."
+    );
+    if(!ok) return;
+
+    if(currentSharedListUnsubscribe){
+      currentSharedListUnsubscribe();
+      currentSharedListUnsubscribe=null;
+    }
+
+    // Verwijder de gedeelde lijst, de uitnodigingscode en de eigen indexverwijzing
+    // in één Firebase-update. De gewone familielijst wordt hierbij niet geraakt.
+    const updates={};
+    updates["sharedLists/" + id]=null;
+    if(list.inviteCode) updates["sharedListCodes/" + list.inviteCode]=null;
+    updates["userSharedLists/" + user.uid + "/" + id]=null;
+    await database.ref().update(updates);
+
+    activeListType="family";
+    currentSharedListId=null;
+    currentSharedListInviteCode=null;
+    const delBtn=document.getElementById("deleteSharedListBtn");
+    if(delBtn) delBtn.remove();
+    await loadList();
+    await familyAlert("Deellijst verwijderd","De deellijst is verwijderd.","fa-trash");
+  }catch(error){
+    console.error("Deellijst verwijderen mislukt:",error);
+    await familyAlert(
+      "Deellijst",
+      "De deellijst kon niet volledig worden verwijderd. Er is niets uit je gewone familielijst verwijderd.",
+      "fa-triangle-exclamation"
+    );
+  }
+}
+
+async function returnToFamilyList(event){
+  if(event) event.stopPropagation();
+  if(!auth.currentUser) return;
+
+  const activePage=document.getElementById("sharedListActiveMenuSub");
+  const menu=document.getElementById("familyMenu");
+
+  if(__menuTransitionTimer){ clearTimeout(__menuTransitionTimer); __menuTransitionTimer=null; }
+  if(activePage){
+    __resetMenuPageClasses(activePage);
+    activePage.style.display="block";
+    activePage.classList.add("menuSlideOutRight");
+  }
+
+  // Shared-list UI must disappear immediately; the family list itself is
+  // loaded only after the menu transition so no shared-list frame leaks through.
+  document.querySelectorAll("#deleteSharedListBtn,.sharedDeleteIconButton").forEach(el=>el.remove());
+
+  activeListType="family";
+  if(currentSharedListId){ try{ localStorage.removeItem("sharedListInviteCode:"+currentSharedListId); }catch(_){} }
+  currentSharedListId=null;
+  currentSharedListInviteCode=null;
+  if(currentSharedListUnsubscribe){ currentSharedListUnsubscribe(); currentSharedListUnsubscribe=null; }
+
+  const h=document.querySelector(".headerBar h1");
+  if(h) h.textContent="Boodschappenlijst";
+
+  if(menu){
+    menu.classList.remove("menu-open");
+  }
+
+  await new Promise(resolve=>setTimeout(resolve,290));
+  if(activePage){ activePage.style.display="none"; __resetMenuPageClasses(activePage); }
+  const pageIds=["familyMenuSub","sharedListsMenuSub","sharedListActiveMenuSub","settingsMenuSub","savedListsMenuSub","accountMenuSub","aboutMenuSub"];
+  pageIds.forEach(id=>{ const p=document.getElementById(id); if(p){ p.style.display="none"; __resetMenuPageClasses(p); }});
+  const main=document.getElementById("familyMenuMain");
+  if(main){ main.style.display="block"; __resetMenuPageClasses(main); }
+  __menuCurrentPage="familyMenuMain";
+
+  await loadList();
+}
+
+function familyTextPrompt(title,message,icon="fa-list"){
+  return new Promise(resolve=>{
+    closeFamilyMenuForDialog();
+    const overlay=familyDialogBase(icon,title,`<div class="familyDialogText">${message}</div><input class="familyDialogInput" type="text" maxlength="60" autocomplete="off" aria-label="${title}">`,`<button type="button" class="familyDialogBtn familyDialogCancel">Annuleren</button><button type="button" class="familyDialogBtn familyDialogPrimary">Aanmaken</button>`);
+    const input=overlay.querySelector(".familyDialogInput"); const finish=v=>closeFamilyDialog(overlay,()=>resolve(v));
+    overlay.querySelector(".familyDialogCancel").onclick=()=>finish(null); overlay.querySelector(".familyDialogPrimary").onclick=()=>finish(input.value.trim()); input.addEventListener("keydown",e=>{if(e.key==="Enter")finish(input.value.trim())}); setTimeout(()=>input.focus(),30);
+  });
+}
+
+async function showFamilyCode() {
+
+  if (!currentHouseholdId) {
+    await familyAlert("Familiecode", "Nog geen familiecode beschikbaar.", "fa-key");
+    return;
+  }
+
+  closeFamilyMenuForDialog();
+  await new Promise(resolve => {
+    const overlay=familyDialogBase(
+      "fa-key", "Familiecode",
+      `<div class="familyDialogText">Deel deze code met iemand die je aan je familie wilt toevoegen.</div>
+       <div class="familyDialogCode">${currentHouseholdId}</div>
+       <button type="button" class="sharedListAction" id="copyFamilyCodeBtn" style="margin-top:10px;">📋 Kopiëren</button>`,
+      `<button type="button" class="familyDialogBtn familyDialogPrimary">Klaar</button>`
+    );
+    const finish=()=>{ closeFamilyDialog(overlay, resolve); };
+    const copyFamilyBtn = overlay.querySelector("#copyFamilyCodeBtn");
+    if (copyFamilyBtn) copyFamilyBtn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      try { await navigator.clipboard.writeText(String(currentHouseholdId)); await familyAlert("Gekopieerd", "De familiecode is gekopieerd.", "fa-check"); }
+      catch (err) { await familyAlert("Familiecode", "Kopiëren wordt niet ondersteund. Code: " + currentHouseholdId, "fa-copy"); }
+    });
+    overlay.querySelector(".familyDialogActions button").addEventListener("click",finish);
+    overlay.addEventListener("click",e=>{if(e.target===overlay)finish();});
+  });
+
+}
+ async function createNewFamily() {
+
+  const user = auth.currentUser;
+  if (!user) {
+    await familyAlert("Inloggen vereist", "Je bent niet ingelogd.", "fa-user");
+    return;
+  }
+
+  try {
+    const userSnapshot = await database
+      .ref("users/" + user.uid + "/householdId")
+      .once("value");
+    const existingHouseholdId = userSnapshot.val();
+
+    if (existingHouseholdId) {
+      const leaveFamily = await familyConfirm(
+        "Je hebt al een familie.\n\n" +
+        "Je moet je huidige familie eerst verlaten voordat je een nieuwe familie kunt beginnen.\n\n" +
+        "Wil je je huidige familie verlaten?"
+      );
+      if (!leaveFamily) return;
+
+      const householdSnapshot = await database
+        .ref("households/" + existingHouseholdId)
+        .once("value");
+      const household = householdSnapshot.val();
+
+      if (household) {
+        const isOwner = household.owner === user.uid;
+        if (isOwner) {
+          const confirmOwner = await familyConfirm(
+            "Weet je het zeker?\n\n" +
+            "Je bent de eigenaar van deze familie. Als je een nieuwe familie begint, " +
+            "wordt je huidige familie beëindigd en worden alle andere leden uit deze familie gehaald."
+          );
+          if (!confirmOwner) return;
+
+          const members = household.members || {};
+          for (const memberId of Object.keys(members)) {
+            await database.ref("users/" + memberId + "/householdId").remove();
+          }
+          await database.ref("households/" + existingHouseholdId).remove();
+        } else {
+          const confirmLeave = await familyConfirm(
+            "Weet je het zeker?\n\n" +
+            "Je verlaat je huidige familie. Daarna kun je je eigen nieuwe familie beginnen."
+          );
+          if (!confirmLeave) return;
+
+          await database
+            .ref("households/" + existingHouseholdId + "/members/" + user.uid)
+            .remove();
+          await database.ref("users/" + user.uid + "/householdId").remove();
+        }
+      }
+      currentHouseholdId = null;
+    }
+
+    let code = null;
+    let created = false;
+    let lastCreateError = null;
+
+    // Controleer de code niet met .once("value"): een gebruiker die nog geen
+    // lid is mag een willekeurige andere familie niet uitlezen. De Rules
+    // bepalen veilig dat een bestaande familie niet overschreven kan worden.
+    for (let attempt = 0; attempt < 8 && !created; attempt++) {
+      code = Math.floor(100000 + Math.random() * 900000).toString();
+      try {
+        await database.ref("households/" + code).set({
+          owner: user.uid,
+          name: "Mijn familie",
+          members: { [user.uid]: true }
+        });
+        created = true;
+      } catch (createError) {
+        lastCreateError = createError;
+      }
+    }
+
+    if (!created) {
+      throw lastCreateError || new Error("Familie kon niet worden aangemaakt.");
+    }
+
+    await database.ref("users/" + user.uid + "/householdId").set(code);
+
+    localStorage.removeItem("boodschappenUseMode_" + user.uid);
+    currentHouseholdId = code;
+    closeUseModeModal();
+    await loadList();
+    await updateMemberCount();
+
+    const menu = document.getElementById("familyMenu");
+    if (menu) { menu.classList.remove("menu-open"); menu.style.display = "none"; }
+
+    await familyAlert("Nieuwe familie aangemaakt", "Jouw familiecode is:\n\n" + code, "fa-house");
+  } catch (error) {
+    console.error("Nieuwe familie aanmaken mislukt:", error);
+    const detail = error && error.code ? "\n\nFoutcode: " + error.code : "";
+    await familyAlert("Nieuwe familie", "De nieuwe familie kon niet worden aangemaakt." + detail, "fa-triangle-exclamation");
+  }
+
+}
+
+function closeFamilyMenuForDialog() {
+  closeFamilyMenu();
+  const main = document.getElementById("familyMenuMain");
+  const sub = document.getElementById("familyMenuSub");
+  const settings = document.getElementById("settingsMenuSub");
+  const savedLists = document.getElementById("savedListsMenuSub");
+  const sharedLists = document.getElementById("sharedListsMenuSub");
+  if (main) {
+    main.style.display = "block";
+    main.classList.remove("familyMenuMainExit", "familyMenuMainEnter");
+  }
+  if (sub) {
+    sub.style.display = "none";
+    sub.classList.remove("familyMenuSubEnter", "familyMenuSubExit");
+  }
+  if (settings) {
+    settings.style.display = "none";
+    settings.classList.remove("familyMenuSubEnter", "familyMenuSubExit");
+  }
+  if (savedLists) {
+    savedLists.style.display = "none";
+    savedLists.classList.remove("familyMenuSubEnter", "familyMenuSubExit");
+  }
+  if (sharedLists) {
+    sharedLists.style.display = "none";
+    sharedLists.classList.remove("familyMenuSubEnter", "familyMenuSubExit");
+  }
+  const account = document.getElementById("accountMenuSub");
+  if (account) { account.style.display = "none"; account.classList.remove("familyMenuSubEnter", "familyMenuSubExit"); }
+  const about = document.getElementById("aboutMenuSub");
+  if (about) { about.style.display = "none"; about.classList.remove("familyMenuSubEnter", "familyMenuSubExit"); }
+}
+
+function familyDialogBase(icon, title, content, buttonsHtml) {
+  const overlay = document.createElement("div");
+  overlay.className = "familyDialogOverlay";
+  overlay.innerHTML = `
+    <div class="familyDialog" role="dialog" aria-modal="true">
+      <div class="familyDialogHeader">
+        <div class="familyDialogIcon"><i class="fa-solid ${icon}"></i></div>
+        <div class="familyDialogTitle">${title}</div>
+      </div>
+      <div class="familyDialogBody">${content}</div>
+      ${buttonsHtml ? `<div class="familyDialogActions">${buttonsHtml}</div>` : ""}
+    </div>`;
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => overlay.classList.add("familyDialogShown"));
+  return overlay;
+}
+
+function closeFamilyDialog(overlay, done) {
+  if (!overlay || !overlay.isConnected) {
+    if (done) done();
+    return;
+  }
+  overlay.classList.add("familyDialogClosing");
+  setTimeout(() => {
+    overlay.remove();
+    if (done) done();
+  }, 280);
+}
+
+function familyAlert(title, message, icon="fa-circle-info") {
+  return new Promise(resolve => {
+    closeFamilyMenuForDialog();
+    const overlay = familyDialogBase(
+      icon, title,
+      `<div class="familyDialogText">${message}</div>`,
+      `<button type="button" class="familyDialogBtn familyDialogPrimary">OK</button>`
+    );
+    const finish=()=>{ overlay.remove(); resolve(); };
+    overlay.querySelector(".familyDialogPrimary").addEventListener("click",finish);
+    overlay.addEventListener("click",e=>{ if(e.target===overlay) finish(); });
+  });
+}
+
+function familyConfirm(title, message, danger=false) {
+  if (message === undefined) {
+    message = title;
+    title = "Familie";
+  }
+
+  return new Promise(resolve => {
+    closeFamilyMenuForDialog();
+    const overlay = familyDialogBase(
+      danger ? "fa-right-from-bracket" : "fa-circle-question",
+      title,
+      `<div class="familyDialogText">${message}</div>`,
+      `<button type="button" class="familyDialogBtn familyDialogCancel">Annuleren</button>
+       <button type="button" class="familyDialogBtn ${danger ? "familyDialogDanger" : "familyDialogPrimary"}">Doorgaan</button>`
+    );
+    const finish=value=>{ closeFamilyDialog(overlay, () => resolve(value)); };
+    overlay.querySelector(".familyDialogCancel").addEventListener("click",()=>finish(false));
+    overlay.querySelector(".familyDialogActions button:last-child").addEventListener("click",()=>finish(true));
+    overlay.addEventListener("click",e=>{ if(e.target===overlay) finish(false); });
+  });
+}
+
+function familyPrompt(title, message, icon="fa-keyboard", initial="") {
+  return new Promise(resolve => {
+    closeFamilyMenuForDialog();
+    const overlay = familyDialogBase(
+      icon, title,
+      `<div class="familyDialogText">${message}</div>
+       <input class="familyDialogInput" inputmode="numeric" maxlength="6" autocomplete="off" value="${initial}" aria-label="${title}">`,
+      `<button type="button" class="familyDialogBtn familyDialogCancel">Annuleren</button>
+       <button type="button" class="familyDialogBtn familyDialogPrimary">Doorgaan</button>`
+    );
+    const input=overlay.querySelector(".familyDialogInput");
+    const finish=value=>{ closeFamilyDialog(overlay, () => resolve(value)); };
+    overlay.querySelector(".familyDialogCancel").addEventListener("click",()=>finish(null));
+    overlay.querySelector(".familyDialogPrimary").addEventListener("click",()=>finish(input.value.trim()));
+    overlay.addEventListener("click",e=>{ if(e.target===overlay) finish(null); });
+    input.addEventListener("keydown",e=>{ if(e.key==="Enter") finish(input.value.trim()); });
+    setTimeout(()=>input.focus(),30);
+  });
+}
+async function showFamilyMembers() {
+
+  const user = auth.currentUser;
+  if (!user) return;
+
+  try {
+    if (!currentHouseholdId) {
+      const nameSnapshot = await database.ref("users/" + user.uid + "/name").once("value");
+      const name = nameSnapshot.val() || user.email || "Gebruiker";
+      await familyAlert("Mijn account", "👑 " + name, "fa-user");
+      return;
+    }
+
+    const householdRef = database.ref("households/" + currentHouseholdId);
+    const [membersSnapshot, ownerSnapshot] = await Promise.all([
+      householdRef.child("members").once("value"),
+      householdRef.child("owner").once("value")
+    ]);
+
+    const members = membersSnapshot.val() || {};
+    const ownerUid = ownerSnapshot.val();
+
+    const memberIds = Object.keys(members).sort((a, b) => {
+      if (a === ownerUid) return -1;
+      if (b === ownerUid) return 1;
+      return 0;
+    });
+
+    const names = await Promise.all(memberIds.map(async (uid) => {
+      try {
+        const nameSnapshot = await database.ref("users/" + uid + "/name").once("value");
+        const name = nameSnapshot.val() || "Onbekend";
+        return uid === ownerUid ? "👑 " + name : "👤 " + name;
+      } catch (nameError) {
+        if (uid === user.uid) {
+          try {
+            const ownNameSnapshot = await database.ref("users/" + user.uid + "/name").once("value");
+            const ownName = ownNameSnapshot.val() || user.email || "Gebruiker";
+            return uid === ownerUid ? "👑 " + ownName : "👤 " + ownName;
+          } catch (_) {}
+        }
+        console.error("Naam van familielid kon niet worden geladen:", uid, nameError);
+        return "👤 Onbekend";
+      }
+    }));
+
+    const list = names.length
+      ? `<div class="familyDialogList">${names.map(n => `<div class="familyDialogMember">${n}</div>`).join("")}</div>`
+      : `<div class="familyDialogText">Nog geen familieleden.</div>`;
+    await familyAlert("Familieleden", list, "fa-user-group");
+  } catch (error) {
+    console.error("Familieleden konden niet worden geladen:", error);
+    const detail = error && error.code ? "\n\nFoutcode: " + error.code : "";
+    await familyAlert("Familieleden", "De familieleden konden niet worden geladen." + detail, "fa-triangle-exclamation");
+  }
+
+}
+ async function enterFamilyCode() {
+
+  const code = await familyPrompt("Familiecode invoeren", "Voer de 6-cijferige familiecode in.", "fa-keyboard");
+  if (!code) return;
+  if (!/^\d{6}$/.test(code)) {
+    await familyAlert("Ongeldige code", "Voer een geldige 6-cijferige familiecode in.", "fa-triangle-exclamation");
+    return;
+  }
+
+  const user = auth.currentUser;
+  if (!user) {
+    await familyAlert("Inloggen vereist", "Je bent niet ingelogd.", "fa-user");
+    return;
+  }
+
+  try {
+    const userSnapshot = await database
+      .ref("users/" + user.uid + "/householdId")
+      .once("value");
+    if (userSnapshot.exists() && userSnapshot.val()) {
+      await familyAlert("Al aangesloten", "Je bent al aangesloten bij een familie.\n\nVerlaat eerst je huidige familie voordat je een andere familiecode invoert.", "fa-users");
+      return;
+    }
+
+    // Probeer de gebruiker rechtstreeks als lid toe te voegen.
+    // Een niet-lid mag de familie nog niet lezen; Firebase Rules bepalen
+    // daarom via deze schrijfactie of de familiecode geldig is.
+    await database
+      .ref("households/" + code + "/members/" + user.uid)
+      .set(true);
+    await database
+      .ref("users/" + user.uid + "/householdId")
+      .set(code);
+
+    localStorage.removeItem("boodschappenUseMode_" + user.uid);
+    currentHouseholdId = code;
+    closeUseModeModal();
+    await loadList();
+    await updateMemberCount();
+
+    const menu = document.getElementById("familyMenu");
+    if (menu) { menu.classList.remove("menu-open"); menu.style.display = "none"; }
+    await familyAlert("Welkom bij de familie", "Je bent toegevoegd aan de familie!", "fa-user-plus");
+  } catch (error) {
+    console.error("Fout bij toetreden tot familie:", error);
+    const detail = error && error.code ? "\n\nFoutcode: " + error.code : "";
+    await familyAlert("Familiecode", "Je kon niet aan deze familie worden toegevoegd." + detail, "fa-triangle-exclamation");
+  }
+
+}
+  async function leaveFamily() {
+
+  const user = auth.currentUser;
+
+  if (!user || !currentHouseholdId) {
+    await familyAlert("Mijn familie", "Je bent niet aangesloten bij een familie.", "fa-users");
+    return;
+  }
+
+  const householdId = String(currentHouseholdId);
+
+  try {
+    const householdSnapshot = await database
+      .ref("households/" + householdId)
+      .once("value");
+    const household = householdSnapshot.val();
+
+    if (!household) {
+      await database.ref("users/" + user.uid + "/householdId").remove();
+      currentHouseholdId = null;
+      await familyAlert("Familie", "Je familie bestaat niet meer. Je bent losgekoppeld.", "fa-circle-info");
+      return;
+    }
+
+    const isOwner = household.owner === user.uid;
+
+    if (isOwner) {
+      const confirmOwner = await familyConfirm(
+        "Weet je zeker dat je de familie wilt verlaten?\n\n" +
+        "Je bent de hoofdeigenaar. Als je vertrekt, wordt de familie beëindigd en worden alle andere leden losgekoppeld. Zij kunnen daarna zelf een nieuwe familie maken of een andere familiecode gebruiken."
+      );
+      if (!confirmOwner) return;
+
+      const members = household.members || {};
+      const memberIds = Object.keys(members);
+
+      // Eerst alle leden loskoppelen terwijl de familie nog bestaat.
+      for (const memberId of memberIds) {
+        await database.ref("users/" + memberId + "/householdId").remove();
+      }
+
+      // Daarna de familie en de ledenlijst verwijderen.
+      await database.ref("households/" + householdId).remove();
+      currentHouseholdId = null;
+
+      await familyAlert("Familie beëindigd", "De familie is beëindigd. Alle familieleden zijn losgekoppeld.", "fa-right-from-bracket");
+    } else {
+      const confirmMember = await familyConfirm(
+        "Weet je zeker dat je de familie wilt verlaten?\n\n" +
+        "Je wordt losgekoppeld en kunt daarna zelf een nieuwe familie maken of een andere familiecode invoeren."
+      );
+      if (!confirmMember) return;
+
+      await database
+        .ref("households/" + householdId + "/members/" + user.uid)
+        .remove();
+      await database.ref("users/" + user.uid + "/householdId").remove();
+
+      currentHouseholdId = null;
+
+      await familyAlert("Familie verlaten", "Je hebt de familie verlaten.", "fa-right-from-bracket");
+    }
+
+    boodschappen = [];
+    selectedIndex = -1;
+    showList();
+    updatePrivateStatus();
+    await updateMemberCount();
+    openUseModeModal();
+  } catch (error) {
+    console.error("Familie verlaten mislukt:", error);
+    const detail = error && error.code ? "\n\nFoutcode: " + error.code : "";
+    await familyAlert("Familie verlaten", "De familie kon niet worden verlaten." + detail, "fa-triangle-exclamation");
+  }
+
+}
+function togglePassword() {
+  const password = document.getElementById("loginPassword");
+  const eye = document.querySelector(".togglePassword i");
+
+  if (password.type === "password") {
+    password.type = "text";
+    eye.className = "fa-regular fa-eye-slash";
+  } else {
+    password.type = "password";
+    eye.className = "fa-regular fa-eye";
+  }
+}
+  async function resetPassword() {
+  const email = document.getElementById("loginEmail").value;
+
+  if (!email) {
+    alert("Vul eerst je e-mailadres in.");
+    return;
+  }
+
+  try {
+    await auth.sendPasswordResetEmail(email);
+    alert("Er is een e-mail gestuurd om je wachtwoord opnieuw in te stellen.");
+  } catch (error) {
+    alert("Wachtwoord resetten mislukt: " + error.message);
+  }
+}
+async function login(){
+  const emailEl=document.getElementById("loginEmail");
+  const passwordEl=document.getElementById("loginPassword");
+  const email=(emailEl?.value||"").trim();
+  const password=passwordEl?.value||"";
+
+  if(!email || !password){
+    familyAlert("Inloggen","Vul je e-mailadres en wachtwoord in.","fa-right-to-bracket");
+    return false;
+  }
+
+  const btn=document.querySelector('#loginScreen button[onclick*="login"], #loginScreen .loginBtn, button[type="submit"]');
+  if(btn){
+    btn.disabled=true;
+    btn.dataset.loginBusy="1";
+  }
+
+  // Do not wait for auth persistence. Firebase can sign in immediately;
+  // the existing onAuthStateChanged handler will finish the normal flow.
+  auth.signInWithEmailAndPassword(email,password)
+    .then(()=>{
+      if(btn){
+        btn.disabled=false;
+        delete btn.dataset.loginBusy;
+      }
+    })
+    .catch(err=>{
+      if(btn){
+        btn.disabled=false;
+        delete btn.dataset.loginBusy;
+      }
+      let msg="Inloggen is niet gelukt.";
+      if(err && err.code==="auth/invalid-credential") msg="E-mailadres of wachtwoord is onjuist.";
+      else if(err && err.code==="auth/user-not-found") msg="Er bestaat geen account met dit e-mailadres.";
+      else if(err && err.code==="auth/wrong-password") msg="Het wachtwoord is onjuist.";
+      else if(err && err.code==="auth/invalid-email") msg="Het e-mailadres is niet geldig.";
+      else if(err && err.code==="auth/too-many-requests") msg="Te veel pogingen. Probeer het later opnieuw.";
+      else if(err && err.message) msg=err.message;
+      familyAlert("Inloggen",msg,"fa-triangle-exclamation");
+    });
+
+  return false;
+}
+
+window.login = login;
+ 
+
+
+
+function lockPageScroll() {
+  const scrollY = window.scrollY || window.pageYOffset || 0;
+  document.documentElement.dataset.modalScrollY = String(scrollY);
+  document.documentElement.classList.add("modal-locked");
+  document.body.classList.add("modal-locked");
+  document.body.style.top = `-${scrollY}px`;
+}
+
+function unlockPageScroll() {
+  const scrollY = parseInt(document.documentElement.dataset.modalScrollY || "0", 10) || 0;
+  document.documentElement.classList.remove("modal-locked");
+  document.body.classList.remove("modal-locked");
+  document.body.style.top = "";
+  window.scrollTo(0, scrollY);
+}
+
+function openUseModeModal() {
+  const modal = document.getElementById("useModeModal");
+  if (!modal) return;
+  lockPageScroll();
+  modal.style.display = "flex";
+  modal.setAttribute("aria-hidden", "false");
+}
+
+function closeUseModeModal() {
+  const modal = document.getElementById("useModeModal");
+  if (!modal) return;
+  modal.style.display = "none";
+  modal.setAttribute("aria-hidden", "true");
+  unlockPageScroll();
+}
+
+function openAppWithoutList() {
+  activeListType="family";
+  currentSharedListId=null;
+  if(currentSharedListUnsubscribe){ currentSharedListUnsubscribe(); currentSharedListUnsubscribe=null; }
+  document.body.classList.add("logged-in");
+  closeUseModeModal();
+  boodschappen = [];
+  selectedIndex = -1;
+  showList();
+  const status = document.getElementById("status");
+  if (status) status.innerText = "Kies een gebruikswijze om je lijst op te slaan.";
+  updateMemberCount();
+}
+
+async function chooseUseMode(mode) {
+  const user = auth.currentUser;
+  if (!user) return;
+
+  if (mode === "family") {
+    await createNewFamily();
+    return;
+  }
+
+  if (mode === "code") {
+    await enterFamilyCode();
+    return;
+  }
+
+  if (mode === "private") {
+    document.body.classList.add("logged-in");
+    localStorage.setItem("boodschappenUseMode_" + user.uid, "private");
+    closeUseModeModal();
+    await loadPrivateList();
+  }
+}
+
+async function loadPrivateList() {
+  const user = auth.currentUser;
+  if (!user) return;
+
+  try {
+    const saved = localStorage.getItem("boodschappenPrivate_" + user.uid);
+    boodschappen = normalizeBoodschappen(saved ? JSON.parse(saved) : []);
+    selectedIndex = -1;
+    showList();
+    updatePrivateStatus();
+    updateMemberCount();
+  } catch (error) {
+    console.error("Privélijst laden mislukt:", error);
+    boodschappen = [];
+    selectedIndex = -1;
+    showList();
+  }
+}
+
+function isPrivateMode() {
+  const user = auth.currentUser;
+  return !!user && !currentHouseholdId &&
+    localStorage.getItem("boodschappenUseMode_" + user.uid) === "private";
+}
+
+async function savePrivateList() {
+  const user = auth.currentUser;
+  if (!user) return;
+
+  localStorage.setItem(
+    "boodschappenPrivate_" + user.uid,
+    JSON.stringify(boodschappen)
+  );
+  localStorage.setItem(
+    "boodschappenPrivateLastUpdate_" + user.uid,
+    new Date().toISOString()
+  );
+  updatePrivateStatus();
+}
+
+function updatePrivateStatus() {
+  const user = auth.currentUser;
+  const status = document.getElementById("status");
+  if (!status) return;
+
+  const savedAt = user ? localStorage.getItem("boodschappenPrivateLastUpdate_" + user.uid) : null;
+  let timeText = "";
+
+  if (savedAt) {
+    const date = new Date(savedAt);
+    const hour = String(date.getHours()).padStart(2, "0");
+    const minute = String(date.getMinutes()).padStart(2, "0");
+    timeText = `<span>Laatste update: vandaag ${hour}:${minute}</span>`;
+  }
+
+  status.innerHTML = '<i class="fas fa-lock" aria-hidden="true"></i> Privé opgeslagen op dit apparaat.' + timeText;
+}
+
+function openRegister() {
+  const modal = document.getElementById("registerModal");
+  const loginScreen = document.getElementById("loginScreen");
+  if (!modal) return;
+
+  // Verberg het volledige inlogscherm terwijl registratie open is.
+  if (loginScreen) loginScreen.style.display = "none";
+
+  modal.style.display = "flex";
+  modal.setAttribute("aria-hidden", "false");
+
+  setTimeout(() => {
+    document.getElementById("registerName")?.focus();
+  }, 50);
+}
+
+function closeRegister() {
+  const modal = document.getElementById("registerModal");
+  const loginScreen = document.getElementById("loginScreen");
+  if (!modal) return;
+
+  // Sluit registratie volledig en toon daarna weer het inlogscherm.
+  modal.style.display = "none";
+  modal.setAttribute("aria-hidden", "true");
+  if (loginScreen) loginScreen.style.display = "flex";
+}
+
+async function register() {
+  const name = (document.getElementById("registerName").value || "").trim();
+  const email = (document.getElementById("registerEmail").value || "").trim();
+  const password = document.getElementById("registerPassword").value || "";
+  const confirmPassword = document.getElementById("registerPasswordConfirm").value || "";
+
+  if (!name || !email || !password || !confirmPassword) {
+    alert("Vul alle velden in.");
+    return;
+  }
+  if (password !== confirmPassword) {
+    alert("De wachtwoorden komen niet overeen.");
+    return;
+  }
+  if (password.length < 6) {
+    alert("Het wachtwoord moet minimaal 6 tekens bevatten.");
+    return;
+  }
+
+  try {
+    const credential = await auth.createUserWithEmailAndPassword(email, password);
+
+    await database.ref("users/" + credential.user.uid + "/name").set(name);
+
+    // Een nieuw Firebase-account wordt automatisch ingelogd.
+    // Direct uitloggen voorkomt dat de gebruiker onverwacht meteen binnenkomt.
+    await auth.signOut();
+
+    document.getElementById("registerName").value = "";
+    document.getElementById("registerEmail").value = "";
+    document.getElementById("registerPassword").value = "";
+    document.getElementById("registerPasswordConfirm").value = "";
+
+    closeRegister();
+    document.getElementById("loginScreen").style.display = "flex";
+    alert("Account aangemaakt. Je kunt nu inloggen.");
+  } catch (error) {
+    console.error("Registratie fout:", error);
+
+    // If Auth succeeded but saving the profile failed, do not leave the
+    // newly created account unexpectedly signed in.
+    try {
+      if (auth.currentUser) {
+        await auth.signOut();
+      }
+    } catch (signOutError) {
+      console.error("Uitloggen na registratiefout mislukt:", signOutError);
+    }
+
+    let message = "Account aanmaken mislukt.";
+
+    if (error?.code === "auth/email-already-in-use") {
+      message = "Dit e-mailadres is al in gebruik.";
+    } else if (error?.code === "auth/invalid-email") {
+      message = "Vul een geldig e-mailadres in.";
+    } else if (error?.code === "auth/weak-password") {
+      message = "Het wachtwoord is te zwak. Gebruik minimaal 6 tekens.";
+    } else if (error?.code === "auth/operation-not-allowed") {
+      message = "E-mail/wachtwoord aanmelden staat niet aan in Firebase.";
+    } else if (error?.code === "auth/network-request-failed") {
+      message = "Geen verbinding met Firebase. Controleer je internetverbinding.";
+    } else if (error?.code === "PERMISSION_DENIED") {
+      message = "Account is aangemaakt, maar de naam kon niet in Firebase worden opgeslagen. Controleer de Firebase Database Rules.";
+    } else if (error?.message) {
+      message = "Account aanmaken mislukt: " + error.message;
+    }
+
+    alert(message);
+  }
+}
+
+window.openRegister = openRegister;
+window.closeRegister = closeRegister;
+window.register = register;
+
+
+function toggleRegisterPassword(fieldId, button) {
+  const input = document.getElementById(fieldId);
+  if (!input) return;
+
+  const isHidden = input.type === "password";
+  input.type = isHidden ? "text" : "password";
+
+  const icon = button.querySelector("i");
+  if (icon) {
+    icon.className = isHidden ? "fa-regular fa-eye-slash" : "fa-regular fa-eye";
+  }
+
+  button.setAttribute(
+    "aria-label",
+    isHidden ? "Wachtwoord verbergen" : "Wachtwoord tonen"
+  );
+}
+
+
+
+
+(function setupSearchClearVisibility(){
+  function init(){
+    const searchInput = Array.from(document.querySelectorAll('input')).find(
+      el => (el.placeholder || '').trim() === 'Zoek in je lijst...'
+    );
+    const clearButton = document.querySelector('.search-clear-btn');
+    if (!searchInput || !clearButton) return;
+
+    function update(){
+      clearButton.classList.toggle('has-text', searchInput.value.trim().length > 0);
+    }
+    searchInput.addEventListener('input', update);
+    update();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+// Open een gedeelde-lijst-uitnodiging automatisch wanneer de webapp via een link is geopend.
+(function setupSharedListInvite(){
+  let handled = false;
+  async function handle(){
+    if (handled) return;
+    const code = new URLSearchParams(window.location.search).get("deellijst");
+    if (!code || !auth.currentUser) return;
+    handled = true;
+    try {
+      const codeSnap = await database.ref("sharedListCodes/" + code).once("value");
+      const id = codeSnap.val();
+      if (!id) {
+        await familyAlert("Deellijst", "Deze uitnodigingslink is niet geldig of de lijst bestaat niet meer.", "fa-triangle-exclamation");
+        return;
+      }
+      const listSnap = await database.ref("sharedLists/" + id).once("value");
+      const list = listSnap.val() || {};
+      if (!list.name) {
+        await familyAlert("Deellijst", "Deze lijst bestaat niet meer.", "fa-triangle-exclamation");
+        return;
+      }
+      if (list.members && list.members[auth.currentUser.uid] === true) {
+        await openSharedList(id,false);
+        return;
+      }
+      const join = await familyConfirm("Deellijst", "Wil je deelnemen aan de deellijst “" + list.name + "”?" );
+      if (!join) return;
+      const updates = {};
+      updates["sharedLists/" + id + "/members/" + auth.currentUser.uid] = true;
+      updates["userSharedLists/" + auth.currentUser.uid + "/" + id] = true;
+      await database.ref().update(updates);
+      await openSharedList(id,false);
+    } catch(error) {
+      console.error("Deellijst-uitnodiging mislukt:",error);
+      await familyAlert("Deellijst", "De uitnodiging kon niet worden verwerkt. Controleer de Firebase-regels.", "fa-triangle-exclamation");
+    }
+  }
+  auth.onAuthStateChanged(()=>setTimeout(handle,120));
+})();;
+
+
+
+// Herstel een lokale Firebase-sessie automatisch bij het openen van de webapp.
+// De gebruiker hoeft alleen opnieuw in te loggen nadat hij/zij expliciet Uitloggen kiest.
+(function restoreFirebaseSession() {
+  let firstAuthState = true;
+
+  auth.onAuthStateChanged(async (user) => {
+    if (!user) {
+      if (firstAuthState) {
+        document.body.classList.remove("logged-in");
+        const loginScreen = document.getElementById("loginScreen");
+        if (loginScreen) {
+          loginScreen.classList.remove("loginScreenLeaving");
+          loginScreen.style.display = "flex";
+        }
+      }
+      firstAuthState = false;
+      return;
+    }
+
+    firstAuthState = false;
+
+    // Tijdens een normale login doet login() zelf de overgang en het laden.
+    if (loginFlowActive) return;
+
+    // Dit is een herstelde sessie na opnieuw openen van de webapp.
+    document.body.classList.add("logged-in");
+    const loginScreen = document.getElementById("loginScreen");
+    if (loginScreen) {
+      loginScreen.classList.remove("loginScreenLeaving");
+      loginScreen.style.display = "none";
+    }
+
+    try {
+      const sharedInviteCode = new URLSearchParams(window.location.search).get("deellijst");
+      if (sharedInviteCode) {
+        await new Promise(resolve => setTimeout(resolve, 180));
+        return;
+      }
+
+      const householdId = await getOrCreateHousehold();
+      if (householdId) {
+        activeListType = "family";
+        await loadList();
+      } else {
+        const savedMode = localStorage.getItem("boodschappenUseMode_" + user.uid);
+        if (savedMode === "private") {
+          await loadPrivateList();
+        } else if (savedMode === "skip") {
+          openAppWithoutList();
+        } else {
+          openUseModeModal();
+        }
+      }
+      await updateMemberCount();
+      watchMemberCount();
+    } catch (error) {
+      console.error("Herstellen van de ingelogde sessie mislukt:", error);
+      // Alleen bij een echte Firebase-authfout tonen we het login-scherm.
+      if (error && String(error.code || "").startsWith("auth/")) {
+        document.body.classList.remove("logged-in");
+        if (loginScreen) loginScreen.style.display = "flex";
+      }
+    }
+  });
+})();
+
+
+
+/* Deellijst: deellink -> bestaande login/registratie -> oorspronkelijke Deellijst */
+(function () {
+  const SHARED_JOIN_KEY = 'pendingSharedListId';
+  const SHARED_JOIN_CODE_KEY = 'pendingSharedListCode';
+
+  function getSharedJoinFromUrl() {
+    const url = new URL(window.location.href);
+    const code = url.searchParams.get('code');
+    const id = url.searchParams.get('sharedList');
+    const legacyCode = url.searchParams.get('deellijst');
+    if (code || id || legacyCode) return { id, code: code || legacyCode };
+    const hash = new URLSearchParams((url.hash || '').replace(/^#/, ''));
+    const hcode = hash.get('code') || hash.get('deellijst');
+    const hid = hash.get('sharedList');
+    if (hid || hcode) return { id: hid, code: hcode };
+    return null;
+  }
+
+  function rememberSharedJoin(join) {
+    if (!join) return;
+    if (join.id) sessionStorage.setItem(SHARED_JOIN_KEY, join.id);
+    if (join.code) sessionStorage.setItem(SHARED_JOIN_CODE_KEY, join.code);
+  }
+  function getRememberedSharedJoin() {
+    const id = sessionStorage.getItem(SHARED_JOIN_KEY);
+    const code = sessionStorage.getItem(SHARED_JOIN_CODE_KEY);
+    return (id || code) ? { id, code } : null;
+  }
+  function clearRememberedSharedJoin() {
+    sessionStorage.removeItem(SHARED_JOIN_KEY);
+    sessionStorage.removeItem(SHARED_JOIN_CODE_KEY);
+  }
+  async function resolveSharedJoin(join) {
+    if (!join) return null;
+    if (join.id) return join.id;
+    if (!join.code) return null;
+    const snap = await database.ref('sharedListCodes/' + join.code).once('value');
+    return snap.exists() ? snap.val() : null;
+  }
+
+  async function finishPendingSharedJoin() {
+    const user = auth.currentUser;
+    const join = getRememberedSharedJoin();
+    if (!join || !user) return false;
+    try {
+      const listId = await resolveSharedJoin(join);
+      if (!listId) { clearRememberedSharedJoin(); return false; }
+      const ref = database.ref('sharedLists/' + listId);
+      const snap = await ref.once('value');
+      if (!snap.exists()) { clearRememberedSharedJoin(); return false; }
+      const list = snap.val() || {};
+      const uid = user.uid;
+      const alreadyMember = !!(list.members && list.members[uid] === true);
+      if (!alreadyMember && list.owner !== uid) {
+        let name = '';
+        try {
+          const ns = await database.ref('users/' + uid + '/name').once('value');
+          name = ns.val() || '';
+        } catch (_) {}
+        if (!name) name = user.displayName || user.email || 'Gebruiker';
+        const updates = {};
+        updates['sharedLists/' + listId + '/members/' + uid] = true;
+        updates['sharedLists/' + listId + '/memberNames/' + uid] = name;
+        updates['userSharedLists/' + uid + '/' + listId] = true;
+        await database.ref().update(updates);
+      }
+      clearRememberedSharedJoin();
+      await openSharedList(listId, false);
+      return true;
+    } catch (e) {
+      console.error('Deellijst join na aanmelden mislukt:', e);
+      return false;
+    }
+  }
+
+  async function routeSharedJoin() {
+    const fromUrl = getSharedJoinFromUrl();
+    if (fromUrl) rememberSharedJoin(fromUrl);
+    if (!getRememberedSharedJoin()) return;
+    if (auth.currentUser) {
+      await finishPendingSharedJoin();
+      return;
+    }
+    const loginScreen = document.getElementById('loginScreen');
+    if (loginScreen) loginScreen.style.display = 'flex';
+  }
+
+  window.finishPendingSharedJoin = finishPendingSharedJoin;
+  window.routeSharedJoin = routeSharedJoin;
+  document.addEventListener('DOMContentLoaded', () => setTimeout(routeSharedJoin, 0));
+  if (typeof auth !== 'undefined' && auth && typeof auth.onAuthStateChanged === 'function') {
+    auth.onAuthStateChanged(async (user) => {
+      if (user && getRememberedSharedJoin()) await finishPendingSharedJoin();
+    });
+  }
+  window.createSharedListShareUrl = function (listId, code) {
+    const base = window.location.origin + window.location.pathname;
+    return base + '?code=' + encodeURIComponent(code || '');
+  };
+})();
