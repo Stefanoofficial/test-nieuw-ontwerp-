@@ -63,8 +63,7 @@ button,input{font:inherit}button{cursor:pointer}
     <section class="hero"><small>Samen</small><h1>Mijn familie</h1><p>Alles wat jullie samen nodig hebben.</p></section>
     <div class="panel">
       <div class="sectionHead" style="margin-top:0"><h2>Familieleden</h2><span style="color:var(--muted)">2 leden</span></div>
-      <div class="row"><div class="avatar">S</div><div class="rowText"><strong>Stefano</strong><small>Eigenaar</small></div><span>👑</span></div>
-      <div class="row"><div class="avatar">A</div><div class="rowText"><strong>Familielid</strong><small>Lid</small></div><span>✓</span></div>
+      <div class="empty" style="padding:18px 12px">Nog geen namen ingevuld.</div>
     </div>
     <div class="sectionHead"><h2>Samenlijst</h2></div>
     <div class="panel"><p style="color:var(--muted);margin-top:0">De familielijst gebruikt dezelfde eenvoudige lijstweergave, maar is bedoeld om samen te gebruiken.</p><button class="primary" onclick="go('home')">Naar mijn lijst</button></div>
@@ -72,17 +71,13 @@ button,input{font:inherit}button{cursor:pointer}
 
   <main id="saved" class="page">
     <section class="hero"><small>Bewaren</small><h1>Opgeslagen lijsten</h1><p>Handige lijsten voor later.</p></section>
-    <div class="panel">
-      <div class="row"><div class="avatar">🛒</div><div class="rowText"><strong>Weekboodschappen</strong><small>12 producten</small></div><button class="mini" onclick="toast('Lijst geopend')">›</button></div>
-      <div class="row"><div class="avatar">🎉</div><div class="rowText"><strong>Feestje</strong><small>8 producten</small></div><button class="mini" onclick="toast('Lijst geopend')">›</button></div>
-      <div class="row"><div class="avatar">🏕️</div><div class="rowText"><strong>Weekend</strong><small>6 producten</small></div><button class="mini" onclick="toast('Lijst geopend')">›</button></div>
-    </div>
+    <div class="empty">Nog geen opgeslagen lijsten.</div>
   </main>
 
   <main id="account" class="page">
     <section class="hero"><small>Persoonlijk</small><h1>Mijn account</h1><p>Jouw voorkeuren en app-instellingen.</p></section>
     <div class="panel">
-      <div class="row"><div class="avatar">S</div><div class="rowText"><strong>Stefano</strong><small>Persoonlijk account</small></div><button class="mini" onclick="toast('Profiel bewerken')">✎</button></div>
+      <div class="row"><div class="avatar">👤</div><div class="rowText"><strong>Mijn account</strong><small>Persoonlijk account</small></div><button class="mini" onclick="toast('Profiel bewerken')">✎</button></div>
       <div class="row"><div class="rowText"><strong>Productsuggesties</strong><small>Handige aanvullingen tijdens het typen</small></div><button id="suggestSwitch" class="switch on" onclick="toggleSwitch(this)"><i></i></button></div>
       <div class="row"><div class="rowText"><strong>Rustige weergave</strong><small>Minder afleiding in de lijst</small></div><button id="quietSwitch" class="switch on" onclick="toggleSwitch(this)"><i></i></button></div>
     </div>
@@ -114,8 +109,7 @@ button,input{font:inherit}button{cursor:pointer}
 <div id="toast" class="toast"></div>
 
 <script>
-const defaultItems=[["Koffie","☕"],["Melk","🥛"],["Brood","🍞"],["Bananen","🍌"],["Curry saus","🥫"]];
-let items=JSON.parse(localStorage.getItem("demoShoppingItems")||"null")||defaultItems.map((x,i)=>({id:Date.now()+i,name:x[0],emoji:x[1],done:false}));
+let items=JSON.parse(localStorage.getItem("demoShoppingItems")||"null")||[];
 function save(){localStorage.setItem("demoShoppingItems",JSON.stringify(items))}
 function addItem(){
  const el=document.getElementById("newItem"), name=el.value.trim(); if(!name)return;
