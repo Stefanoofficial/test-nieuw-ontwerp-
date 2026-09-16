@@ -57,3 +57,46 @@ $('newItem').addEventListener('keydown',e=>{if(e.key==='Enter')addItem()});
 $('items').addEventListener('click',e=>{});
 bindAuthButtons();
 renderSuggestions();renderList();state.saved=JSON.parse(localStorage.getItem('savedLists')||'[]');renderSaved();
+
+
+// --- Nieuwe registratieflow ---
+function openRegister(){
+  const m=document.getElementById('registerModal');
+  if(m) m.classList.remove('hidden');
+  const e=document.getElementById('registerError'); if(e) e.textContent='';
+}
+function closeRegister(){
+  const m=document.getElementById('registerModal');
+  if(m) m.classList.add('hidden');
+}
+async function registerUser(){
+  const name=(document.getElementById('regName')?.value||'').trim();
+  const email=(document.getElementById('regEmail')?.value||'').trim();
+  const p1=document.getElementById('regPassword')?.value||'';
+  const p2=document.getElementById('regPassword2')?.value||'';
+  const err=document.getElementById('registerError');
+  if(err) err.textContent='';
+  if(!name || !email || !p1 || !p2){ if(err) err.textContent='Vul alle velden in.'; return; }
+  if(p1!==p2){ if(err) err.textContent='De wachtwoorden komen niet overeen.'; return; }
+  if(p1.length<6){ if(err) err.textContent='Het wachtwoord moet minimaal 6 tekens bevatten.'; return; }
+  try{
+    if(typeof createUserWithEmailAndPassword!=='function'){
+      throw new Error('Registratie is nog niet gekoppeld aan Firebase Authentication.');
+    }
+    const cred=await createUserWithEmailAndPassword(auth,email,p1);
+    if(typeof setDoc==='function' && typeof doc==='function'){
+      await setDoc(doc(db,'users',cred.user.uid),{
+        name:name,
+        email:email,
+        householdId:null,
+        useMode:null
+      },{merge:true});
+    }
+    await signOut(auth);
+    closeRegister();
+    alert('Account succesvol aangemaakt. Je kunt nu inloggen.');
+    document.querySelectorAll('#loginScreen input').forEach(i=>i.value='');
+  }catch(e){
+    if(err) err.textContent=e?.message||'Account aanmaken is niet gelukt.';
+  }
+}
