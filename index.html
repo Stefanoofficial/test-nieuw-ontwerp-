@@ -233,7 +233,7 @@ button {
 }
 
 .add {
-  flex: 0 0 40%;
+  flex: 0 0 36%;
   background: #3F5B45;
   color: white;
   
@@ -3364,7 +3364,7 @@ function updateListProgress() {
     return;
   }
 
-  progress.innerHTML = '<span class="listProgressText"><i class="fa-solid fa-basket-shopping"></i> ' + completed + ' van ' + total + ' boodschappen klaar</span>' +
+  progress.innerHTML = '<span class="listProgressText"><i class="fa-solid fa-basket-shopping"></i> ' + completed + ' van ' + total + ' klaar</span>' +
     '<span class="listProgressPercent">' + percentage + '%</span>' +
     '<span class="listProgressTrack"><span class="listProgressFill"></span></span>';
   progress.style.setProperty("--progress", percentage + "%");
