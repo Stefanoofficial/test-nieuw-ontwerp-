@@ -3426,7 +3426,7 @@ function showList(animationType = "") {
     if (item.completed && item.completedBy) {
       const meta = document.createElement("span");
       meta.className = "completedMeta";
-      meta.innerHTML = '<i class="fa-solid fa-circle-check" aria-hidden="true"></i>';
+      meta.innerHTML = '';
       const metaText = document.createTextNode(
         "Voltooid door " + item.completedBy +
         (item.completedAt ? " · " + relativeCompletedTime(item.completedAt) : "")
