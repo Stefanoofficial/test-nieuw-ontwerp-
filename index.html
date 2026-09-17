@@ -239,11 +239,60 @@ button {
   
 }
 
+.listProgress {
+  margin: 18px 0 0;
+  padding: 11px 15px 12px;
+  border: 1px solid #dcebe1;
+  border-radius: 16px;
+  background: #ffffff;
+  color: #3f5b45;
+  box-sizing: border-box;
+  box-shadow: 0 3px 10px rgba(0,0,0,.04);
+}
+
+.listProgressText {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.listProgressText i {
+  font-size: 13px;
+}
+
+.listProgressPercent {
+  float: right;
+  font-size: 12px;
+  font-weight: 700;
+  opacity: .78;
+}
+
+.listProgressTrack {
+  display: block;
+  width: 100%;
+  height: 7px;
+  margin-top: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e8f2eb;
+}
+
+.listProgressFill {
+  display: block;
+  width: var(--progress, 0%);
+  height: 100%;
+  border-radius: inherit;
+  background: #4f7a5b;
+  transition: width .25s ease;
+}
+
 .list {
-  margin-top: 20px;
+  margin-top: 12px;
   background: rgba(0,0,0,0.45);
   border-radius: 12px;
-  padding: 8px;
+  padding: 18px 8px 8px;
   height: 300px !important;
 max-height: 300px !important;
 overflow-y: auto !important;
@@ -1446,7 +1495,19 @@ body.dark-theme .settingsMenuHint { color:#aab4ad; }
 body.dark-theme .saveListMainBtn {
   background:#202620; color:#dff1e2; border-color:rgba(255,255,255,.12);
 }
-@media (prefers-reduced-motion: reduce) { .saveListMainBtn { transition:none; } }
+@media (max-width:430px) {
+  .listProgress {
+    margin-top: 14px;
+    padding: 10px 13px 11px;
+  }
+  .listProgressText { font-size: 12px; }
+  .listProgressPercent { font-size: 11px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .listProgressFill { transition: none; }
+  .saveListMainBtn { transition:none; }
+}
 
 /* Opgeslagen lijsten en instellingen */
 .savedListsContainer {
@@ -2202,6 +2263,7 @@ body.dark-theme .sharedListInviteBox{background:rgba(255,255,255,.06);border-col
 </div>
   <div id="refresh">↻ Loslaten om te vernieuwen</div>
 
+  <div id="listProgress" class="listProgress" aria-live="polite"></div>
   <div class="list" id="list"></div>
 
   <button type="button" class="saveListMainBtn" onclick="saveCurrentListAs()"><i class="fa-solid fa-floppy-disk"></i> Lijst opslaan</button>
@@ -3252,6 +3314,26 @@ function initProductSuggestions() {
   });
 }
 
+function updateListProgress() {
+  const progress = document.getElementById("listProgress");
+  if (!progress) return;
+
+  const total = boodschappen.length;
+  const completed = boodschappen.filter(item => item && item.completed).length;
+  const percentage = total ? Math.round((completed / total) * 100) : 0;
+
+  if (!total) {
+    progress.innerHTML = '<span class="listProgressText"><i class="fa-solid fa-basket-shopping"></i> 0 boodschappen</span>';
+    progress.style.setProperty("--progress", "0%");
+    return;
+  }
+
+  progress.innerHTML = '<span class="listProgressText"><i class="fa-solid fa-basket-shopping"></i> ' + completed + ' van ' + total + ' boodschappen klaar</span>' +
+    '<span class="listProgressPercent">' + percentage + '%</span>' +
+    '<span class="listProgressTrack"><span class="listProgressFill"></span></span>';
+  progress.style.setProperty("--progress", percentage + "%");
+}
+
 function showList(animationType = "") {
   const list = document.getElementById("list");
   if (!list) return;
@@ -3316,6 +3398,8 @@ function showList(animationType = "") {
 
     list.appendChild(div);
   });
+
+  updateListProgress();
 }
 
 async function saveList() {
