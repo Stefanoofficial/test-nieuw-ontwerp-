@@ -1856,6 +1856,28 @@ body.dark-theme .sharedListInviteLink{color:#dff1e2}
 .sharedListActionRow{display:flex;gap:6px;flex-wrap:wrap}.sharedListAction{border:0;border-radius:10px;padding:8px 10px;background:#e5f1e5;color:#3F5B45;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
 body.dark-theme .sharedListInviteBox{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.10)}body.dark-theme .sharedListInviteCode{color:#dff1e2}.sharedListEmpty{padding:10px 7px;color:#8b928d;font-size:11px;line-height:1.35}
 </style>
+
+<style id="modern-clean-layer-fix">
+/* Definitieve laag-oplossing: elk menu-scherm is één volledig dekkende laag. */
+#familyMenu{position:absolute!important;overflow:hidden!important;isolation:isolate!important;}
+#familyMenu.menu-open{display:block!important;}
+#familyMenu .familyMenuPage{
+  position:absolute!important;inset:0!important;width:100%!important;min-width:100%!important;
+  margin:0!important;box-sizing:border-box!important;background:#f7efe3!important;
+  border-radius:12px!important;z-index:1!important;opacity:1!important;
+  transform:translateX(0)!important;animation:none!important;
+}
+#familyMenu .familyMenuPage[style*="display:none"]{display:none!important;visibility:hidden!important;pointer-events:none!important;}
+#familyMenu .familyMenuPage:not([style*="display:none"]){display:block!important;visibility:visible!important;z-index:2!important;}
+body.dark-theme #familyMenu .familyMenuPage{background:#252b27!important;}
+/* Geen oude blauwe focuslaag meer achter de nieuwe zoekbalk. */
+.searchBox{position:relative!important;background:#fff!important;border:1px solid rgba(63,91,69,.10)!important;box-shadow:0 4px 14px rgba(0,0,0,.08)!important;}
+.searchBox:focus-within{border:1px solid rgba(63,91,69,.18)!important;outline:none!important;box-shadow:0 4px 14px rgba(0,0,0,.08)!important;}
+.searchBox input:focus{outline:none!important;box-shadow:none!important;}
+body.dark-theme .searchBox{background:#252b27!important;border-color:rgba(255,255,255,.08)!important;box-shadow:0 4px 14px rgba(0,0,0,.22)!important;}
+body.dark-theme .searchBox:focus-within{border-color:rgba(191,227,199,.22)!important;box-shadow:0 4px 14px rgba(0,0,0,.22)!important;}
+</style>
+
 </head>
 
 <body>
@@ -2330,85 +2352,11 @@ function openFamilySubmenu(event) {
   switchMenuPage("familyMenuSub", event);
 }
 function closeFamilySubmenu(event) { returnMenuToMain("familyMenuSub", event); }
-function openSettingsSubmenu(event) {
-  if (event) event.stopPropagation();
-  const main = document.getElementById("familyMenuMain");
-  const family = document.getElementById("familyMenuSub");
-  const settings = document.getElementById("settingsMenuSub");
-  const savedLists = document.getElementById("savedListsMenuSub");
-  const sharedLists = document.getElementById("sharedListsMenuSub");
-  if (!main || !settings) return;
+function openSettingsSubmenu(event) { if(event) event.stopPropagation(); switchMenuPage("settingsMenuSub", event); }
+function closeSettingsSubmenu(event) { returnMenuToMain("settingsMenuSub", event); }
 
-  main.classList.remove("familyMenuMainEnter");
-  main.classList.add("familyMenuMainExit");
-  setTimeout(() => {
-    main.style.display = "none";
-    if (family) { family.style.display = "none"; family.classList.remove("familyMenuSubEnter", "familyMenuSubExit"); }
-    if (savedLists) { savedLists.style.display = "none"; savedLists.classList.remove("familyMenuSubEnter", "familyMenuSubExit"); }
-    const account = document.getElementById("accountMenuSub");
-    const about = document.getElementById("aboutMenuSub");
-    if (account) { account.style.display = "none"; account.classList.remove("familyMenuSubEnter", "familyMenuSubExit"); }
-    if (about) { about.style.display = "none"; about.classList.remove("familyMenuSubEnter", "familyMenuSubExit"); }
-    main.classList.remove("familyMenuMainExit");
-    settings.style.display = "block";
-    settings.classList.remove("familyMenuSubExit");
-    void settings.offsetWidth;
-    settings.classList.add("familyMenuSubEnter");
-  }, 170);
-}
-function closeSettingsSubmenu(event) {
-  if (event) event.stopPropagation();
-  const main = document.getElementById("familyMenuMain");
-  const settings = document.getElementById("settingsMenuSub");
-  if (!main || !settings) return;
-
-  settings.classList.remove("familyMenuSubEnter");
-  settings.classList.add("familyMenuSubExit");
-  setTimeout(() => {
-    settings.style.display = "none";
-    settings.classList.remove("familyMenuSubExit");
-    main.style.display = "block";
-    void main.offsetWidth;
-    main.classList.add("familyMenuMainEnter");
-  }, 170);
-}
-
-function openSavedListsSubmenu(event) {
-  if (event) event.stopPropagation();
-  const main = document.getElementById("familyMenuMain");
-  const family = document.getElementById("familyMenuSub");
-  const settings = document.getElementById("settingsMenuSub");
-  const saved = document.getElementById("savedListsMenuSub");
-  if (!main || !saved) return;
-  main.classList.remove("familyMenuMainEnter");
-  main.classList.add("familyMenuMainExit");
-  setTimeout(() => {
-    main.style.display = "none";
-    if (family) { family.style.display = "none"; family.classList.remove("familyMenuSubEnter", "familyMenuSubExit"); }
-    if (settings) { settings.style.display = "none"; settings.classList.remove("familyMenuSubEnter", "familyMenuSubExit"); }
-    main.classList.remove("familyMenuMainExit");
-    saved.style.display = "block";
-    saved.classList.remove("familyMenuSubExit");
-    void saved.offsetWidth;
-    saved.classList.add("familyMenuSubEnter");
-    renderSavedLists();
-  }, 170);
-}
-function closeSavedListsSubmenu(event) {
-  if (event) event.stopPropagation();
-  const main = document.getElementById("familyMenuMain");
-  const saved = document.getElementById("savedListsMenuSub");
-  if (!main || !saved) return;
-  saved.classList.remove("familyMenuSubEnter");
-  saved.classList.add("familyMenuSubExit");
-  setTimeout(() => {
-    saved.style.display = "none";
-    saved.classList.remove("familyMenuSubExit");
-    main.style.display = "block";
-    void main.offsetWidth;
-    main.classList.add("familyMenuMainEnter");
-  }, 170);
-}
+function openSavedListsSubmenu(event) { if(event) event.stopPropagation(); switchMenuPage("savedListsMenuSub", event); renderSavedLists(); }
+function closeSavedListsSubmenu(event) { returnMenuToMain("savedListsMenuSub", event); }
 
 let __menuTransitionTimer = null;
 let __menuCurrentPage = "familyMenuMain";
@@ -2423,55 +2371,20 @@ function switchMenuPage(pageId, event) {
   if (event) event.stopPropagation();
   const page = document.getElementById(pageId);
   if (!page) return;
-
-  if (__menuTransitionTimer) { clearTimeout(__menuTransitionTimer); __menuTransitionTimer = null; }
-
   const pageIds = ["familyMenuMain","familyMenuSub","sharedListsMenuSub","sharedListActiveMenuSub",
     "settingsMenuSub","savedListsMenuSub","accountMenuSub","aboutMenuSub"];
-  let current = document.getElementById(__menuCurrentPage);
-  if (!current || current === page || getComputedStyle(current).display === "none") {
-    current = pageIds.map(id=>document.getElementById(id)).find(el => el && el !== page && getComputedStyle(el).display !== "none") || null;
-  }
-  if (current === page) return;
-
-  const forward = true;
-  if (current) {
-    __resetMenuPageClasses(current);
-    current.classList.add("menuSlideOutLeft");
-  }
-  __resetMenuPageClasses(page);
-  page.style.display = "block";
-  page.classList.add("menuSlideInRight");
-  __menuCurrentPage = pageId;
-
-  __menuTransitionTimer = setTimeout(()=>{
-    if(current && current !== page){ current.style.display="none"; __resetMenuPageClasses(current); }
-    __resetMenuPageClasses(page);
-    __menuTransitionTimer=null;
-  },290);
+  pageIds.forEach(id => {
+    const el=document.getElementById(id);
+    if(!el) return;
+    el.style.display = (id===pageId) ? "block" : "none";
+    el.classList.remove("familyMenuMainEnter","familyMenuSubEnter","familyMenuMainExit","familyMenuSubExit",
+      "menuSlideOutLeft","menuSlideInRight","menuSlideOutRight","menuSlideInLeft");
+  });
+  __menuCurrentPage=pageId;
 }
-
 function returnMenuToMain(pageId, event) {
   if (event) event.stopPropagation();
-  const page = document.getElementById(pageId);
-  const main = document.getElementById("familyMenuMain");
-  if (!page || !main) return;
-
-  if (__menuTransitionTimer) { clearTimeout(__menuTransitionTimer); __menuTransitionTimer=null; }
-  __resetMenuPageClasses(page);
-  __resetMenuPageClasses(main);
-  page.style.display="block";
-  main.style.display="block";
-  page.classList.add("menuSlideOutRight");
-  main.classList.add("menuSlideInLeft");
-  __menuCurrentPage="familyMenuMain";
-
-  __menuTransitionTimer=setTimeout(()=>{
-    page.style.display="none";
-    __resetMenuPageClasses(page);
-    __resetMenuPageClasses(main);
-    __menuTransitionTimer=null;
-  },290);
+  switchMenuPage("familyMenuMain", event);
 }
 function openAccountSubmenu(event) {
 
@@ -5359,22 +5272,3 @@ body.dark-theme .inputBox input{color:#edf5ef !important;}
 
 </body>
 </html>
-<style id="modern-ui-v21-fixes">
-/* v2.1: voorkom dat oude lagen door de nieuwe UI heen zichtbaar zijn */
-.searchBox:focus-within{
-  border:1px solid rgba(47,125,74,.32) !important;
-  box-shadow:0 0 0 4px rgba(47,125,74,.12),0 8px 24px rgba(25,54,35,.08) !important;
-  background:#fff !important;
-}
-.searchBox input:focus{box-shadow:none !important;border:0 !important;background:transparent !important;}
-.familyMenu{
-  background:#fbfdfb !important;
-  opacity:0;
-  isolation:isolate;
-  z-index:5000 !important;
-}
-.familyMenu.menu-open{opacity:1;}
-.familyMenuPage{background:#fbfdfb !important;}
-body.dark-theme .searchBox:focus-within{background:#1b261e !important;border-color:rgba(117,197,138,.30) !important;}
-body.dark-theme .familyMenu,body.dark-theme .familyMenuPage{background:#18221b !important;}
-</style>
