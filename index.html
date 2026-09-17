@@ -5359,3 +5359,22 @@ body.dark-theme .inputBox input{color:#edf5ef !important;}
 
 </body>
 </html>
+<style id="modern-ui-v21-fixes">
+/* v2.1: voorkom dat oude lagen door de nieuwe UI heen zichtbaar zijn */
+.searchBox:focus-within{
+  border:1px solid rgba(47,125,74,.32) !important;
+  box-shadow:0 0 0 4px rgba(47,125,74,.12),0 8px 24px rgba(25,54,35,.08) !important;
+  background:#fff !important;
+}
+.searchBox input:focus{box-shadow:none !important;border:0 !important;background:transparent !important;}
+.familyMenu{
+  background:#fbfdfb !important;
+  opacity:0;
+  isolation:isolate;
+  z-index:5000 !important;
+}
+.familyMenu.menu-open{opacity:1;}
+.familyMenuPage{background:#fbfdfb !important;}
+body.dark-theme .searchBox:focus-within{background:#1b261e !important;border-color:rgba(117,197,138,.30) !important;}
+body.dark-theme .familyMenu,body.dark-theme .familyMenuPage{background:#18221b !important;}
+</style>
