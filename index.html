@@ -240,15 +240,16 @@ button {
 }
 
 .listProgress {
-  margin: 18px 0 0;
-  padding: 11px 15px 12px;
-  border: 1px solid #dcebe1;
-  border-radius: 16px;
-  background: #ffffff;
+  margin: 0;
+  padding: 2px 10px 14px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: #3f5b45;
   box-sizing: border-box;
-  box-shadow: 0 3px 10px rgba(0,0,0,.04);
+  box-shadow: none;
 }
+
 
 .listProgressText {
   display: inline-flex;
@@ -305,6 +306,30 @@ overflow-x: hidden;
   justify-content: space-between;
   gap: 14px;
   min-width: 0;
+}
+
+.itemCheck {
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  border: 2px solid #5d665f;
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  color: #fff;
+  background: #fff;
+  font-size: 12px;
+}
+
+.itemCheck.isChecked {
+  border-color: #4f7a5b;
+  background: #4f7a5b;
+}
+
+.itemCheck.isChecked i {
+  line-height: 1;
 }
 
 .productIcon {
@@ -879,8 +904,10 @@ body.dark-theme .familyMenuItem:first-child i { background: #304b39; color: #bfe
 body.dark-theme input, body.dark-theme .searchBox, body.dark-theme .inputBox, body.dark-theme .registerInputBox, body.dark-theme .searchBox input { background: #252b27; color: #f3f5f3; }
 body.dark-theme input::placeholder, body.dark-theme .searchBox input::placeholder, body.dark-theme .registerInputBox input::placeholder, body.dark-theme .inputBox input::placeholder { color: #aeb5b0; }
 body.dark-theme .searchBox > i, body.dark-theme .searchBox button, body.dark-theme .togglePassword, body.dark-theme .registerInputBox i, body.dark-theme .registerPasswordToggle { color: #c7cec9 !important; }
-body.dark-theme .list { background: rgba(0,0,0,.62); }
+body.dark-theme .list { background: #202620; }
 body.dark-theme .item { border-bottom-color: rgba(255,255,255,.12); }
+body.dark-theme .itemCheck { background:#252b27; border-color:#9aa39d; }
+body.dark-theme .itemCheck.isChecked { background:#668b70; border-color:#668b70; }
 body.dark-theme .status { background: #203d29; color: #bfe3c7; }
 body.dark-theme .useModeBox, body.dark-theme .loginBox, body.dark-theme .registerBox { background: #202620; color: #f3f5f3; }
 body.dark-theme .useModeBox h2, body.dark-theme .registerBox h2, body.dark-theme .welcome h2 { color: #9ed5ad; }
@@ -1081,6 +1108,11 @@ body.dark-theme .familyMenuPage {
   align-items: center;
 }
 
+.itemProductContent .productName {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .productIcon {
   width: 34px;
   min-width: 34px;
@@ -1126,13 +1158,17 @@ body.dark-theme .familyMenuPage {
 
 /* ===== Stap 3: verfijnd boodschappenpaneel ===== */
 .list {
-  background: #f6faf7;
+  background: #f8fbf9;
   border: 1px solid #e1ece4;
   border-radius: 16px;
   box-shadow: 0 6px 18px rgba(36,92,58,.06);
-  padding: 10px;
+  padding: 10px 10px 12px;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
+}
+
+.list > .item:first-of-type {
+  margin-top: 4px;
 }
 
 /* Search field gets the same clear blue focus treatment as the add-product field. */
@@ -1497,8 +1533,7 @@ body.dark-theme .saveListMainBtn {
 }
 @media (max-width:430px) {
   .listProgress {
-    margin-top: 14px;
-    padding: 10px 13px 11px;
+    padding: 2px 8px 12px;
   }
   .listProgressText { font-size: 12px; }
   .listProgressPercent { font-size: 11px; }
@@ -2263,8 +2298,9 @@ body.dark-theme .sharedListInviteBox{background:rgba(255,255,255,.06);border-col
 </div>
   <div id="refresh">↻ Loslaten om te vernieuwen</div>
 
-  <div id="listProgress" class="listProgress" aria-live="polite"></div>
-  <div class="list" id="list"></div>
+  <div class="list" id="list">
+    <div id="listProgress" class="listProgress" aria-live="polite"></div>
+  </div>
 
   <button type="button" class="saveListMainBtn" onclick="saveCurrentListAs()"><i class="fa-solid fa-floppy-disk"></i> Lijst opslaan</button>
 
@@ -3347,7 +3383,9 @@ function showList(animationType = "") {
     .map((item, index) => ({ item, index }))
     .sort((a, b) => completedBottom ? Number(a.item.completed) - Number(b.item.completed) : 0);
 
+  const progress = document.getElementById("listProgress");
   list.innerHTML = "";
+  if (progress) list.appendChild(progress);
 
   ordered.forEach(({ item, index }) => {
     const div = document.createElement("div");
@@ -3355,16 +3393,24 @@ function showList(animationType = "") {
     div.dataset.index = String(index);
 
     const productText = item.text;
-    const check = item.completed ? "✅ " : "☐ ";
 
     const productWrap = document.createElement("div");
     productWrap.className = "itemProductContent";
 
+    const checkMark = document.createElement("span");
+    checkMark.className = "itemCheck" + (item.completed ? " isChecked" : "");
+    checkMark.setAttribute("aria-hidden", "true");
+    if (item.completed) {
+      checkMark.innerHTML = '<i class="fa-solid fa-check"></i>';
+    }
+
     const productSpan = document.createElement("span");
-    productSpan.textContent = check + productText;
+    productSpan.className = "productName";
+    productSpan.textContent = productText;
     if (item.completed) {
       productSpan.style.textDecoration = "line-through";
     }
+    productWrap.appendChild(checkMark);
     productWrap.appendChild(productSpan);
 
     const icon = document.createElement("span");
