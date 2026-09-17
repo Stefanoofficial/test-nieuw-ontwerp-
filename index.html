@@ -933,7 +933,7 @@ body.dark-theme #refresh { color: #f3f5f3; }
   height:46px;
   border:0;
   border-radius:50%;
-  background:rgba(247,239,227,.72);
+  background:rgba(230,242,233,.92);
   color:#3F5B45;
   box-shadow:0 4px 14px rgba(0,0,0,.18);
   display:flex;
@@ -954,8 +954,8 @@ body.dark-theme #refresh { color: #f3f5f3; }
   width:170px;
   padding:4px 0;
   box-sizing:border-box;
-  background:#f7efe3;
-  border:1px solid rgba(63,91,69,.08);
+  background:#edf7ef;
+  border:1px solid rgba(63,91,69,.10);
   border-radius:15px;
   box-shadow:0 7px 22px rgba(0,0,0,.20);
   z-index:10001;
@@ -1353,6 +1353,7 @@ body.dark-theme .productSuggestion {
 }
 
 #status { min-height: 42px !important; padding: 7px 14px !important; border-radius: 14px !important; box-shadow: 0 3px 10px rgba(0,0,0,.07) !important; }
+#status > i.fa-circle-exclamation { margin-right: 5px; }
 
 
 /* ===== Stap 9: moderne, consistente Menu-stijl ===== */
@@ -2700,12 +2701,26 @@ async function logoutFromMenu() {
   const ok = await familyConfirm("Uitloggen", "Wil je uitloggen?", true);
   if (!ok) return;
   try {
+    explicitLogoutInProgress = true;
+    loginFlowActive = false;
     closeUseModeModal();
+    closeFamilyMenuForDialog();
+
     currentHouseholdId = null;
     currentSharedListId = null;
+    currentSharedListInviteCode = null;
     activeListType = "family";
+    boodschappen = [];
+    selectedIndex = -1;
+
+    const status = document.getElementById("status");
+    if (status) status.innerText = "";
+
     await auth.signOut();
-  } catch(error) { await familyAlert("Uitloggen", "Uitloggen is niet gelukt.", "fa-triangle-exclamation"); }
+  } catch(error) {
+    explicitLogoutInProgress = false;
+    await familyAlert("Uitloggen", "Uitloggen is niet gelukt.", "fa-triangle-exclamation");
+  }
 }
 function showAboutApp() {
   closeFamilyMenuForDialog();
@@ -2968,6 +2983,9 @@ function clearSearch() {
 
 async function loadList() {
   try {
+    // Een late async callback mag na uitloggen niets meer in de lijst tonen.
+    if (!auth.currentUser || explicitLogoutInProgress) return false;
+
     // Een actieve Deellijst mag nooit door deze familielijst-loader worden overschreven.
     if (activeListType === "shared" && currentSharedListId) return true;
     activeListType = isPrivateMode() ? "private" : "family";
@@ -3030,7 +3048,7 @@ async function loadList() {
     }
 
     const status = document.getElementById("status");
-    if (status) status.innerText = "⚠️ De familielijst kon niet worden geladen. Probeer opnieuw.";
+    if (status) status.innerHTML = '<i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i> De familielijst kon niet worden geladen. Probeer opnieuw.';
     return false;
   }
 }
@@ -3755,6 +3773,7 @@ const authPersistenceReady = auth.setPersistence(firebase.auth.Auth.Persistence.
   throw error;
 });
 let loginFlowActive = false;
+  let explicitLogoutInProgress = false;
   let currentHouseholdId = null;
 let currentSharedListId = null;
 let currentSharedListInviteCode = null;
@@ -5258,13 +5277,22 @@ function toggleRegisterPassword(fieldId, button) {
 
   auth.onAuthStateChanged(async (user) => {
     if (!user) {
-      if (firstAuthState) {
+      if (firstAuthState || explicitLogoutInProgress) {
         document.body.classList.remove("logged-in");
         const loginScreen = document.getElementById("loginScreen");
         if (loginScreen) {
           loginScreen.classList.remove("loginScreenLeaving");
           loginScreen.style.display = "flex";
         }
+
+        const status = document.getElementById("status");
+        if (status) status.innerText = "";
+        boodschappen = [];
+        selectedIndex = -1;
+        showList();
+        closeUseModeModal();
+        closeFamilyMenu();
+        explicitLogoutInProgress = false;
       }
       firstAuthState = false;
       return;
