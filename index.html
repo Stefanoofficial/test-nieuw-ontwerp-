@@ -2035,10 +2035,12 @@ body.dark-theme .sharedListInviteBox{background:rgba(255,255,255,.06);border-col
 }
 </style>
 
-<style id="ui-color-update">
-/* UI COLOR UPDATE */
-#loginScreen button.login-btn,
-#loginScreen button.register-btn,
+<style id="final-three-style-fixes">
+/* === FINAL 3 UI FIXES === */
+
+/* 1 + 2. Login and account-creation buttons match + Toevoegen */
+#loginScreen .login-btn,
+#loginScreen .register-btn,
 #loginScreen .btn-login,
 #loginScreen .btn-register,
 #loginScreen #loginBtn,
@@ -2046,7 +2048,47 @@ body.dark-theme .sharedListInviteBox{background:rgba(255,255,255,.06);border-col
 #loginScreen #loginButton,
 #loginScreen #registerButton {
   background: #3F5B45 !important;
-  color: #fff !important;
+  background-color: #3F5B45 !important;
+  color: #FFFFFF !important;
+}
+
+/* 3. Moon toggle: remove cream from the circle */
+#themeToggle,
+#themeButton,
+.theme-toggle,
+.moon-toggle,
+#moonButton,
+.moon-button {
+  background: #F7F8F6 !important;
+  background-color: #F7F8F6 !important;
+}
+
+/* 3. Moon/theme popup: same clean white style as the app */
+#themeModal,
+#themePopup,
+#themeMenu,
+#themePopover,
+.theme-modal,
+.theme-popup,
+.theme-menu,
+.theme-popover {
+  background: #FFFFFF !important;
+  background-color: #FFFFFF !important;
+  border-color: #E1E4E0 !important;
+  box-shadow: 0 10px 30px rgba(63,91,69,.12) !important;
+}
+
+/* Selected theme option */
+#themeModal .active,
+#themePopup .active,
+#themeMenu .active,
+#themePopover .active,
+.theme-modal .active,
+.theme-popup .active,
+.theme-menu .active,
+.theme-popover .active {
+  background: #E8F3EA !important;
+  background-color: #E8F3EA !important;
 }
 </style>
 
