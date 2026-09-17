@@ -5331,6 +5331,48 @@ function toggleRegisterPassword(fieldId, button) {
   font-size: 0.75rem;
   color: #888;
 }
+/* Fix voor invoervelden met icoontjes */
+#loginScreen .input-group,
+#loginScreen .input-container {
+  display: flex !important;
+  align-items: center !important;
+  background: #ffffff !important;
+  border: 1.5px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  padding: 0 14px !important;
+  height: 50px !important;
+  margin-bottom: 14px !important;
+  box-shadow: none !important;
+}
+
+#loginScreen .input-group:focus-within,
+#loginScreen .input-container:focus-within {
+  border-color: #2F6650 !important;
+  box-shadow: 0 0 0 3px rgba(47, 102, 80, 0.15) !important;
+}
+
+#loginScreen input[type="email"],
+#loginScreen input[type="password"],
+#loginScreen input {
+  flex: 1 !important;
+  width: 100% !important;
+  height: 100% !important;
+  border: none !important;
+  background: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+  padding: 0 10px !important;
+  margin: 0 !important;
+  font-size: 0.95rem !important;
+}
+
+#loginScreen i,
+#loginScreen svg,
+#loginScreen .icon {
+  color: #666 !important;
+  font-size: 1.1rem !important;
+  flex-shrink: 0 !important;
+}
 
 </style>
 
