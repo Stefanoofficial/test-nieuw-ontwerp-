@@ -2290,6 +2290,21 @@ body:has(.app.more-active) #themePicker {
 }
 </style>
 
+
+<style id="login-page-chrome-fix">
+/* De loginpagina krijgt géén app-navigatie of maan-knop. */
+body:not(.logged-in) .bottomNav {
+  display: none !important;
+}
+body:not(.logged-in) #themeButton {
+  display: none !important;
+}
+body:not(.logged-in) #themePicker {
+  display: none !important;
+  visibility: hidden !important;
+}
+</style>
+
 </head>
 
 <body>
@@ -5971,6 +5986,55 @@ body.dark-theme .overviewSavedListLine{color:#c2ccc5;border-bottom-color:rgba(25
   }
 
   document.addEventListener('DOMContentLoaded',install);
+})();
+</script>
+
+
+<script id="login-page-chrome-sync">
+(function () {
+  function syncLoginChrome() {
+    var loggedIn = document.body.classList.contains('logged-in');
+    var login = document.getElementById('loginScreen');
+    var loginVisible = !!(login && getComputedStyle(login).display !== 'none');
+
+    var nav = document.querySelector('.bottomNav');
+    var moon = document.getElementById('themeButton');
+    var picker = document.getElementById('themePicker');
+
+    var appVisible = loggedIn && !loginVisible;
+
+    if (nav) nav.style.setProperty('display', appVisible ? 'flex' : 'none', 'important');
+    if (moon) moon.style.setProperty('display', appVisible ? 'flex' : 'none', 'important');
+
+    if (!appVisible && picker) {
+      picker.classList.remove('open', 'theme-closing');
+      picker.style.setProperty('display', 'none', 'important');
+      picker.style.setProperty('visibility', 'hidden', 'important');
+    }
+  }
+
+  function installLoginChromeSync() {
+    syncLoginChrome();
+
+    var login = document.getElementById('loginScreen');
+    if (login) {
+      new MutationObserver(syncLoginChrome).observe(login, {
+        attributes: true,
+        attributeFilter: ['style', 'class']
+      });
+    }
+
+    new MutationObserver(syncLoginChrome).observe(document.body, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', installLoginChromeSync);
+  } else {
+    installLoginChromeSync();
+  }
 })();
 </script>
 
