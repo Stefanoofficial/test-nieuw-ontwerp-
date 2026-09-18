@@ -1073,6 +1073,21 @@ body.dark-theme .familyMenuPage {
 body.dark-theme .bottomNav{background:rgba(25,30,26,.97);border-top-color:rgba(255,255,255,.08)}
 body.dark-theme .bottomNavBtn{color:#aeb8b1}.bottomNavBtn.active{color:#3F5B45}body.dark-theme .bottomNavBtn.active{background:#304b39;color:#dce9df}
 
+
+/* === Meer is een volwaardig navigatiescherm; geen dropdown meer === */
+.moreView{display:none;padding-bottom:115px;}
+.moreViewTitle{font-size:24px;font-weight:800;color:#3F5B45;margin:18px 4px 10px;}
+.app.more-active .moreView{display:block;}
+.app.more-active h2,.app.more-active .input-row-wrap,.app.more-active .searchBox,.app.more-active #refresh,.app.more-active .list,.app.more-active .saveListMainBtn,.app.more-active .buttons,.app.more-active .status{display:none!important;}
+.app.more-active .headerBar{background:transparent;box-shadow:none;padding-bottom:0;}
+.app.more-active .headerBar h1{color:#3F5B45;}
+.app.more-active #familyMenu{position:relative;top:auto;right:auto;margin:0;width:100%;max-width:none;box-sizing:border-box;opacity:1;visibility:visible;pointer-events:auto;transform:none;display:block!important;padding:8px;border-radius:24px;background:#fff;box-shadow:0 8px 24px rgba(63,91,69,.07);}
+.app.more-active #familyMenu .familyMenuPage{display:block;}
+.app.more-active #familyMenu.menu-open{display:block!important;}
+.app.more-active .moreViewTitle{display:none;}
+.app.more-active .headerBar{position:relative;}
+body.dark-theme .moreViewTitle{color:#bfe3c7;}
+
 /* === Meer: acties uit het hoofdscherm naar het Meer-menu === */
 .app.more-active .buttons{display:none !important;}
 .moreMenuActions{
@@ -2248,10 +2263,6 @@ body.dark-theme .sharedListInviteBox{background:rgba(255,255,255,.06);border-col
 
   <div class="headerBar">
   <h1>Boodschappenlijst</h1>
-  <button class="familyButton" onclick="toggleFamilyMenu()" aria-label="Menu openen">
-    <i class="fa-solid fa-bars"></i> Menu
-    <i class="fa-solid fa-chevron-down"></i>
-  </button>
     <div id="familyMenu" class="familyMenu">
   <div id="familyMenuMain" class="familyMenuPage">
     <button type="button" class="familyMenuItem familyMenuPrimary" onclick="openFamilySubmenu(event)">
@@ -2438,6 +2449,9 @@ body.dark-theme .sharedListInviteBox{background:rgba(255,255,255,.06);border-col
 </div>
   </div>
 
+  <section id="moreView" class="moreView" aria-label="Meer">
+    <div class="moreViewTitle">Meer</div>
+  </section>
 
   <h2>Voeg iets toe aan je lijst</h2>
 
@@ -4446,7 +4460,7 @@ function updateSharedDeleteButton(isOwner){
    btn.setAttribute("title","Deellijst verwijderen");
   btn.innerHTML='<i class="fa-solid fa-trash"></i>';
   btn.onclick=deleteCurrentSharedList;
-  header.insertBefore(btn, header.querySelector(".familyButton"));
+  header.insertBefore(btn, header.firstChild);
 }
 
 async function deleteCurrentSharedList(){
@@ -5612,9 +5626,23 @@ function showMoreView(){
   if(app) app.classList.remove('overview-active'), app.classList.add('more-active');
   setBottomNav('navMore');
   var menu=document.getElementById('familyMenu');
-  if(menu && menu.classList.contains('menu-open')) closeFamilyMenu(); else toggleFamilyMenu();
+  var main=document.getElementById('familyMenuMain');
+  var pageIds=["familyMenuSub","sharedListsMenuSub","sharedListActiveMenuSub","settingsMenuSub","savedListsMenuSub","accountMenuSub","aboutMenuSub"];
+  pageIds.forEach(function(id){ var p=document.getElementById(id); if(p){ p.style.display='none'; __resetMenuPageClasses(p); }});
+  if(main){ main.style.display='block'; __resetMenuPageClasses(main); }
+  __menuCurrentPage='familyMenuMain';
+  if(menu){ menu.style.display='block'; menu.classList.add('menu-open'); }
   window.scrollTo({top:0,behavior:'smooth'});
 }
+
+/* Verplaats het bestaande menu naar de Meer-weergave zodra de DOM klaar is.
+   Zo blijven alle bestaande submenu-functies en account/familie-logica intact. */
+function initMoreView(){
+  var menu=document.getElementById('familyMenu');
+  var more=document.getElementById('moreView');
+  if(menu && more && menu.parentElement !== more) more.appendChild(menu);
+}
+document.addEventListener('DOMContentLoaded', initMoreView);
 function updateOverviewView(){
   var arr=(typeof boodschappen!=='undefined' && Array.isArray(boodschappen))?boodschappen:[];
   var total=arr.length, done=arr.filter(function(x){return !!x.completed;}).length, open=Math.max(0,total-done), pct=total?Math.round(done/total*100):0;
