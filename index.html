@@ -295,8 +295,8 @@ button {
   background: rgba(0,0,0,0.45);
   border-radius: 12px;
   padding: 18px 8px 8px;
-  height: 330px !important;
-max-height: 330px !important;
+  height: 300px !important;
+max-height: 300px !important;
 overflow-y: auto !important;
 overflow-x: hidden;
 }
@@ -1202,28 +1202,6 @@ body.dark-theme .overviewCard{background:#202620;border-color:rgba(255,255,255,.
   object-fit: contain;
   display: block;
 }
-
-/* Kleine verwijderknop direct op iedere productregel. */
-.productDeleteBtn {
-  flex: 0 0 34px;
-  width: 34px;
-  height: 34px;
-  border: 0;
-  border-radius: 10px;
-  background: #fbeaea;
-  color: #c43a34;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  padding: 0;
-  font-size: 16px;
-  transition: background .15s ease, transform .15s ease;
-}
-.productDeleteBtn:active { transform: scale(.94); }
-.productDeleteBtn:hover { background: #f6dada; }
-body.dark-theme .productDeleteBtn { background: #442b2b; color: #f1b4b0; }
-body.dark-theme .productDeleteBtn:hover { background: #523232; }
 
 .productSuggestionIcon {
   width: 30px;
@@ -2455,6 +2433,9 @@ body:has(.app.more-active) #themePicker {
       <button type="button" class="moreAction moreActionClear" onclick="clearList(); closeFamilyMenu();">
         <i class="fa-solid fa-trash-can"></i><span>Lijst wissen</span>
       </button>
+      <button type="button" class="moreAction moreActionDelete" onclick="deleteProduct(); closeFamilyMenu();">
+        <i class="fa-solid fa-trash-can"></i><span>Verwijder product</span>
+      </button>
     </div>
   </div>
 
@@ -2630,6 +2611,7 @@ body:has(.app.more-active) #themePicker {
 
   <div class="buttons">
     <button class="clear" onclick="clearList()"><i class="fa-solid fa-trash-can"></i> Lijst wissen</button>
+    <button class="delete" onclick="deleteProduct()"><i class="fa-solid fa-trash-can"></i> Verwijder product</button>
   </div>
 
   <div class="status" id="status">
@@ -3800,18 +3782,6 @@ function showList(animationType = "") {
     if (!iconValue) icon.style.visibility = "hidden";
     productWrap.appendChild(icon);
 
-    const deleteBtn = document.createElement("button");
-    deleteBtn.type = "button";
-    deleteBtn.className = "productDeleteBtn";
-    deleteBtn.setAttribute("aria-label", "Verwijder " + productText);
-    deleteBtn.title = "Verwijder " + productText;
-    deleteBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
-    deleteBtn.addEventListener("click", async (event) => {
-      event.stopPropagation();
-      await deleteProduct(index);
-    });
-    productWrap.appendChild(deleteBtn);
-
     div.appendChild(productWrap);
 
     // In zowel de familielijst als een Deellijst is zichtbaar wie een product heeft voltooid.
@@ -3957,12 +3927,11 @@ async function addProduct() {
 }
 
 
-async function deleteProduct(indexOverride = null) {
+async function deleteProduct() {
 
-  const index = Number.isInteger(indexOverride) ? indexOverride : selectedIndex;
-  if (index < 0 || index >= boodschappen.length) return;
+  if (selectedIndex < 0) return;
 
-  boodschappen.splice(index, 1);
+  boodschappen.splice(selectedIndex, 1);
 
   selectedIndex = -1;
 
