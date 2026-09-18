@@ -2346,59 +2346,22 @@ body.dark-theme .shopping-item-trash {
 </style>
 
 
-<style id="product-row-trash-style">
-.product-row-trash-can{
-  width:34px;height:34px;min-width:34px;padding:0;margin-left:8px;
-  border:0;border-radius:10px;
-  display:inline-flex;align-items:center;justify-content:center;
-  background:#f9e9e7;color:#b85a52;
-  font-size:15px;line-height:1;cursor:pointer;flex:0 0 auto;
-}
-.product-row-trash-can:hover{background:#f5dfdc}
+<style id="final-product-trash-and-overview">
+.itemProductContent{display:flex;align-items:center;width:100%;min-width:0}
+.product-row-trash-can{width:34px;height:34px;min-width:34px;padding:0;margin-left:auto;border:0;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;background:#f9e9e7;color:#b85a52;font-size:15px;line-height:1;cursor:pointer;flex:0 0 auto}
 .product-row-trash-can:active{transform:scale(.96)}
-</style>
-
-<style id="overview-dashboard-final-style">
-<div id="overviewDashboardFinal" class="overview-dashboard-final">
-  <h2 id="overviewGreetingFinal" class="ov-greeting">Goedendag 👋</h2>
-
-  <section class="ov-card">
-    <div class="ov-title"><i class="fa-solid fa-bolt ov-bolt"></i><span>Snel opnieuw toevoegen</span></div>
-    <div class="ov-row">
-      <div><strong>Vaak gebruikte producten</strong><div class="ov-muted">Voeg je favoriete boodschappen snel opnieuw toe.</div></div>
-      <button type="button" class="ov-add" aria-label="Product toevoegen"><i class="fa-solid fa-plus"></i></button>
-    </div>
-  </section>
-
-  <section class="ov-card">
-    <div class="ov-title"><i class="fa-solid fa-clock-rotate-left ov-history"></i><span>Boodschappenhistorie</span></div>
-    <div class="ov-row">
-      <div><strong>Je eerdere boodschappen</strong><div class="ov-muted">Bekijk eerdere lijsten en boodschappenmomenten.</div></div>
-      <i class="fa-solid fa-chevron-right ov-chevron"></i>
-    </div>
-  </section>
-
-  <section class="ov-card">
-    <div class="ov-title"><i class="fa-solid fa-list ov-lists"></i><span>Mijn lijsten</span></div>
-    <div class="ov-row">
-      <div><strong>Mijn boodschappenlijsten</strong><div class="ov-muted">Je opgeslagen lijsten.</div></div>
-      <i class="fa-solid fa-chevron-right ov-chevron"></i>
-    </div>
-  </section>
-</div>
-
-.overview-dashboard-final{margin:14px 16px 100px}
-.overview-dashboard-final .ov-greeting{margin:0 0 14px;font-size:22px;font-weight:700}
-.overview-dashboard-final .ov-card{background:#fff;border-radius:18px;padding:15px;margin-bottom:12px;box-shadow:0 2px 10px rgba(0,0,0,.05)}
-.overview-dashboard-final .ov-title{display:flex;align-items:center;gap:9px;font-size:16px;font-weight:700;margin-bottom:12px}
-.overview-dashboard-final .ov-title i{width:31px;height:31px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center}
-.overview-dashboard-final .ov-bolt{background:#fff1c9;color:#c18a18}
-.overview-dashboard-final .ov-history{background:#e7f3ec;color:#3d8060}
-.overview-dashboard-final .ov-lists{background:#e8f0ff;color:#4e73ad}
-.overview-dashboard-final .ov-row{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:43px}
-.overview-dashboard-final .ov-muted{font-size:13px;opacity:.62;margin-top:2px}
-.overview-dashboard-final .ov-add{width:34px;height:34px;border:0;border-radius:10px;background:#e7f4ec;color:#3c8b5e;display:inline-flex;align-items:center;justify-content:center}
-.overview-dashboard-final .ov-chevron{opacity:.55;font-size:13px}
+.overview-new{padding:14px 12px 105px}
+.overview-new-greeting{margin:2px 4px 14px;font-size:22px;font-weight:750;color:#30453a}
+.overview-new-card{background:#fff;border:1px solid #e1ece4;border-radius:16px;padding:14px;margin:0 0 11px;box-shadow:0 2px 8px rgba(40,70,50,.05)}
+.overview-new-title{display:flex;align-items:center;gap:9px;font-size:16px;font-weight:750;color:#30453a;margin-bottom:10px}
+.overview-new-title i{width:30px;height:30px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center}
+.overview-new-bolt{background:#fff1c9;color:#c18a18}.overview-new-history{background:#e7f3ec;color:#3d8060}.overview-new-lists{background:#e8f0ff;color:#4e73ad}
+.overview-new-row{display:flex;align-items:center;justify-content:space-between;gap:10px;color:#405047}
+.overview-new-muted{font-size:13px;color:#718078;margin-top:2px}
+.overview-new-plus{width:34px;height:34px;border:0;border-radius:10px;background:#e7f4ec;color:#3c8b5e;display:inline-flex;align-items:center;justify-content:center}
+.overview-new-arrow{color:#7aa086}
+body.dark-theme .overview-new-greeting,body.dark-theme .overview-new-title,body.dark-theme .overview-new-row{color:#e2ebe5}
+body.dark-theme .overview-new-card{background:#202923;border-color:#34443a}
 </style>
 </head>
 
@@ -2727,29 +2690,35 @@ body.dark-theme .shopping-item-trash {
     <span>Laatste update: vandaag</span>
 </div>
 
-  <section id="overviewView" class="overviewView" aria-label="Overzicht">
-    <div class="overviewCard">
-      <div class="overviewTitle">Overzicht</div>
-      <div class="overviewStats">
-        <div class="overviewStat"><strong id="overviewTotal">0</strong><span>Producten</span></div>
-        <div class="overviewStat"><strong id="overviewDone">0</strong><span>Voltooid</span></div>
-        <div class="overviewStat"><strong id="overviewOpen">0</strong><span>Openstaand</span></div>
-        <div class="overviewStat"><strong id="overviewPercent">0%</strong><span>Voortgang</span></div>
+  
+<section id="overviewView" class="overviewView" aria-label="Overzicht">
+  <div class="overview-new">
+    <h2 id="overviewGreetingNew" class="overview-new-greeting">Goedendag 👋</h2>
+
+    <div class="overview-new-card">
+      <div class="overview-new-title"><i class="fa-solid fa-bolt overview-new-bolt"></i><span>Snel opnieuw toevoegen</span></div>
+      <div id="overviewQuickNew">
+        <div class="overview-new-muted">Je vaak gebruikte producten verschijnen hier.</div>
       </div>
-      <div class="overviewProgress"><div id="overviewProgressFill" class="overviewProgressFill"></div></div>
     </div>
-    <div class="overviewCard">
-      <div class="overviewTitle">Vandaag</div>
-      <div id="overviewMessage" class="overviewEmpty">Je overzicht wordt automatisch bijgewerkt wanneer je producten toevoegt of afvinkt.</div>
+
+    <div class="overview-new-card">
+      <div class="overview-new-title"><i class="fa-solid fa-clock-rotate-left overview-new-history"></i><span>Boodschappenhistorie</span></div>
+      <div class="overview-new-row">
+        <div><strong>Eerdere boodschappen</strong><div class="overview-new-muted">Bekijk je vorige boodschappen.</div></div>
+        <i class="fa-solid fa-chevron-right overview-new-arrow"></i>
+      </div>
     </div>
-    <div class="overviewCard">
-      <div class="overviewTitle">Mijn lijsten</div>
-      <div id="overviewSavedLists" class="overviewEmpty">Je opgeslagen lijsten verschijnen hier.</div>
-      <button type="button" id="overviewSavedListsBtn" class="overviewAllListsBtn" onclick="openSavedListsFromOverview()">
-        <span>Bekijk mijn lijsten</span><i class="fa-solid fa-chevron-right"></i>
-      </button>
+
+    <div class="overview-new-card">
+      <div class="overview-new-title"><i class="fa-solid fa-list overview-new-lists"></i><span>Mijn lijsten</span></div>
+      <div class="overview-new-row">
+        <div><strong>Opgeslagen boodschappenlijsten</strong><div class="overview-new-muted">Bekijk en gebruik je opgeslagen lijsten.</div></div>
+        <i class="fa-solid fa-chevron-right overview-new-arrow"></i>
+      </div>
     </div>
-  </section>
+  </div>
+</section>
 
   <nav class="bottomNav" aria-label="Hoofdnavigatie">
     <button type="button" id="navList" class="bottomNavBtn active" onclick="showMainListView()"><i class="fa-solid fa-cart-shopping"></i><span>Lijst</span></button>
@@ -3889,6 +3858,22 @@ function showList(animationType = "") {
     icon.innerHTML = productIconMarkup(iconValue);
     if (!iconValue) icon.style.visibility = "hidden";
     productWrap.appendChild(icon);
+
+    const trashButton = document.createElement("button");
+    trashButton.type = "button";
+    trashButton.className = "product-row-trash-can";
+    trashButton.setAttribute("aria-label", "Product verwijderen");
+    trashButton.title = "Product verwijderen";
+    trashButton.innerHTML = '<i class="fa-solid fa-trash-can" aria-hidden="true"></i>';
+    trashButton.addEventListener("click", async (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      boodschappen.splice(index, 1);
+      selectedIndex = -1;
+      showList();
+      await saveList();
+    });
+    productWrap.appendChild(trashButton);
 
     div.appendChild(productWrap);
 
@@ -5959,13 +5944,11 @@ document.addEventListener('DOMContentLoaded', function(){
   if(nav && nav.parentElement !== document.body){ document.body.appendChild(nav); }
 });
 function updateOverviewView(){
-  updateOverviewSavedLists();
-  var arr=(typeof boodschappen!=='undefined' && Array.isArray(boodschappen))?boodschappen:[];
-  var total=arr.length, done=arr.filter(function(x){return !!x.completed;}).length, open=Math.max(0,total-done), pct=total?Math.round(done/total*100):0;
-  var set=function(id,v){var e=document.getElementById(id);if(e)e.textContent=v;};
-  set('overviewTotal',total);set('overviewDone',done);set('overviewOpen',open);set('overviewPercent',pct+'%');
-  var f=document.getElementById('overviewProgressFill');if(f)f.style.width=pct+'%';
-  var msg=document.getElementById('overviewMessage');if(msg)msg.textContent=total?'Je hebt '+done+' van '+total+' producten voltooid.':'Je lijst is nog leeg. Voeg een product toe om te beginnen.';
+  var h=new Date().getHours();
+  var greeting=h>=5&&h<12?"Goedemorgen":(h>=12&&h<18?"Goedemiddag":"Goedenavond");
+  var g=document.getElementById("overviewGreetingNew");
+  if(g) g.textContent=greeting+" 👋";
+  if(typeof updateOverviewSavedLists==="function") updateOverviewSavedLists();
 }
 
 </script>
@@ -6190,58 +6173,17 @@ body.dark-theme .overviewSavedListLine{color:#c2ccc5;border-bottom-color:rgba(25
 </script>
 
 
-<script id="product-row-trash-function">
-(function(){
-  function addTrash(row){
-    if(!row || row.querySelector('.product-row-trash-can')) return;
-    var b=document.createElement('button');
-    b.type='button';
-    b.className='product-row-trash-can';
-    b.setAttribute('aria-label','Product verwijderen');
-    b.title='Product verwijderen';
-    b.innerHTML='<i class="fa-solid fa-trash-can" aria-hidden="true"></i>';
-    var id=row.getAttribute('data-product-id');
-    if(id) b.dataset.productId=id;
-    row.appendChild(b);
+<script id="overview-greeting-refresh-final">
+document.addEventListener("DOMContentLoaded",function(){
+  function refreshOverviewGreeting(){
+    var h=new Date().getHours();
+    var text=h>=5&&h<12?"Goedemorgen":(h>=12&&h<18?"Goedemiddag":"Goedenavond");
+    var el=document.getElementById("overviewGreetingNew");
+    if(el) el.textContent=text+" 👋";
   }
-  function scan(){
-    document.querySelectorAll(
-      '[data-product-id], .product-row, .product-item, .shopping-item, .boodschap-item, .grocery-item'
-    ).forEach(addTrash);
-  }
-  document.addEventListener('click',function(e){
-    var b=e.target.closest && e.target.closest('.product-row-trash-can');
-    if(!b) return;
-    e.preventDefault(); e.stopPropagation();
-    var row=b.closest('[data-product-id], .product-row, .product-item, .shopping-item, .boodschap-item, .grocery-item');
-    if(!row) return;
-    var id=b.dataset.productId || row.getAttribute('data-product-id');
-    if(id && typeof window.deleteProduct==='function') return window.deleteProduct(id);
-    if(id && typeof window.removeProduct==='function') return window.removeProduct(id);
-    row.remove();
-  });
-  document.addEventListener('DOMContentLoaded',function(){
-    scan();
-    new MutationObserver(scan).observe(document.body,{childList:true,subtree:true});
-  });
-})();
-</script>
-
-<script id="overview-dashboard-final-logic">
-(function(){
-  function setGreeting(){
-    var h=new Date().getHours(), text;
-    if(h>=5 && h<12) text='Goedemorgen';
-    else if(h>=12 && h<18) text='Goedemiddag';
-    else text='Goedenavond';
-    var el=document.getElementById('overviewGreetingFinal');
-    if(el) el.textContent=text+' 👋';
-  }
-  document.addEventListener('DOMContentLoaded',function(){
-    setGreeting();
-    setInterval(setGreeting,60000);
-  });
-})();
+  refreshOverviewGreeting();
+  setInterval(refreshOverviewGreeting,60000);
+});
 </script>
 </body>
 </html>
