@@ -2529,6 +2529,9 @@ body.dark-theme .overview-new-card{background:#202923;border-color:#34443a}
 
   <div class="headerBar">
   <h1>Boodschappenlijst</h1>
+    <button type="button" id="listOptionsButton" class="listOptionsButton" onclick="toggleListOptions(event)" aria-label="Lijstopties" aria-expanded="false">
+      <i class="fa-solid fa-ellipsis-vertical"></i>
+    </button>
     <div id="familyMenu" class="familyMenu">
   <div id="familyMenuMain" class="familyMenuPage">
     <button type="button" class="familyMenuItem familyMenuPrimary" onclick="openFamilySubmenu(event)">
@@ -2561,12 +2564,12 @@ body.dark-theme .overview-new-card{background:#202923;border-color:#34443a}
       <span>Over de app</span>
       <i class="fa-solid fa-chevron-right familyMenuArrow"></i>
     </button>
-    <div class="moreMenuActions">
-      <button type="button" class="moreAction moreActionClear" onclick="clearList(); closeFamilyMenu();">
-        <i class="fa-solid fa-trash-can"></i><span>Lijst wissen</span>
-      </button>
-      
-    </div>
+    <button type="button" class="familyMenuItem familyMenuPrimary" onclick="openLanguageSubmenu(event)">
+      <i class="fa-solid fa-globe"></i>
+      <span>Taal</span>
+      <span id="currentLanguageLabel" class="languageCurrentLabel">Nederlands</span>
+      <i class="fa-solid fa-chevron-right familyMenuArrow"></i>
+    </button>
   </div>
 
   <div id="familyMenuSub" class="familyMenuPage familyMenuSub" style="display:none;">
@@ -2694,6 +2697,22 @@ body.dark-theme .overview-new-card{background:#202923;border-color:#34443a}
     </button>
   </div>
 
+  <div id="languageMenuSub" class="familyMenuPage languageMenuPage" style="display:none;">
+    <button type="button" class="settingsMenuBack" onclick="closeLanguageSubmenu(event)">
+      <i class="fa-solid fa-chevron-left"></i>
+      <span>Taal</span>
+    </button>
+    <div class="familyMenuSubTitle">Taal</div>
+    <button type="button" class="familyMenuItem" onclick="setAppLanguage('nl')">
+      <i class="fa-solid fa-globe"></i><span>Nederlands</span>
+      <i id="langNlCheck" class="fa-solid fa-check languageCheck"></i>
+    </button>
+    <button type="button" class="familyMenuItem" onclick="setAppLanguage('en')">
+      <i class="fa-solid fa-globe"></i><span>English</span>
+      <i id="langEnCheck" class="fa-solid fa-check languageCheck"></i>
+    </button>
+  </div>
+
   <div id="aboutMenuSub" class="familyMenuPage aboutMenuPage" style="display:none;">
     <button type="button" class="settingsMenuBack" onclick="closeAboutSubmenu(event)">
       <i class="fa-solid fa-chevron-left"></i>
@@ -2797,6 +2816,26 @@ body.dark-theme .overview-new-card{background:#202923;border-color:#34443a}
   </div>
   </div>
 </section>
+
+  <div id="listOptionsPanel" class="listOptionsPanel" aria-hidden="true">
+    <div class="listOptionsPanelInner">
+      <button type="button" class="listOptionItem listOptionDanger" onclick="clearListFromOptions()">
+        <i class="fa-solid fa-trash-can"></i><span>Lijst wissen</span>
+      </button>
+      <button type="button" class="listOptionItem" onclick="openSortOptions()">
+        <i class="fa-solid fa-arrow-down-a-z"></i><span>Lijst sorteren</span><i class="fa-solid fa-chevron-right listOptionArrow"></i>
+      </button>
+    </div>
+  </div>
+
+  <div id="sortOptionsPanel" class="listOptionsPanel sortOptionsPanel" aria-hidden="true">
+    <div class="listOptionsPanelInner">
+      <button type="button" class="listOptionBack" onclick="closeSortOptions()"><i class="fa-solid fa-chevron-left"></i><span>Lijst sorteren</span></button>
+      <button type="button" class="listOptionItem" onclick="sortCurrentList('alpha')"><i class="fa-solid fa-arrow-down-a-z"></i><span>Alfabetisch</span></button>
+      <button type="button" class="listOptionItem" onclick="sortCurrentList('category')"><i class="fa-solid fa-layer-group"></i><span>Per categorie</span></button>
+      <button type="button" class="listOptionItem" onclick="sortCurrentList('newest')"><i class="fa-solid fa-clock"></i><span>Nieuwste eerst</span></button>
+    </div>
+  </div>
 
   <nav class="bottomNav" aria-label="Hoofdnavigatie">
     <button type="button" id="navList" class="bottomNavBtn active" onclick="showMainListView()"><i class="fa-solid fa-cart-shopping"></i><span>Lijst</span></button>
@@ -3060,7 +3099,7 @@ function switchMenuPage(pageId, event) {
   if (__menuTransitionTimer) { clearTimeout(__menuTransitionTimer); __menuTransitionTimer = null; }
 
   const pageIds = ["familyMenuMain","familyMenuSub","sharedListsMenuSub","sharedListActiveMenuSub",
-    "settingsMenuSub","savedListsMenuSub","accountMenuSub","aboutMenuSub"];
+    "settingsMenuSub","savedListsMenuSub","accountMenuSub","aboutMenuSub","languageMenuSub"];
   let current = document.getElementById(__menuCurrentPage);
   if (!current || current === page || getComputedStyle(current).display === "none") {
     current = pageIds.map(id=>document.getElementById(id)).find(el => el && el !== page && getComputedStyle(el).display !== "none") || null;
@@ -4866,7 +4905,7 @@ async function returnToFamilyList(event){
 
   await new Promise(resolve=>setTimeout(resolve,290));
   if(activePage){ activePage.style.display="none"; __resetMenuPageClasses(activePage); }
-  const pageIds=["familyMenuSub","sharedListsMenuSub","sharedListActiveMenuSub","settingsMenuSub","savedListsMenuSub","accountMenuSub","aboutMenuSub"];
+  const pageIds=["familyMenuSub","sharedListsMenuSub","sharedListActiveMenuSub","settingsMenuSub","savedListsMenuSub","accountMenuSub","aboutMenuSub","languageMenuSub"];
   pageIds.forEach(id=>{ const p=document.getElementById(id); if(p){ p.style.display="none"; __resetMenuPageClasses(p); }});
   const main=document.getElementById("familyMenuMain");
   if(main){ main.style.display="block"; __resetMenuPageClasses(main); }
@@ -5999,7 +6038,7 @@ function showMoreView(){
   setBottomNav('navMore');
   var menu=document.getElementById('familyMenu');
   var main=document.getElementById('familyMenuMain');
-  var pageIds=["familyMenuSub","sharedListsMenuSub","sharedListActiveMenuSub","settingsMenuSub","savedListsMenuSub","accountMenuSub","aboutMenuSub"];
+  var pageIds=["familyMenuSub","sharedListsMenuSub","sharedListActiveMenuSub","settingsMenuSub","savedListsMenuSub","accountMenuSub","aboutMenuSub","languageMenuSub"];
   pageIds.forEach(function(id){ var p=document.getElementById(id); if(p){ p.style.display='none'; __resetMenuPageClasses(p); }});
   if(main){ main.style.display='block'; __resetMenuPageClasses(main); }
   __menuCurrentPage='familyMenuMain';
@@ -6449,6 +6488,83 @@ body.dark-theme .overview-dashboard-stat{background:#29352d}
 body.dark-theme .overview-dashboard-muted,body.dark-theme .overview-dashboard-stat span,body.dark-theme .overview-activity-row small{color:#aeb8b1}
 </style>
 
+
+<style id="list-options-and-language-final">
+.listOptionsButton{margin-left:auto;width:40px;height:40px;border:0;border-radius:12px;background:rgba(255,255,255,.16);color:#fff;display:flex;align-items:center;justify-content:center;font-size:19px;cursor:pointer;flex:0 0 auto}
+.listOptionsButton:active{transform:scale(.96)}
+.app.overview-active .listOptionsButton,.app.more-active .listOptionsButton{display:none!important}
+.listOptionsPanel{position:fixed;inset:0;z-index:100000;display:flex;justify-content:flex-end;pointer-events:none;visibility:hidden}
+.listOptionsPanel.open{pointer-events:auto;visibility:visible}
+.listOptionsPanel::before{content:"";position:absolute;inset:0;background:rgba(0,0,0,.16);opacity:0;transition:opacity .22s ease}
+.listOptionsPanel.open::before{opacity:1}
+.listOptionsPanelInner{position:relative;width:min(330px,88vw);height:100%;background:#fff;padding:calc(env(safe-area-inset-top) + 22px) 16px 24px;box-sizing:border-box;box-shadow:-10px 0 30px rgba(0,0,0,.12);transform:translateX(100%);transition:transform .28s ease;overflow-y:auto}
+.listOptionsPanel.open .listOptionsPanelInner{transform:translateX(0)}
+.sortOptionsPanel .listOptionsPanelInner{transform:translateX(100%)}
+.listOptionItem,.listOptionBack{width:100%;min-height:54px;border:0;background:transparent;border-radius:15px;padding:10px 12px;display:flex;align-items:center;gap:12px;font:inherit;font-size:16px;font-weight:700;color:#3f5b45;text-align:left;cursor:pointer;box-sizing:border-box}
+.listOptionItem:hover,.listOptionBack:hover{background:#f3f7f3}
+.listOptionItem i:first-child,.listOptionBack i:first-child{width:28px;text-align:center}
+.listOptionArrow{margin-left:auto;opacity:.55;width:auto!important}
+.listOptionDanger{color:#b75a52}
+.listOptionDanger i:first-child{color:#b75a52}
+.listOptionBack{margin-bottom:8px}
+.languageCurrentLabel{font-size:12px;font-weight:700;opacity:.62;margin-left:auto}
+.languageCheck{margin-left:auto;opacity:.35}.languageCheck.active{opacity:1}
+.app.more-active .languageCurrentLabel{margin-left:auto}
+body.dark-theme .listOptionsPanelInner{background:#202923;color:#e5ece7}
+body.dark-theme .listOptionItem,body.dark-theme .listOptionBack{color:#dce9df}
+body.dark-theme .listOptionItem:hover,body.dark-theme .listOptionBack:hover{background:#2b362f}
+@media(max-width:600px){.listOptionsPanelInner{width:86vw}}
+</style>
+
+<script id="list-options-and-language-logic">
+(function(){
+  function panel(id){return document.getElementById(id);}
+  window.toggleListOptions=function(e){if(e)e.stopPropagation();var p=panel('listOptionsPanel'),b=panel('listOptionsButton');if(!p)return;var open=!p.classList.contains('open');p.classList.toggle('open',open);p.setAttribute('aria-hidden',open?'false':'true');if(b)b.setAttribute('aria-expanded',open?'true':'false');};
+  window.closeListOptions=function(){var p=panel('listOptionsPanel');if(p){p.classList.remove('open');p.setAttribute('aria-hidden','true')}var b=panel('listOptionsButton');if(b)b.setAttribute('aria-expanded','false');};
+  window.clearListFromOptions=async function(){closeListOptions();await clearList();};
+  window.openSortOptions=function(){var p=panel('sortOptionsPanel');if(p){p.classList.add('open');p.setAttribute('aria-hidden','false')}};
+  window.closeSortOptions=function(){var p=panel('sortOptionsPanel');if(p){p.classList.remove('open');p.setAttribute('aria-hidden','true')}};
+  window.sortCurrentList=function(mode){
+    try{
+      if(!Array.isArray(boodschappen)||boodschappen.length<2){closeSortOptions();closeListOptions();return;}
+      if(mode==='alpha') boodschappen.sort(function(a,b){return String(a.name||'').localeCompare(String(b.name||''),'nl',{sensitivity:'base'});});
+      else if(mode==='newest') boodschappen.sort(function(a,b){return Number(b.createdAt||b.addedAt||0)-Number(a.createdAt||a.addedAt||0);});
+      else if(mode==='category') boodschappen.sort(function(a,b){return String(a.category||'Overig').localeCompare(String(b.category||'Overig'),'nl',{sensitivity:'base'})||String(a.name||'').localeCompare(String(b.name||''),'nl',{sensitivity:'base'});});
+      if(typeof showList==='function') showList();
+      if(typeof saveList==='function'){try{saveList();}catch(_){}}
+    }catch(err){console.error('Sorteren mislukt',err)}
+    closeSortOptions();closeListOptions();
+  };
+  document.addEventListener('click',function(e){
+    var p=panel('listOptionsPanel'),s=panel('sortOptionsPanel'),b=panel('listOptionsButton');
+    if(p&&p.classList.contains('open')&&e.target===p)closeListOptions();
+    if(s&&s.classList.contains('open')&&e.target===s)closeSortOptions();
+    if(b&&b.contains(e.target))return;
+  });
+
+  var translations={
+    nl:{'Boodschappenlijst':'Boodschappenlijst','Voeg iets toe aan je lijst':'Voeg iets toe aan je lijst','Toevoegen':'Toevoegen','Zoek in je lijst...':'Zoek in je lijst...','Lijst opslaan':'Lijst opslaan','Lijst wissen':'Lijst wissen','Lijst sorteren':'Lijst sorteren','Alfabetisch':'Alfabetisch','Per categorie':'Per categorie','Nieuwste eerst':'Nieuwste eerst','Overzicht':'Overzicht','Meer':'Meer','Snel opnieuw toevoegen':'Snel opnieuw toevoegen','Boodschappenhistorie':'Boodschappenhistorie','Mijn lijsten':'Mijn lijsten','Jouw boodschappen':'Jouw boodschappen','Deze week':'Deze week','Taal':'Taal','Nederlands':'Nederlands','English':'English'},
+    en:{'Boodschappenlijst':'Grocery List','Voeg iets toe aan je lijst':'Add something to your list','Toevoegen':'Add','Zoek in je lijst...':'Search your list...','Lijst opslaan':'Save list','Lijst wissen':'Clear list','Lijst sorteren':'Sort list','Alfabetisch':'Alphabetical','Per categorie':'By category','Nieuwste eerst':'Newest first','Overzicht':'Overview','Meer':'More','Snel opnieuw toevoegen':'Quick re-add','Boodschappenhistorie':'Shopping history','Mijn lijsten':'My lists','Jouw boodschappen':'Your groceries','Deze week':'This week','Taal':'Language','Nederlands':'Dutch','English':'English'}
+  };
+  function translateText(lang){
+    var map=translations[lang]||translations.nl;
+    document.querySelectorAll('[data-i18n]').forEach(function(el){var k=el.getAttribute('data-i18n');if(map[k])el.textContent=map[k];});
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(function(el){var k=el.getAttribute('data-i18n-placeholder');if(map[k])el.placeholder=map[k];});
+    var all=document.querySelectorAll('button,span,h1,h2,h3,div');
+    all.forEach(function(el){if(el.children.length===0){var t=(el.textContent||'').trim();if(map[t])el.textContent=map[t];}});
+    var label=panel('currentLanguageLabel');if(label)label.textContent=lang==='en'?'English':'Nederlands';
+    var nl=panel('langNlCheck'),en=panel('langEnCheck');if(nl)nl.classList.toggle('active',lang==='nl');if(en)en.classList.toggle('active',lang==='en');
+    var product=panel('product');if(product)product.placeholder=lang==='en'?'e.g. milk, bread, eggs...':'Bijv. melk, brood, eieren...';
+    var search=panel('searchInput');if(search)search.placeholder=lang==='en'?'Search your list...':'Zoek in je lijst...';
+  }
+  window.openLanguageSubmenu=function(e){if(e)e.stopPropagation();if(typeof switchMenuPage==='function')switchMenuPage('languageMenuSub',e);else{var p=panel('languageMenuSub');if(p)p.style.display='block';}translateText(localStorage.getItem('appLanguage')||'nl');};
+  window.closeLanguageSubmenu=function(e){if(typeof returnMenuToMain==='function')returnMenuToMain('languageMenuSub',e);};
+  window.setAppLanguage=function(lang){localStorage.setItem('appLanguage',lang);translateText(lang);if(typeof returnMenuToMain==='function')returnMenuToMain('languageMenuSub');};
+  document.addEventListener('DOMContentLoaded',function(){translateText(localStorage.getItem('appLanguage')||'nl');});
+})();
+</script>
+
+<style id="list-options-login-fix">body:not(.logged-in) #listOptionsButton{display:none!important}</style>
 </html>
 <style id="polish-more-actions">
 /* === Final polish: destructive actions live only in Meer === */
