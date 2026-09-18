@@ -5631,7 +5631,8 @@ function showMoreView(){
   pageIds.forEach(function(id){ var p=document.getElementById(id); if(p){ p.style.display='none'; __resetMenuPageClasses(p); }});
   if(main){ main.style.display='block'; __resetMenuPageClasses(main); }
   __menuCurrentPage='familyMenuMain';
-  if(menu){ menu.style.display='block'; menu.classList.add('menu-open'); }
+  /* In Meer the family menu is the screen content, never a dropdown. */
+  if(menu){ menu.style.display='block'; menu.classList.remove('menu-open'); }
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -5673,3 +5674,105 @@ function updateOverviewView(){
 
 </body>
 </html>
+<style id="polish-more-actions">
+/* === Final polish: destructive actions live only in Meer === */
+.app:not(.more-active) .buttons { display:none !important; }
+
+/* More is a real screen, not a dropdown */
+.app.more-active .headerBar { display:none !important; }
+.app.more-active .moreView { padding: 18px 0 120px; }
+.app.more-active .moreViewTitle {
+  display:block !important;
+  margin: 0 4px 14px;
+  font-size: 27px;
+  line-height: 1.15;
+  letter-spacing: -.02em;
+}
+
+.app.more-active #familyMenu {
+  position:relative;
+  inset:auto;
+  display:block !important;
+  width:100%;
+  max-width:none;
+  margin:0;
+  padding:16px;
+  box-sizing:border-box;
+  border-radius:26px;
+  background:#fff;
+  border:1px solid rgba(63,91,69,.10);
+  box-shadow:0 10px 28px rgba(63,91,69,.08);
+}
+.app.more-active #familyMenuMain {
+  display:block !important;
+  background:transparent;
+}
+.app.more-active .familyMenuItem {
+  min-height:54px;
+  padding:7px 4px;
+  border-radius:16px;
+  font-size:16px;
+  gap:12px;
+  box-sizing:border-box;
+  transition:background .18s ease, transform .12s ease;
+}
+.app.more-active .familyMenuItem:hover { background:#F4F8F4; }
+.app.more-active .familyMenuItem:active { transform:scale(.985); }
+.app.more-active .familyMenuPrimary > i:first-child {
+  width:42px;
+  height:42px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex:0 0 42px;
+  background:#E8F3EA;
+  color:#3F5B45;
+}
+.app.more-active .familyMenuPrimary > span { flex:1; }
+.app.more-active .familyMenuArrow { margin-left:auto; }
+
+/* Clear visual separation before destructive actions */
+.app.more-active .moreMenuActions {
+  margin:14px 0 0;
+  padding-top:14px;
+  border-top:1px solid rgba(63,91,69,.09);
+  gap:9px;
+}
+.app.more-active .moreMenuActions::before {
+  content:'Acties';
+  display:block;
+  padding:0 4px 3px;
+  color:#7B887F;
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.02em;
+}
+.app.more-active .moreAction {
+  min-height:52px;
+  border-radius:16px;
+  padding:11px 14px;
+  font-size:15px;
+  justify-content:flex-start;
+}
+.app.more-active .moreAction i { width:24px; text-align:center; font-size:17px; }
+.app.more-active .moreActionClear { background:#F4F7F4; color:#303530; }
+.app.more-active .moreActionDelete { background:#FBEAEA; color:#C43A34; }
+
+body.dark-theme .app.more-active #familyMenu {
+  background:#202620;
+  border-color:rgba(255,255,255,.08);
+  box-shadow:0 10px 28px rgba(0,0,0,.20);
+}
+body.dark-theme .app.more-active .familyMenuItem:hover { background:rgba(255,255,255,.06); }
+body.dark-theme .app.more-active .familyMenuPrimary > i:first-child { background:#304B39; color:#DCE9DF; }
+body.dark-theme .app.more-active .moreMenuActions { border-top-color:rgba(255,255,255,.10); }
+body.dark-theme .app.more-active .moreMenuActions::before { color:#AAB4AD; }
+body.dark-theme .app.more-active .moreActionClear { background:#2C332E; color:#E6ECE8; }
+body.dark-theme .app.more-active .moreActionDelete { background:#442B2B; color:#F1B4B0; }
+
+@media(max-width:600px){
+  .app.more-active .moreView { padding-top:14px; }
+  .app.more-active #familyMenu { padding:14px; border-radius:24px; }
+}
+</style>
