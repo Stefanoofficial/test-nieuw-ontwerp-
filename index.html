@@ -2226,51 +2226,47 @@ body.dark-theme .sharedListInviteBox{background:rgba(255,255,255,.06);border-col
 }
 </style>
 
-<style id="moon-visibility-exact">
-/* Default: no moon anywhere. */
-body .moon-toggle,
-body .moon-button,
-body .theme-toggle,
-body .theme-button,
-body .dark-mode-toggle,
-body .night-mode-toggle,
-body [id*="moon" i],
-body [id*="theme" i],
-body [id*="dark" i],
-body [id*="nacht" i] {
+<style id="moon-only-more-final">
+/* Nachtknop: alleen zichtbaar op Meer */
+.moon-toggle,
+#moonToggle,
+#themeToggle,
+.theme-toggle,
+.dark-mode-toggle,
+.night-mode-toggle,
+#darkModeToggle {
   display:none !important;
-  visibility:hidden !important;
 }
 
-/* More only: reveal the real moon control if it has one of the above hooks. */
-body.more-tab-active .moon-toggle,
-body.more-tab-active .moon-button,
-body.more-tab-active .theme-toggle,
-body.more-tab-active .theme-button,
-body.more-tab-active .dark-mode-toggle,
-body.more-tab-active .night-mode-toggle,
-body.more-tab-active [id*="moon" i],
-body.more-tab-active [id*="theme" i],
-body.more-tab-active [id*="dark" i],
-body.more-tab-active [id*="nacht" i] {
+/* Als de bestaande knop in een header/container zit, blijft de rechterkant
+   van Lijst en Overzicht volledig leeg. */
+.app[data-current-tab="more"] .moon-toggle,
+.app[data-current-tab="more"] #moonToggle,
+.app[data-current-tab="more"] #themeToggle,
+.app[data-current-tab="more"] .theme-toggle,
+.app[data-current-tab="more"] .dark-mode-toggle,
+.app[data-current-tab="more"] .night-mode-toggle,
+.app[data-current-tab="more"] #darkModeToggle,
+body[data-current-tab="more"] .moon-toggle,
+body[data-current-tab="more"] #moonToggle,
+body[data-current-tab="more"] #themeToggle,
+body[data-current-tab="more"] .theme-toggle,
+body[data-current-tab="more"] .dark-mode-toggle,
+body[data-current-tab="more"] .night-mode-toggle,
+body[data-current-tab="more"] #darkModeToggle {
   display:flex !important;
-  visibility:visible !important;
 }
 
-/* Lijst + Overzicht: header right side is completely empty. */
-body:not(.more-tab-active) .headerBar > *:not(h1) {
-  display:none !important;
+/* Geen reserveplek rechts in de groene titelbalk */
+.headerBar {
+  justify-content:flex-start !important;
 }
-body:not(.more-tab-active) .headerBar::after {
-  content:none !important;
-  display:none !important;
+.headerBar h1 {
+  margin-right:0 !important;
 }
-
-/* Prevent an empty moon wrapper from reserving space on Lijst/Overzicht. */
-body:not(.more-tab-active) .headerBar .moon-wrap,
-body:not(.more-tab-active) .headerBar .theme-wrap,
-body:not(.more-tab-active) .headerBar .header-actions,
-body:not(.more-tab-active) .headerBar .right-actions {
+.headerBar .header-actions,
+.headerBar .actions,
+.headerBar .right-actions {
   display:none !important;
 }
 </style>
@@ -5901,33 +5897,30 @@ body.dark-theme .overviewAllListsBtn{background:#304b39;color:#dce9df}
 body.dark-theme .overviewSavedListLine{color:#c2ccc5;border-bottom-color:rgba(255,255,255,.08)}
 </style>
 
-<script id="moon-tab-exact">
+<script id="moon-tab-state-final">
 (function(){
-  function sync(){
-    var active=document.querySelector('.appTabButton.active,[data-tab="more"].active');
-    var isMore=!!(active && active.getAttribute('data-tab')==='more');
-    document.body.classList.toggle('more-tab-active',isMore);
+  function syncMoonTab(){
+    var app=document.querySelector('.app');
+    var body=document.body;
+    var more=document.querySelector('[data-tab="more"].active');
+    var isMore=!!more;
+    if(app) app.setAttribute('data-current-tab', isMore?'more':'');
+    if(body) body.setAttribute('data-current-tab', isMore?'more':'');
   }
-  document.addEventListener('DOMContentLoaded',function(){
-    sync();
-    setTimeout(sync,100);
-    setTimeout(sync,500);
-  });
-  document.addEventListener('click',function(e){
-    if(e.target.closest && e.target.closest('.appTabButton')){
-      setTimeout(sync,0);
-      setTimeout(sync,50);
-    }
-  });
-  var old=window.switchAppTab;
-  if(typeof old==='function'){
+  var oldSwitch=window.switchAppTab;
+  if(typeof oldSwitch==='function'){
     window.switchAppTab=function(tab){
-      var r=old.apply(this,arguments);
-      setTimeout(sync,0);
-      setTimeout(sync,50);
-      return r;
+      var result=oldSwitch.apply(this,arguments);
+      setTimeout(syncMoonTab,0);
+      return result;
     };
   }
+  document.addEventListener('click',function(e){
+    if(e.target.closest && e.target.closest('.appTabButton')) setTimeout(syncMoonTab,30);
+  });
+  document.addEventListener('DOMContentLoaded',function(){
+    setTimeout(syncMoonTab,100);
+  });
 })();
 </script>
 
