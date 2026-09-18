@@ -6139,7 +6139,7 @@ function openShoppingHistoryFromOverview(){
   var history=readOverviewHistory();
   if(!history.length){ familyAlert('Boodschappenhistorie','Je hebt nog geen eerdere boodschappen opgeslagen. Je eerste historie verschijnt zodra je een boodschappenlijst wist na het winkelen.','fa-clock-rotate-left'); return; }
   var html=history.slice(0,10).map(function(trip){
-    var date=new Date(trip.savedAt).toLocaleString('nl-NL',{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'});
+    var date=new Date(trip.savedAt).toLocaleString(localStorage.getItem('appLanguage')==='en'?'en-US':'nl-NL',{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'});
     var names=(trip.items||[]).map(function(x){return x.text;}).join(', ');
     return '<div class="historyTrip"><strong>'+date+'</strong><div>'+names+'</div></div>';
   }).join('');
@@ -6189,7 +6189,7 @@ function updateOverviewDashboard(){
         row.className="overview-activity-row";
         row.innerHTML='<i class="fa-solid fa-check"></i><span><b></b><small></small></span>';
         row.querySelector("b").textContent=entry.name;
-        row.querySelector("small").textContent=entry.time.toLocaleString("nl-NL",{day:"numeric",month:"long",hour:"2-digit",minute:"2-digit"});
+        row.querySelector("small").textContent=entry.time.toLocaleString(localStorage.getItem('appLanguage')==='en'?'en-US':'nl-NL',{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'});
         activity.appendChild(row);
       });
     }
@@ -6519,20 +6519,34 @@ body.dark-theme .listOptionItem:hover,body.dark-theme .listOptionBack:hover{back
 <script id="list-options-and-language-logic">
 (function(){
   function panel(id){return document.getElementById(id);}
-  window.toggleListOptions=function(e){if(e)e.stopPropagation();var p=panel('listOptionsPanel'),b=panel('listOptionsButton');if(!p)return;var open=!p.classList.contains('open');p.classList.toggle('open',open);p.setAttribute('aria-hidden',open?'false':'true');if(b)b.setAttribute('aria-expanded',open?'true':'false');};
-  window.closeListOptions=function(){var p=panel('listOptionsPanel');if(p){p.classList.remove('open');p.setAttribute('aria-hidden','true')}var b=panel('listOptionsButton');if(b)b.setAttribute('aria-expanded','false');};
+  window.toggleListOptions=function(e){
+    if(e)e.stopPropagation();
+    var p=panel('listOptionsPanel'),b=panel('listOptionsButton');
+    if(!p)return;
+    var open=!p.classList.contains('open');
+    p.classList.toggle('open',open); p.setAttribute('aria-hidden',open?'false':'true');
+    if(b)b.setAttribute('aria-expanded',open?'true':'false');
+  };
+  window.closeListOptions=function(){
+    var p=panel('listOptionsPanel'); if(p){p.classList.remove('open');p.setAttribute('aria-hidden','true');}
+    var b=panel('listOptionsButton'); if(b)b.setAttribute('aria-expanded','false');
+  };
   window.clearListFromOptions=async function(){closeListOptions();await clearList();};
-  window.openSortOptions=function(){var p=panel('sortOptionsPanel');if(p){p.classList.add('open');p.setAttribute('aria-hidden','false')}};
-  window.closeSortOptions=function(){var p=panel('sortOptionsPanel');if(p){p.classList.remove('open');p.setAttribute('aria-hidden','true')}};
+  window.openSortOptions=function(){
+    var p=panel('sortOptionsPanel'); if(p){p.classList.add('open');p.setAttribute('aria-hidden','false');}
+  };
+  window.closeSortOptions=function(){
+    var p=panel('sortOptionsPanel'); if(p){p.classList.remove('open');p.setAttribute('aria-hidden','true');}
+  };
   window.sortCurrentList=function(mode){
     try{
       if(!Array.isArray(boodschappen)||boodschappen.length<2){closeSortOptions();closeListOptions();return;}
-      if(mode==='alpha') boodschappen.sort(function(a,b){return String(a.name||'').localeCompare(String(b.name||''),'nl',{sensitivity:'base'});});
+      if(mode==='alpha') boodschappen.sort(function(a,b){return String(a.name||a.text||'').localeCompare(String(b.name||b.text||''),'en',{sensitivity:'base'});});
       else if(mode==='newest') boodschappen.sort(function(a,b){return Number(b.createdAt||b.addedAt||0)-Number(a.createdAt||a.addedAt||0);});
-      else if(mode==='category') boodschappen.sort(function(a,b){return String(a.category||'Overig').localeCompare(String(b.category||'Overig'),'nl',{sensitivity:'base'})||String(a.name||'').localeCompare(String(b.name||''),'nl',{sensitivity:'base'});});
+      else if(mode==='category') boodschappen.sort(function(a,b){return String(a.category||'Other').localeCompare(String(b.category||'Other'),'en',{sensitivity:'base'})||String(a.name||a.text||'').localeCompare(String(b.name||b.text||''),'en',{sensitivity:'base'});});
       if(typeof showList==='function') showList();
-      if(typeof saveList==='function'){try{saveList();}catch(_){}}
-    }catch(err){console.error('Sorteren mislukt',err)}
+      if(typeof saveList==='function'){try{saveList();}catch(_){} }
+    }catch(err){console.error('Sorting failed',err);}
     closeSortOptions();closeListOptions();
   };
   document.addEventListener('click',function(e){
@@ -6542,29 +6556,211 @@ body.dark-theme .listOptionItem:hover,body.dark-theme .listOptionBack:hover{back
     if(b&&b.contains(e.target))return;
   });
 
+  /* One translation dictionary for the complete UI.  Only exact UI phrases are
+     translated, so user-entered product names are left untouched. */
   var translations={
-    nl:{'Boodschappenlijst':'Boodschappenlijst','Voeg iets toe aan je lijst':'Voeg iets toe aan je lijst','Toevoegen':'Toevoegen','Zoek in je lijst...':'Zoek in je lijst...','Lijst opslaan':'Lijst opslaan','Lijst wissen':'Lijst wissen','Lijst sorteren':'Lijst sorteren','Alfabetisch':'Alfabetisch','Per categorie':'Per categorie','Nieuwste eerst':'Nieuwste eerst','Overzicht':'Overzicht','Meer':'Meer','Snel opnieuw toevoegen':'Snel opnieuw toevoegen','Boodschappenhistorie':'Boodschappenhistorie','Mijn lijsten':'Mijn lijsten','Jouw boodschappen':'Jouw boodschappen','Deze week':'Deze week','Taal':'Taal','Nederlands':'Nederlands','English':'English'},
-    en:{'Boodschappenlijst':'Grocery List','Voeg iets toe aan je lijst':'Add something to your list','Toevoegen':'Add','Zoek in je lijst...':'Search your list...','Lijst opslaan':'Save list','Lijst wissen':'Clear list','Lijst sorteren':'Sort list','Alfabetisch':'Alphabetical','Per categorie':'By category','Nieuwste eerst':'Newest first','Overzicht':'Overview','Meer':'More','Snel opnieuw toevoegen':'Quick re-add','Boodschappenhistorie':'Shopping history','Mijn lijsten':'My lists','Jouw boodschappen':'Your groceries','Deze week':'This week','Taal':'Language','Nederlands':'Dutch','English':'English'}
+    nl:{
+      'Boodschappen lijst':'Boodschappen lijst','Welkom bij':'Welkom bij','Boodschappenlijst':'Boodschappenlijst','Jouw lijst, altijd bij de hand':'Jouw lijst, altijd bij de hand','Wachtwoord vergeten?':'Wachtwoord vergeten?','Inloggen':'Inloggen','Of':'Of','Account aanmaken':'Account aanmaken','Maak een account aan om je boodschappenlijsten op te slaan en te synchroniseren.':'Maak een account aan om je boodschappenlijsten op te slaan en te synchroniseren.','Terug naar inloggen':'Terug naar inloggen','Hoe wil je Boodschappenlijst gebruiken?':'Hoe wil je Boodschappenlijst gebruiken?','Nieuwe familie':'Nieuwe familie','Familiecode invoeren':'Familiecode invoeren','Alleen gebruiken':'Alleen gebruiken','Licht thema':'Licht thema','Donker thema':'Donker thema','Mijn familie':'Mijn familie','Deellijst':'Deellijst','Opgeslagen':'Opgeslagen','Mijn account':'Mijn account','Instellingen':'Instellingen','Over de app':'Over de app','Taal':'Taal','Nederlands':'Nederlands','English':'English','Familie':'Familie','Familielid':'Familielid','Familiecode':'Familiecode','Code invoeren':'Code invoeren','Familie verlaten':'Familie verlaten','Familielijst':'Familielijst','Nieuwe lijst':'Nieuwe lijst','Mijn deellijsten':'Mijn deellijsten','Leden':'Leden','Deelcode':'Deelcode','Suggesties':'Suggesties','Lijstopties':'Lijstopties','Meer instellingen kunnen hier later worden toegevoegd.':'Meer instellingen kunnen hier later worden toegevoegd.','Lijst opslaan':'Lijst opslaan','Mijn naam':'Mijn naam','Wachtwoord':'Wachtwoord','Uitloggen':'Uitloggen','App-informatie':'App-informatie','Help & uitleg':'Help & uitleg','Meer':'Meer','Voeg iets toe aan je lijst':'Voeg iets toe aan je lijst','Toevoegen':'Toevoegen','Loslaten om te vernieuwen':'Loslaten om te vernieuwen','Lijst automatisch opgeslagen':'Lijst automatisch opgeslagen','Laatste update: vandaag':'Laatste update: vandaag','Goedendag':'Goedendag','Snel opnieuw toevoegen':'Snel opnieuw toevoegen','Je vaak gebruikte producten verschijnen hier.':'Je vaak gebruikte producten verschijnen hier.','Boodschappenhistorie':'Boodschappenhistorie','Eerdere boodschappen':'Eerdere boodschappen','Bekijk je vorige boodschappen.':'Bekijk je vorige boodschappen.','Mijn lijsten':'Mijn lijsten','Opgeslagen boodschappenlijsten':'Opgeslagen boodschappenlijsten','Bekijk en gebruik je opgeslagen lijsten.':'Bekijk en gebruik je opgeslagen lijsten.','Jouw boodschappen':'Jouw boodschappen','Deze lijst':'Deze lijst','Voltooid':'Voltooid','Historie':'Historie','Deze week':'Deze week','Lijsten':'Lijsten','Producten':'Producten','Lijst wissen':'Lijst wissen','Lijst sorteren':'Lijst sorteren','Alfabetisch':'Alfabetisch','Per categorie':'Per categorie','Nieuwste eerst':'Nieuwste eerst','Lijst':'Lijst','Overzicht':'Overzicht','Hoofdnavigatie':'Hoofdnavigatie','Nachtmodus aan/uit':'Nachtmodus aan/uit','Lijstopties':'Lijstopties','Product verwijderen':'Product verwijderen','Naamloze lijst':'Naamloze lijst','Automatische suggesties':'Automatische suggesties','Voltooide producten onderaan':'Voltooide producten onderaan','Privé opgeslagen op dit apparaat.':'Privé opgeslagen op dit apparaat.','Acties':'Acties','Help':'Help','Opslaan':'Opslaan','Annuleren':'Annuleren','Aanmaken':'Aanmaken','Kopiëren':'Kopiëren','Verwijderen':'Verwijderen','Klaar':'Klaar','Product':'Product','producten':'producten','boodschappen':'boodschappen','beschikbaar.':'beschikbaar.','E-mail/wachtwoord aanmelden staat niet aan in Firebase.':'E-mail/wachtwoord aanmelden staat niet aan in Firebase.'
+    },
+    en:{
+      'Boodschappen lijst':'Grocery List','Welkom bij':'Welcome to','Boodschappenlijst':'Grocery List','Jouw lijst, altijd bij de hand':'Your list, always at hand','Wachtwoord vergeten?':'Forgot password?','Inloggen':'Log in','Of':'Or','Account aanmaken':'Create account','Maak een account aan om je boodschappenlijsten op te slaan en te synchroniseren.':'Create an account to save and sync your grocery lists.','Terug naar inloggen':'Back to login','Hoe wil je Boodschappenlijst gebruiken?':'How do you want to use Grocery List?','Nieuwe familie':'New household','Familiecode invoeren':'Enter household code','Alleen gebruiken':'Use by yourself','Licht thema':'Light theme','Donker thema':'Dark theme','Mijn familie':'My household','Deellijst':'Shared list','Opgeslagen':'Saved','Mijn account':'My account','Instellingen':'Settings','Over de app':'About the app','Taal':'Language','Nederlands':'Dutch','English':'English','Familie':'Household','Familielid':'Member','Familiecode':'Household code','Code invoeren':'Enter code','Familie verlaten':'Leave household','Familielijst':'Household list','Nieuwe lijst':'New list','Mijn deellijsten':'My shared lists','Leden':'Members','Deelcode':'Share code','Suggesties':'Suggestions','Lijstopties':'List options','Meer instellingen kunnen hier later worden toegevoegd.':'More settings can be added here later.','Lijst opslaan':'Save list','Mijn naam':'My name','Wachtwoord':'Password','Uitloggen':'Log out','App-informatie':'App information','Help & uitleg':'Help & info','Meer':'More','Voeg iets toe aan je lijst':'Add something to your list','Toevoegen':'Add','Loslaten om te vernieuwen':'Release to refresh','Lijst automatisch opgeslagen':'List saved automatically','Laatste update: vandaag':'Last updated: today','Goedendag':'Hello','Snel opnieuw toevoegen':'Quick re-add','Je vaak gebruikte producten verschijnen hier.':'Your frequently used products will appear here.','Boodschappenhistorie':'Shopping history','Eerdere boodschappen':'Previous shopping','Bekijk je vorige boodschappen.':'View your previous shopping.','Mijn lijsten':'My lists','Opgeslagen boodschappenlijsten':'Saved grocery lists','Bekijk en gebruik je opgeslagen lijsten.':'View and use your saved lists.','Jouw boodschappen':'Your groceries','Deze lijst':'This list','Voltooid':'Completed','Historie':'History','Deze week':'This week','Lijsten':'Lists','Producten':'Products','Lijst wissen':'Clear list','Lijst sorteren':'Sort list','Alfabetisch':'Alphabetical','Per categorie':'By category','Nieuwste eerst':'Newest first','Lijst':'List','Overzicht':'Overview','Hoofdnavigatie':'Main navigation','Nachtmodus aan/uit':'Toggle dark mode','Lijstopties':'List options','Product verwijderen':'Remove product','Naamloze lijst':'Unnamed list','Automatische suggesties':'Automatic suggestions','Voltooide producten onderaan':'Completed products at bottom','Privé opgeslagen op dit apparaat.':'Saved privately on this device.','Acties':'Actions','Help':'Help','Opslaan':'Save','Annuleren':'Cancel','Aanmaken':'Create','Kopiëren':'Copy','Verwijderen':'Delete','Klaar':'Done','Product':'Product','producten':'products','boodschappen':'groceries','beschikbaar.':'available.','E-mail/wachtwoord aanmelden staat niet aan in Firebase.':'Email/password sign-in is not enabled in Firebase.'
+    }
   };
-  function translateText(lang){
-    var map=translations[lang]||translations.nl;
-    document.querySelectorAll('[data-i18n]').forEach(function(el){var k=el.getAttribute('data-i18n');if(map[k])el.textContent=map[k];});
-    document.querySelectorAll('[data-i18n-placeholder]').forEach(function(el){var k=el.getAttribute('data-i18n-placeholder');if(map[k])el.placeholder=map[k];});
-    var all=document.querySelectorAll('button,span,h1,h2,h3,div');
-    all.forEach(function(el){if(el.children.length===0){var t=(el.textContent||'').trim();if(map[t])el.textContent=map[t];}});
-    var label=panel('currentLanguageLabel');if(label)label.textContent=lang==='en'?'English':'Nederlands';
-    var nl=panel('langNlCheck'),en=panel('langEnCheck');if(nl)nl.classList.toggle('active',lang==='nl');if(en)en.classList.toggle('active',lang==='en');
-    var product=panel('product');if(product)product.placeholder=lang==='en'?'e.g. milk, bread, eggs...':'Bijv. melk, brood, eieren...';
-    var search=panel('searchInput');if(search)search.placeholder=lang==='en'?'Search your list...':'Zoek in je lijst...';
+
+  function mapFor(lang){return translations[lang]||translations.nl;}
+  function translateStringExact(text,lang){
+    var map=mapFor(lang),t=String(text||'').trim();
+    return Object.prototype.hasOwnProperty.call(map,t)?map[t]:text;
   }
-  window.openLanguageSubmenu=function(e){if(e)e.stopPropagation();if(typeof switchMenuPage==='function')switchMenuPage('languageMenuSub',e);else{var p=panel('languageMenuSub');if(p)p.style.display='block';}translateText(localStorage.getItem('appLanguage')||'nl');};
+  function translateTextNodes(lang){
+    var map=mapFor(lang);
+    var walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
+    var nodes=[];
+    while(walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach(function(node){
+      if(!node.parentElement || node.parentElement.closest('script,style,noscript')) return;
+      var raw=node.nodeValue, trimmed=raw.trim();
+      if(!trimmed) return;
+      if(Object.prototype.hasOwnProperty.call(map,trimmed)) node.nodeValue=raw.replace(trimmed,map[trimmed]);
+    });
+    document.querySelectorAll('[aria-label],[title],[placeholder]').forEach(function(el){
+      ['aria-label','title','placeholder'].forEach(function(attr){
+        if(!el.hasAttribute(attr))return;
+        var v=el.getAttribute(attr), nv=translateStringExact(v,lang);
+        if(nv!==v)el.setAttribute(attr,nv);
+      });
+    });
+  }
+  function translateDynamicContent(lang){
+    var en=lang==='en';
+    var product=panel('product'); if(product)product.placeholder=en?'e.g. milk, bread, eggs...':'Bijv. melk, brood, eieren...';
+    var search=panel('searchInput'); if(search)search.placeholder=en?'Search your list...':'Zoek in je lijst...';
+    var g=panel('overviewGreetingNew');
+    if(g){var h=new Date().getHours();var text=h>=5&&h<12?(en?'Good morning':'Goedemorgen'):(h>=12&&h<18?(en?'Good afternoon':'Goedemiddag'):(en?'Good evening':'Goedenavond'));g.textContent=text+' 👋';}
+    var hs=panel('overviewHistorySummary');
+    if(hs){var history=typeof readOverviewHistory==='function'?readOverviewHistory():[];hs.textContent=history.length?(en?(history.length+' previous grocery list'+(history.length===1?'':'s')+' available.'):(history.length+' eerdere boodschappenlijst'+(history.length===1?'':'en')+' beschikbaar.')):(en?'View your previous shopping.':'Bekijk je vorige boodschappen.');}
+    document.documentElement.lang=en?'en-US':'nl-NL';
+    var label=panel('currentLanguageLabel');if(label)label.textContent=en?'English':'Nederlands';
+    var nl=panel('langNlCheck'),ec=panel('langEnCheck');if(nl)nl.classList.toggle('active',!en);if(ec)ec.classList.toggle('active',en);
+  }
+  var messagePairs=[
+    ['Vul eerst je e-mailadres in.','Please enter your email address first.'],
+    ['Er is een e-mail gestuurd om je wachtwoord opnieuw in te stellen.','A password reset email has been sent.'],
+    ['Wachtwoord resetten mislukt:','Password reset failed:'],
+    ['Vul alle velden in.','Please fill in all fields.'],
+    ['De wachtwoorden komen niet overeen.','The passwords do not match.'],
+    ['Het wachtwoord moet minimaal 6 tekens bevatten.','The password must be at least 6 characters long.'],
+    ['Account aangemaakt. Je kunt nu inloggen.','Account created. You can now log in.'],
+    ['Inloggen is niet gelukt.','Login failed.'],
+    ['Het wachtwoord is onjuist.','The password is incorrect.'],
+    ['Het e-mailadres is niet geldig.','The email address is not valid.'],
+    ['Vul een geldig e-mailadres in.','Please enter a valid email address.'],
+    ['Je hebt nog geen opgeslagen lijsten.','You have no saved lists yet.'],
+    ['Je opgeslagen lijsten verschijnen hier.','Your saved lists will appear here.'],
+    ['Nog geen deellijsten. Maak hierboven je eerste lijst.','No shared lists yet. Create your first list above.'],
+    ['De deellijsten konden niet worden geladen.','The shared lists could not be loaded.'],
+    ['Je bent niet ingelogd.','You are not logged in.'],
+    ['Inloggen vereist','Login required'],
+    ['Uitloggen is niet gelukt.','Log out failed.'],
+    ['Weet je het zeker?','Are you sure?'],
+    ['Annuleren','Cancel'],
+    ['Opslaan','Save'],
+    ['Aanmaken','Create'],
+    ['Verwijderen','Delete'],
+    ['De code is gekopieerd.','The code has been copied.'],
+    ['De link is gekopieerd.','The link has been copied.'],
+    ['De familiecode is gekopieerd.','The household code has been copied.'],
+    ['De deelcode is gekopieerd.','The share code has been copied.'],
+    ['Je naam is opgeslagen.','Your name has been saved.'],
+    ['Nieuwe familie aangemaakt','New household created'],
+    ['Je hebt de familie verlaten.','You left the household.'],
+    ['Familie verlaten mislukt:','Leaving the household failed:'],
+    ['Familie kon niet worden aangemaakt.','The household could not be created.'],
+    ['De nieuwe familie kon niet worden aangemaakt.','The new household could not be created.'],
+    ['Je moet je huidige familie eerst verlaten voordat je een nieuwe familie kunt beginnen.','You must leave your current household before starting a new one.'],
+    ['Kies eerst Nieuwe familie of Familiecode invoeren.','Choose New household or Enter household code first.'],
+    ['Deze code bestaat niet.','This code does not exist.'],
+    ['Ongeldige code','Invalid code'],
+    ['Je bent toegevoegd aan de familie!','You have been added to the household!'],
+    ['Je bent niet aangesloten bij een familie.','You are not connected to a household.'],
+    ['Deze lijst bestaat niet meer.','This list no longer exists.'],
+    ['Je hebt geen toegang tot deze lijst.','You do not have access to this list.'],
+    ['Lijst laden mislukt:','Failed to load list:'],
+    ['Boodschappen opslaan mislukt:','Failed to save groceries:'],
+    ['Sorteren mislukt','Sorting failed'],
+    ['Product verwijderen','Remove product'],
+    ['Kies een gebruikswijze om je lijst op te slaan.','Choose how you want to use the list to save it.'],
+    ['Je lijst is nog leeg. Voeg eerst één of meer producten toe.','Your list is still empty. Add one or more products first.'],
+    ['Geen verbinding met Firebase. Controleer je internetverbinding.','No connection to Firebase. Check your internet connection.'],
+    ['Te veel pogingen. Probeer het later opnieuw.','Too many attempts. Please try again later.'],
+    ['Privélijst laden mislukt:','Failed to load private list:'],
+    ['Gedeelde lijst opslaan mislukt:','Failed to save shared list:'],
+    ['Deellijst aanmaken mislukt:','Failed to create shared list:'],
+    ['Deellijst openen mislukt:','Failed to open shared list:'],
+    ['Deellijst verwijderen mislukt:','Failed to delete shared list:'],
+    ['Deellijst via code mislukt:','Failed to join shared list by code:'],
+    ['Deellijst-uitnodiging mislukt:','Shared list invitation failed:'],
+    ['Familie-ID ophalen mislukt:','Failed to get household ID:'],
+    ['Familie controleren mislukt:','Failed to check household:'],
+    ['Familieleden volgen mislukt:','Failed to follow household members:'],
+    ['Aantal familieleden ophalen mislukt:','Failed to get member count:'],
+    ['Familieleden konden niet worden geladen:','Household members could not be loaded:'],
+    ['Deellijstleden konden niet worden geladen:','Shared list members could not be loaded:'],
+    ['De familie kon niet worden verlaten.','The household could not be left.'],
+    ['Je familie bestaat niet meer. Je bent losgekoppeld.','Your household no longer exists. You have been disconnected.'],
+    ['Familie beëindigd','Household ended'],
+    ['De familie is beëindigd. Alle familieleden zijn losgekoppeld.','The household has ended. All members have been disconnected.'],
+    ['Account aanmaken mislukt.','Account creation failed.'],
+    ['Registratie fout:','Registration error:'],
+    ['Het wachtwoord is te zwak. Gebruik minimaal 6 tekens.','The password is too weak. Use at least 6 characters.'],
+    ['E-mail/wachtwoord aanmelden staat niet aan in Firebase.','Email/password sign-in is not enabled in Firebase.'],
+    ['Herstellen van de ingelogde sessie mislukt:','Failed to restore the signed-in session:'],
+    ['Loginpersistentie instellen mislukt:','Failed to set login persistence:'],
+    ['Na inloggen openen van de lijst mislukt:','Failed to open the list after login:'],
+    ['Je bent ingelogd, maar de lijst kon niet worden geopend.','You are logged in, but the list could not be opened.'],
+    ['Lijst automatisch opgeslagen','List saved automatically'],
+    ['Laatste update: vandaag','Last updated: today'],
+    ['De familielijst kon niet worden geladen. Probeer opnieuw.','The household list could not be loaded. Please try again.'],
+    ['⚠️ Geen toegang tot deze familielijst.','⚠️ No access to this household list.'],
+    ['⚠️ Opslaan van de lijst mislukt.','⚠️ Failed to save the list.']
+  ];
+  function translateMessage(value){
+    var lang=localStorage.getItem('appLanguage')||'nl'; if(lang!=='en')return value;
+    var out=String(value||'');
+    messagePairs.forEach(function(pair){out=out.split(pair[0]).join(pair[1]);});
+    out=out.replace(/Wil je uitloggen\?/g,'Do you want to log out?')
+      .replace(/Voer de 6-cijferige familiecode in\./g,'Enter the 6-digit household code.')
+      .replace(/Voer een geldige 6-cijferige familiecode in\./g,'Enter a valid 6-digit household code.')
+      .replace(/Voer de 6-cijferige code in\./g,'Enter the 6-digit code.')
+      .replace(/Wil je je huidige familie verlaten\?/g,'Do you want to leave your current household?')
+      .replace(/Je hebt al een familie\./g,'You already have a household.')
+      .replace(/We hebben een e-mail gestuurd naar/g,'We sent an email to')
+      .replace(/Kopiëren wordt niet ondersteund op dit apparaat\./g,'Copy is not supported on this device.')
+      .replace(/Probeer opnieuw\./g,'Please try again.')
+      .replace(/Probeer het later opnieuw\./g,'Please try again later.');
+    return out;
+  }
+  window.__translateMessage=translateMessage;
+  var nativeAlert=window.alert;
+  window.alert=function(msg){return nativeAlert.call(window,translateMessage(msg));};
+  var nativeConfirm=window.confirm;
+  window.confirm=function(msg){return nativeConfirm.call(window,translateMessage(msg));};
+
+  window.translateApp=function(lang){
+    lang=lang==='en'?'en':'nl';
+    localStorage.setItem('appLanguage',lang);
+    translateTextNodes(lang);translateDynamicContent(lang);
+    /* translate nodes created by existing app functions as well */
+    setTimeout(function(){translateTextNodes(lang);translateDynamicContent(lang);},0);
+  };
+  window.openLanguageSubmenu=function(e){if(e)e.stopPropagation();if(typeof switchMenuPage==='function')switchMenuPage('languageMenuSub',e);else{var p=panel('languageMenuSub');if(p)p.style.display='block';}translateApp(localStorage.getItem('appLanguage')||'nl');};
   window.closeLanguageSubmenu=function(e){if(typeof returnMenuToMain==='function')returnMenuToMain('languageMenuSub',e);};
-  window.setAppLanguage=function(lang){localStorage.setItem('appLanguage',lang);translateText(lang);if(typeof returnMenuToMain==='function')returnMenuToMain('languageMenuSub');};
-  document.addEventListener('DOMContentLoaded',function(){translateText(localStorage.getItem('appLanguage')||'nl');});
+  window.setAppLanguage=function(lang){translateApp(lang);if(typeof returnMenuToMain==='function')returnMenuToMain('languageMenuSub');};
+  function init(){
+    var lang=localStorage.getItem('appLanguage')||'nl';
+    translateApp(lang);
+    var observer=new MutationObserver(function(){
+      if(window.__translationBusy)return;
+      window.__translationBusy=true;
+      requestAnimationFrame(function(){window.__translationBusy=false;translateTextNodes(localStorage.getItem('appLanguage')||'nl');translateDynamicContent(localStorage.getItem('appLanguage')||'nl');});
+    });
+    observer.observe(document.body,{childList:true,subtree:true});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
 </script>
 
 <style id="list-options-login-fix">body:not(.logged-in) #listOptionsButton{display:none!important}</style>
+
+<style id="compact-list-options-final">
+/* Compact slide menu: only the actual options are shown. */
+.listOptionsPanel{
+  position:fixed !important; inset:0 !important; width:100vw !important; height:100dvh !important;
+  background:rgba(38,52,43,.20) !important; backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px);
+  z-index:12000 !important; pointer-events:none !important; opacity:0 !important; transition:opacity .22s ease !important;
+}
+.listOptionsPanel.open{pointer-events:auto !important; opacity:1 !important;}
+.listOptionsPanelInner{
+  position:absolute !important; top:calc(env(safe-area-inset-top) + 92px) !important; right:14px !important; left:auto !important;
+  width:min(310px, calc(100vw - 28px)) !important; max-height:none !important;
+  padding:10px !important; box-sizing:border-box !important; border-radius:20px !important;
+  background:#fff !important; box-shadow:0 16px 40px rgba(35,55,43,.18) !important;
+  transform:translateX(24px) !important; transition:transform .25s ease !important; overflow:hidden !important;
+}
+.listOptionsPanel.open .listOptionsPanelInner{transform:translateX(0) !important;}
+.sortOptionsPanel .listOptionsPanelInner{transform:translateX(24px) !important;}
+.sortOptionsPanel.open .listOptionsPanelInner{transform:translateX(0) !important;}
+.listOptionItem,.listOptionBack{min-height:52px !important; padding:10px 12px !important; border-radius:14px !important; font-size:16px !important; gap:12px !important;}
+.listOptionItem + .listOptionItem{margin-top:2px;}
+.listOptionItem i:first-child,.listOptionBack i:first-child{width:26px !important; font-size:18px !important;}
+.listOptionDanger{color:#b75a52 !important;}
+.listOptionDanger i:first-child{color:#b75a52 !important;}
+body.dark-theme .listOptionsPanelInner{background:#202923 !important;box-shadow:0 16px 40px rgba(0,0,0,.35) !important;}
+@media(max-width:600px){.listOptionsPanelInner{top:calc(env(safe-area-inset-top) + 86px) !important;width:min(300px,calc(100vw - 28px)) !important;right:14px !important;}}
+
+/* More contains the app menu only; no destructive action block. */
+.app.more-active .moreMenuActions{display:none !important;}
+</style>
 </html>
 <style id="polish-more-actions">
 /* === Final polish: destructive actions live only in Meer === */
