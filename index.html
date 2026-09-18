@@ -5643,7 +5643,21 @@ function initMoreView(){
   var more=document.getElementById('moreView');
   if(menu && more && menu.parentElement !== more) more.appendChild(menu);
 }
-document.addEventListener('DOMContentLoaded', initMoreView);
+
+/* Keep the main navigation outside the app's scrolling/overflow context.
+   This is especially important on iOS Safari: the nav must be attached to
+   the viewport, while only the active screen content is allowed to scroll. */
+function initFixedBottomNav(){
+  var nav=document.querySelector('.bottomNav');
+  if(nav && nav.parentElement !== document.body){
+    document.body.appendChild(nav);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  initMoreView();
+  initFixedBottomNav();
+});
 function updateOverviewView(){
   var arr=(typeof boodschappen!=='undefined' && Array.isArray(boodschappen))?boodschappen:[];
   var total=arr.length, done=arr.filter(function(x){return !!x.completed;}).length, open=Math.max(0,total-done), pct=total?Math.round(done/total*100):0;
@@ -5672,7 +5686,97 @@ function updateOverviewView(){
 }
 </style>
 
+<style id="more-final-layout">
+/* Meer is a real, scrollable screen. The bottom navigation stays fixed. */
+.app.more-active {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+.app.more-active .moreView {
+  min-height: calc(100vh - 110px);
+  box-sizing: border-box;
+  padding: 14px 0 125px !important;
+}
+.app.more-active #familyMenu {
+  margin-bottom: 8px;
+}
+.app.more-active #familyMenuMain {
+  padding-bottom: 4px;
+}
+.app.more-active .familyMenuItem {
+  min-height: 56px;
+}
+.app.more-active .moreMenuActions {
+  padding-bottom: 8px;
+}
+/* Submenu pages are allowed to grow naturally when opened. */
+.app.more-active .familyMenuPage {
+  max-height: none;
+}
+</style>
 </body>
+
+
+<style id="fixed-bottom-nav-final">
+/* FINAL: viewport-level navigation. It is deliberately outside .app after
+   initFixedBottomNav(), so scrolling any screen can never move this bar. */
+html, body {
+  width:100%;
+  min-height:100%;
+  overflow:hidden !important;
+}
+.bottomNav {
+  position:fixed !important;
+  left:0 !important;
+  right:0 !important;
+  bottom:0 !important;
+  top:auto !important;
+  width:100% !important;
+  height:76px !important;
+  margin:0 !important;
+  z-index:2147483000 !important;
+  transform:none !important;
+  -webkit-transform:none !important;
+  isolation:isolate;
+  padding-bottom:calc(7px + env(safe-area-inset-bottom)) !important;
+}
+
+/* More: only this viewport scrolls. The fixed nav is outside it. */
+.app.more-active #moreView {
+  position:absolute !important;
+  top:14px !important;
+  left:14px !important;
+  right:14px !important;
+  bottom:76px !important;
+  height:auto !important;
+  max-height:none !important;
+  min-height:0 !important;
+  overflow-y:auto !important;
+  overflow-x:hidden !important;
+  -webkit-overflow-scrolling:touch !important;
+  overscroll-behavior-y:contain !important;
+  touch-action:pan-y !important;
+  padding:14px 0 28px !important;
+}
+.app.more-active #moreView #familyMenu {
+  overflow:visible !important;
+  max-height:none !important;
+}
+
+@media (max-width:600px){
+  .app { padding-bottom:92px !important; }
+  .app.more-active #moreView {
+    top:14px !important;
+    left:14px !important;
+    right:14px !important;
+    bottom:76px !important;
+    padding-bottom:36px !important;
+  }
+}
+</style>
+
 </html>
 <style id="polish-more-actions">
 /* === Final polish: destructive actions live only in Meer === */
@@ -5774,5 +5878,118 @@ body.dark-theme .app.more-active .moreActionDelete { background:#442B2B; color:#
 @media(max-width:600px){
   .app.more-active .moreView { padding-top:14px; }
   .app.more-active #familyMenu { padding:14px; border-radius:24px; }
+}
+</style>
+
+
+<style id="meer-scroll-fixed-v2">
+/* =========================================================
+   DEFINITIVE MORE-SCREEN SCROLL MODEL
+   - body/app never scroll
+   - only #moreView scrolls
+   - bottom navigation is outside the scroll area and fixed
+   ========================================================= */
+
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0 !important;
+  overflow: hidden !important;
+}
+
+body.logged-in {
+  width: 100%;
+  height: 100dvh !important;
+  overflow: hidden !important;
+}
+
+.app {
+  position: relative !important;
+  width: 100% !important;
+  max-width: 600px !important;
+  height: 100dvh !important;
+  min-height: 0 !important;
+  margin: 0 auto !important;
+  padding: 20px !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+/* More is the ONLY scrolling container. */
+.app.more-active #moreView {
+  display: block !important;
+  position: absolute !important;
+  left: 20px !important;
+  right: 20px !important;
+  top: 20px !important;
+  bottom: calc(76px + env(safe-area-inset-bottom)) !important;
+  width: auto !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 14px 0 32px !important;
+  box-sizing: border-box !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior: contain !important;
+  touch-action: pan-y !important;
+}
+
+/* The existing family menu is the content of More, not a dropdown. */
+.app.more-active #familyMenu {
+  position: relative !important;
+  left: auto !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: auto !important;
+  width: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  transform: none !important;
+  overflow: visible !important;
+}
+
+/* Every More submenu can grow; the parent #moreView handles scrolling. */
+.app.more-active #familyMenu .familyMenuPage {
+  max-height: none !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+
+/* Prevent the old dropdown from becoming its own scroll/clip region. */
+.app.more-active #familyMenu.menu-open {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Navigation is a separate, fixed layer and never scrolls with More. */
+.bottomNav {
+  position: fixed !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  top: auto !important;
+  z-index: 99999 !important;
+  transform: translateZ(0) !important;
+  -webkit-transform: translateZ(0) !important;
+}
+
+/* Give the scrolling content enough room to finish above the nav. */
+.app.more-active #moreView .moreMenuActions {
+  margin-bottom: 8px !important;
+}
+
+@media (max-width: 600px) {
+  .app.more-active #moreView {
+    left: 14px !important;
+    right: 14px !important;
+    top: 14px !important;
+    bottom: calc(76px + env(safe-area-inset-bottom)) !important;
+    padding-bottom: 36px !important;
+  }
 }
 </style>
