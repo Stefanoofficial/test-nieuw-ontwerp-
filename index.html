@@ -2265,6 +2265,24 @@ body:has(.app.more-active) #themePicker {
 }
 </style>
 
+
+<style id="autosave-refresh-icon">
+.autosave-sync-icon {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:1.25em;
+  margin-right:.35em;
+}
+.autosave-sync-icon.fa-spin {
+  animation: autosave-fa-spin 1s linear infinite;
+}
+@keyframes autosave-fa-spin {
+  from { transform:rotate(0deg); }
+  to { transform:rotate(360deg); }
+}
+</style>
+
 </head>
 
 <body>
@@ -5926,6 +5944,37 @@ body.dark-theme .overviewSavedListLine{color:#c2ccc5;border-bottom-color:rgba(25
   }
 
   document.addEventListener('DOMContentLoaded',install);
+})();
+</script>
+
+
+<script id="autosave-refresh-behavior">
+(function(){
+  function findStatus(){
+    var els=document.querySelectorAll('*');
+    for(var i=0;i<els.length;i++){
+      var t=(els[i].textContent||'').trim().toLowerCase();
+      if(t.indexOf('lijst automatisch opgeslagen')!==-1 || t.indexOf('lijst automatisch opslaan')!==-1){
+        return els[i];
+      }
+    }
+    return null;
+  }
+  function showSync(){
+    var el=findStatus();
+    if(!el) return;
+    if(el.querySelector('.autosave-sync-icon')) return;
+    var icon=document.createElement('i');
+    icon.className='fa-solid fa-arrows-rotate autosave-sync-icon fa-spin';
+    icon.setAttribute('aria-hidden','true');
+    el.insertBefore(icon, el.firstChild);
+    setTimeout(function(){
+      if(icon && icon.parentNode) icon.remove();
+    }, 1200);
+  }
+  document.addEventListener('DOMContentLoaded',function(){
+    setTimeout(showSync,80);
+  });
 })();
 </script>
 
