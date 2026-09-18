@@ -2225,6 +2225,52 @@ body.dark-theme .sharedListInviteBox{background:rgba(255,255,255,.06);border-col
   }
 }
 </style>
+
+<style id="moon-only-more-final">
+/* Nachtknop: alleen zichtbaar op Meer */
+.moon-toggle,
+#moonToggle,
+#themeToggle,
+.theme-toggle,
+.dark-mode-toggle,
+.night-mode-toggle,
+#darkModeToggle {
+  display:none !important;
+}
+
+/* Als de bestaande knop in een header/container zit, blijft de rechterkant
+   van Lijst en Overzicht volledig leeg. */
+.app[data-current-tab="more"] .moon-toggle,
+.app[data-current-tab="more"] #moonToggle,
+.app[data-current-tab="more"] #themeToggle,
+.app[data-current-tab="more"] .theme-toggle,
+.app[data-current-tab="more"] .dark-mode-toggle,
+.app[data-current-tab="more"] .night-mode-toggle,
+.app[data-current-tab="more"] #darkModeToggle,
+body[data-current-tab="more"] .moon-toggle,
+body[data-current-tab="more"] #moonToggle,
+body[data-current-tab="more"] #themeToggle,
+body[data-current-tab="more"] .theme-toggle,
+body[data-current-tab="more"] .dark-mode-toggle,
+body[data-current-tab="more"] .night-mode-toggle,
+body[data-current-tab="more"] #darkModeToggle {
+  display:flex !important;
+}
+
+/* Geen reserveplek rechts in de groene titelbalk */
+.headerBar {
+  justify-content:flex-start !important;
+}
+.headerBar h1 {
+  margin-right:0 !important;
+}
+.headerBar .header-actions,
+.headerBar .actions,
+.headerBar .right-actions {
+  display:none !important;
+}
+</style>
+
 </head>
 
 <body>
@@ -5850,6 +5896,34 @@ function updateOverviewView(){
 body.dark-theme .overviewAllListsBtn{background:#304b39;color:#dce9df}
 body.dark-theme .overviewSavedListLine{color:#c2ccc5;border-bottom-color:rgba(255,255,255,.08)}
 </style>
+
+<script id="moon-tab-state-final">
+(function(){
+  function syncMoonTab(){
+    var app=document.querySelector('.app');
+    var body=document.body;
+    var more=document.querySelector('[data-tab="more"].active');
+    var isMore=!!more;
+    if(app) app.setAttribute('data-current-tab', isMore?'more':'');
+    if(body) body.setAttribute('data-current-tab', isMore?'more':'');
+  }
+  var oldSwitch=window.switchAppTab;
+  if(typeof oldSwitch==='function'){
+    window.switchAppTab=function(tab){
+      var result=oldSwitch.apply(this,arguments);
+      setTimeout(syncMoonTab,0);
+      return result;
+    };
+  }
+  document.addEventListener('click',function(e){
+    if(e.target.closest && e.target.closest('.appTabButton')) setTimeout(syncMoonTab,30);
+  });
+  document.addEventListener('DOMContentLoaded',function(){
+    setTimeout(syncMoonTab,100);
+  });
+})();
+</script>
+
 </body>
 </html>
 <style id="polish-more-actions">
