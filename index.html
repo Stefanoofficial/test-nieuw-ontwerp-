@@ -2343,6 +2343,34 @@ body.dark-theme .shopping-item-trash {
   background:#5a3333;
   color:#ffaaa3;
 }
+
+/* Prullenbak direct op iedere productregel. */
+.productRowTrash {
+  appearance:none;
+  -webkit-appearance:none;
+  border:0;
+  width:42px;
+  height:42px;
+  min-width:42px;
+  padding:0;
+  margin-left:8px;
+  border-radius:12px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  background:#FBEAEA;
+  color:#C43A34;
+  font-size:18px;
+  line-height:1;
+  cursor:pointer;
+  flex:0 0 auto;
+}
+.productRowTrash:hover { background:#f7dede; }
+.productRowTrash:active { transform:scale(.96); }
+body.dark-theme .productRowTrash {
+  background:#442b2b;
+  color:#F1B4B0;
+}
 </style>
 
 </head>
@@ -3835,6 +3863,19 @@ function showList(animationType = "") {
     if (!iconValue) icon.style.visibility = "hidden";
     productWrap.appendChild(icon);
 
+    const trashButton = document.createElement("button");
+    trashButton.type = "button";
+    trashButton.className = "productRowTrash";
+    trashButton.setAttribute("aria-label", "Product verwijderen");
+    trashButton.title = "Product verwijderen";
+    trashButton.innerHTML = '<i class="fa-solid fa-trash-can" aria-hidden="true"></i>';
+    trashButton.addEventListener("click", async (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      await deleteProductAtIndex(index);
+    });
+    productWrap.appendChild(trashButton);
+
     div.appendChild(productWrap);
 
     // In zowel de familielijst als een Deellijst is zichtbaar wie een product heeft voltooid.
@@ -3980,16 +4021,19 @@ async function addProduct() {
 }
 
 
-async function deleteProduct() {
+async function deleteProductAtIndex(index) {
+  if (!Number.isInteger(index) || index < 0 || index >= boodschappen.length) return;
 
-  if (selectedIndex < 0) return;
-
-  boodschappen.splice(selectedIndex, 1);
-
+  boodschappen.splice(index, 1);
   selectedIndex = -1;
 
   showList();
   await saveList();
+}
+
+async function deleteProduct() {
+  if (selectedIndex < 0) return;
+  await deleteProductAtIndex(selectedIndex);
 }
 
 async function clearList() {
@@ -6077,62 +6121,7 @@ body.dark-theme .overviewSavedListLine{color:#c2ccc5;border-bottom-color:rgba(25
 </script>
 
 
-<script id="article-trash-function">
-(function(){
-  function getProductRow(el){
-    return el.closest(
-      '[data-product-id], .product-row, .product-item, .shopping-item, ' +
-      '.boodschap-item, .list-item, .grocery-item'
-    );
-  }
 
-  function addTrashButtons(){
-    var rows=document.querySelectorAll(
-      '[data-product-id], .product-row, .product-item, .shopping-item, ' +
-      '.boodschap-item, .list-item, .grocery-item'
-    );
-    rows.forEach(function(row){
-      if(row.querySelector('.article-trash,.product-trash,.shopping-item-trash')) return;
-      var button=document.createElement('button');
-      button.type='button';
-      button.className='article-trash';
-      button.setAttribute('aria-label','Product verwijderen');
-      button.title='Product verwijderen';
-      button.innerHTML='<i class="fa-solid fa-trash-can" aria-hidden="true"></i>';
-      var id=row.getAttribute('data-product-id');
-      if(id) button.dataset.productId=id;
-      row.appendChild(button);
-    });
-  }
-
-  document.addEventListener('click',function(e){
-    var b=e.target.closest('.article-trash,.product-trash,.shopping-item-trash');
-    if(!b) return;
-    e.preventDefault();
-    e.stopPropagation();
-    var row=getProductRow(b);
-    if(!row) return;
-
-    var id=b.dataset.productId || row.getAttribute('data-product-id');
-    /* Laat bestaande app-code het verwijderen afhandelen als die functie bestaat. */
-    if(id && typeof window.deleteProduct==='function'){
-      window.deleteProduct(id);
-      return;
-    }
-    if(id && typeof window.removeProduct==='function'){
-      window.removeProduct(id);
-      return;
-    }
-    row.remove();
-  });
-
-  document.addEventListener('DOMContentLoaded',function(){
-    addTrashButtons();
-    var observer=new MutationObserver(function(){ addTrashButtons(); });
-    observer.observe(document.body,{childList:true,subtree:true});
-  });
-})();
-</script>
 
 </body>
 </html>
