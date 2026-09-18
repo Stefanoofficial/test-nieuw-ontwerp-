@@ -2715,6 +2715,25 @@ body.dark-theme .overview-new-card{background:#202923;border-color:#34443a}
         <div><strong>Opgeslagen boodschappenlijsten</strong><div class="overview-new-muted">Bekijk en gebruik je opgeslagen lijsten.</div></div>
       </div>
     </button>
+
+    <section class="overview-dashboard-card" aria-label="Jouw boodschappen">
+      <h3 class="overview-dashboard-heading"><i class="fa-solid fa-chart-simple"></i> Jouw boodschappen</h3>
+      <div class="overview-dashboard-stats">
+        <div class="overview-dashboard-stat"><strong id="overviewStatProducts">0</strong><span>Deze lijst</span></div>
+        <div class="overview-dashboard-stat"><strong id="overviewStatCompleted">0</strong><span>Voltooid</span></div>
+        <div class="overview-dashboard-stat"><strong id="overviewStatHistory">0</strong><span>Historie</span></div>
+      </div>
+    </section>
+
+    <section class="overview-dashboard-card overview-frequent-card" aria-label="Vaak toegevoegd">
+      <h3 class="overview-dashboard-heading"><i class="fa-solid fa-star"></i> Vaak toegevoegd</h3>
+      <div id="overviewFrequentProducts" class="overview-frequent-list"></div>
+    </section>
+
+    <section class="overview-dashboard-card overview-activity-card" aria-label="Laatste activiteit">
+      <h3 class="overview-dashboard-heading"><i class="fa-solid fa-clock-rotate-left"></i> Laatste activiteit</h3>
+      <div id="overviewActivity" class="overview-activity-list"></div>
+    </section>
   </div>
 </section>
 
@@ -6026,6 +6045,63 @@ function openShoppingHistoryFromOverview(){
   }).join('');
   familyAlert('Boodschappenhistorie',html,'fa-clock-rotate-left',true);
 }
+function updateOverviewDashboard(){
+  var total = Array.isArray(boodschappen) ? boodschappen.length : 0;
+  var completed = Array.isArray(boodschappen) ? boodschappen.filter(function(item){ return item && item.completed; }).length : 0;
+  var history = readOverviewHistory();
+  var lists = (typeof readSavedLists === "function") ? readSavedLists() : [];
+
+  var productsEl=document.getElementById("overviewStatProducts");
+  var completedEl=document.getElementById("overviewStatCompleted");
+  var historyEl=document.getElementById("overviewStatHistory");
+  if(productsEl) productsEl.textContent=String(total);
+  if(completedEl) completedEl.textContent=String(completed);
+  if(historyEl) historyEl.textContent=String(history.length);
+
+  var frequent=document.getElementById("overviewFrequentProducts");
+  if(frequent){
+    var products=getFrequentlyUsedProducts().slice(0,4);
+    frequent.innerHTML="";
+    if(!products.length){
+      frequent.innerHTML='<div class="overview-dashboard-muted">Je vaak gebruikte producten verschijnen hier zodra je boodschappen hebt toegevoegd.</div>';
+    }else{
+      products.forEach(function(product){
+        var row=document.createElement("button");
+        row.type="button";
+        row.className="overview-frequent-row";
+        row.innerHTML='<span><i class="fa-solid fa-cart-shopping"></i><b></b></span><span class="overview-frequent-add"><i class="fa-solid fa-plus"></i></span>';
+        row.querySelector("b").textContent=product.name;
+        row.addEventListener("click",function(){ addProductFromOverview(product.name); });
+        frequent.appendChild(row);
+      });
+    }
+  }
+
+  var activity=document.getElementById("overviewActivity");
+  if(activity){
+    activity.innerHTML="";
+    var entries=[];
+    if(Array.isArray(history)){
+      history.slice(0,3).forEach(function(trip){
+        var date=new Date(trip.savedAt);
+        entries.push({time:date,name:(trip.items||[]).length+" product"+((trip.items||[]).length===1?"":"en")+" opgeslagen"});
+      });
+    }
+    if(!entries.length){
+      activity.innerHTML='<div class="overview-dashboard-muted">Je laatste activiteiten verschijnen hier zodra je boodschappen gebruikt.</div>';
+    }else{
+      entries.forEach(function(entry){
+        var row=document.createElement("div");
+        row.className="overview-activity-row";
+        row.innerHTML='<i class="fa-solid fa-check"></i><span><b></b><small></small></span>';
+        row.querySelector("b").textContent=entry.name;
+        row.querySelector("small").textContent=entry.time.toLocaleString("nl-NL",{day:"numeric",month:"long",hour:"2-digit",minute:"2-digit"});
+        activity.appendChild(row);
+      });
+    }
+  }
+}
+
 function updateOverviewView(){
   var h=new Date().getHours();
   var greeting=h>=5&&h<12?"Goedemorgen":(h>=12&&h<18?"Goedemiddag":"Goedenavond");
@@ -6036,6 +6112,7 @@ function updateOverviewView(){
   var hs=document.getElementById("overviewHistorySummary");
   if(hs) hs.textContent=history.length ? history.length+" eerdere boodschappenlijst"+(history.length===1?"":"en")+" beschikbaar." : "Bekijk je vorige boodschappen.";
   if(typeof updateOverviewSavedLists==="function") updateOverviewSavedLists();
+  updateOverviewDashboard();
 }
 
 </script>
@@ -6287,6 +6364,36 @@ document.addEventListener("DOMContentLoaded",function(){
 });
 </script>
 </body>
+
+<style id="overview-dashboard-final">
+.overview-dashboard-card{background:#fff;border:1px solid #e1ece4;border-radius:16px;padding:15px;margin:0 0 11px;box-shadow:0 2px 8px rgba(40,70,50,.05)}
+.overview-dashboard-heading{display:flex;align-items:center;gap:9px;margin:0 0 12px;font-size:16px;font-weight:800;color:#30453a}
+.overview-dashboard-heading i{width:30px;height:30px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;background:#e7f3ec;color:#3d8060}
+.overview-dashboard-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.overview-dashboard-stat{background:#f3f8f4;border-radius:13px;padding:12px 6px;text-align:center}
+.overview-dashboard-stat strong{display:block;font-size:23px;line-height:1.05;color:#3f5b45}
+.overview-dashboard-stat span{display:block;margin-top:5px;font-size:11px;font-weight:750;color:#718078}
+.overview-frequent-list,.overview-activity-list{display:flex;flex-direction:column}
+.overview-frequent-row{width:100%;border:0;border-bottom:1px solid rgba(63,91,69,.09);background:transparent;padding:9px 1px;display:flex;align-items:center;justify-content:space-between;color:#405047;font:inherit;cursor:pointer;text-align:left}
+.overview-frequent-row:last-child{border-bottom:0}
+.overview-frequent-row>span:first-child{display:flex;align-items:center;gap:9px}
+.overview-frequent-row i{color:#52765d;width:20px;text-align:center}
+.overview-frequent-row b{font-size:14px}
+.overview-frequent-add{width:30px;height:30px;border-radius:9px;background:#e7f3ec;display:inline-flex;align-items:center;justify-content:center}
+.overview-frequent-add i{font-size:12px;color:#3f5b45}
+.overview-activity-row{display:flex;align-items:center;gap:10px;padding:9px 1px;border-bottom:1px solid rgba(63,91,69,.09)}
+.overview-activity-row:last-child{border-bottom:0}
+.overview-activity-row>i{width:28px;height:28px;border-radius:9px;background:#e7f3ec;color:#3d8060;display:inline-flex;align-items:center;justify-content:center;font-size:12px}
+.overview-activity-row span{display:flex;flex-direction:column;gap:2px}
+.overview-activity-row b{font-size:13px;color:#405047}
+.overview-activity-row small{font-size:11px;color:#718078}
+.overview-dashboard-muted{font-size:13px;line-height:1.4;color:#718078}
+body.dark-theme .overview-dashboard-card{background:#202923;border-color:#34443a}
+body.dark-theme .overview-dashboard-heading,body.dark-theme .overview-frequent-row b,body.dark-theme .overview-activity-row b{color:#e2ebe5}
+body.dark-theme .overview-dashboard-stat{background:#29352d}
+body.dark-theme .overview-dashboard-muted,body.dark-theme .overview-dashboard-stat span,body.dark-theme .overview-activity-row small{color:#aeb8b1}
+</style>
+
 </html>
 <style id="polish-more-actions">
 /* === Final polish: destructive actions live only in Meer === */
