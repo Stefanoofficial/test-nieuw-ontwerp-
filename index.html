@@ -2408,6 +2408,20 @@ body.dark-theme .overview-new-card{background:#202923;border-color:#34443a}
   color:#4e73ad;
 }
 </style>
+
+<style id="overview-header-and-week-final">
+/* Overzicht: titelbalk verbergen; begroeting blijft de bovenste tekst. */
+.app.overview-active .headerBar{display:none !important;}
+.app.overview-active .overviewView{margin-top:4px;}
+.app.overview-active .overview-new-greeting{margin-top:0;}
+/* Deze week terug naar de normale grotere kaartafmetingen. */
+.overview-week-card{padding:15px !important;margin-bottom:11px !important;}
+.overview-week-card .overview-dashboard-heading{margin-bottom:12px !important;}
+.overview-week-card .overview-dashboard-stats{gap:8px !important;}
+.overview-week-card .overview-dashboard-stat{padding:12px 6px !important;border-radius:13px !important;}
+.overview-week-card .overview-dashboard-stat strong{font-size:23px !important;}
+.overview-week-card .overview-dashboard-stat span{margin-top:5px !important;font-size:11px !important;}
+</style>
 </head>
 
 <body>
