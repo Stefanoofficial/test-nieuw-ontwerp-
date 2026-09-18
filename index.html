@@ -2205,6 +2205,26 @@ body.dark-theme .sharedListInviteBox{background:rgba(255,255,255,.06);border-col
   overflow-x: hidden !important;
 }
 </style>
+<style id="compact-active-nav-fix">
+/* Compactere geselecteerde tab: navigatie blijft vast, alleen het groene vak wordt kleiner. */
+.bottomNavBtn {
+  flex-basis: 92px !important;
+  width: 92px !important;
+  max-width: 92px !important;
+  height: 52px !important;
+  border-radius: 16px !important;
+}
+.bottomNavBtn i { font-size: 21px !important; }
+@media (max-width:430px){
+  .bottomNavBtn {
+    flex-basis: 90px !important;
+    width: 90px !important;
+    max-width: 90px !important;
+    height: 52px !important;
+    border-radius: 16px !important;
+  }
+}
+</style>
 </head>
 
 <body>
