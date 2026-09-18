@@ -1062,7 +1062,7 @@ body.dark-theme .familyMenuPage {
 .bottomNavBtn:active{transform:scale(.97)}
 .overviewView{display:none;margin-top:18px;padding-bottom:115px}
 .app.overview-active .overviewView{display:block}
-.app.overview-active h2,.app.overview-active .input-row-wrap,.app.overview-active .searchBox,.app.overview-active #refresh,.app.overview-active .list,.app.overview-active .saveListMainBtn,.app.overview-active .buttons,.app.overview-active .status{display:none!important}
+.app.overview-active > h2,.app.overview-active .input-row-wrap,.app.overview-active .searchBox,.app.overview-active #refresh,.app.overview-active .list,.app.overview-active .saveListMainBtn,.app.overview-active .buttons,.app.overview-active .status{display:none!important}
 .overviewCard{background:#fff;border:1px solid rgba(63,91,69,.10);border-radius:24px;padding:22px;box-shadow:0 8px 24px rgba(63,91,69,.07);margin-bottom:14px}
 .overviewTitle{font-size:22px;font-weight:800;color:#3F5B45;margin-bottom:18px}
 .overviewStats{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
@@ -2695,28 +2695,26 @@ body.dark-theme .overview-new-card{background:#202923;border-color:#34443a}
   <div class="overview-new">
     <h2 id="overviewGreetingNew" class="overview-new-greeting">Goedendag 👋</h2>
 
-    <div class="overview-new-card">
-      <div class="overview-new-title"><i class="fa-solid fa-bolt overview-new-bolt"></i><span>Snel opnieuw toevoegen</span></div>
-      <div id="overviewQuickNew">
+    <div class="overview-new-card overview-click-card" onclick="openQuickAddFromOverview()">
+      <div class="overview-new-title"><i class="fa-solid fa-bolt overview-new-bolt"></i><span>Snel opnieuw toevoegen</span><i class="fa-solid fa-chevron-right overview-new-arrow"></i></div>
+      <div id="overviewQuickNew" class="overview-quick-content">
         <div class="overview-new-muted">Je vaak gebruikte producten verschijnen hier.</div>
       </div>
     </div>
 
-    <div class="overview-new-card">
-      <div class="overview-new-title"><i class="fa-solid fa-clock-rotate-left overview-new-history"></i><span>Boodschappenhistorie</span></div>
+    <button type="button" class="overview-new-card overview-click-card" onclick="openShoppingHistoryFromOverview()">
+      <div class="overview-new-title"><i class="fa-solid fa-clock-rotate-left overview-new-history"></i><span>Boodschappenhistorie</span><i class="fa-solid fa-chevron-right overview-new-arrow"></i></div>
       <div class="overview-new-row">
-        <div><strong>Eerdere boodschappen</strong><div class="overview-new-muted">Bekijk je vorige boodschappen.</div></div>
-        <i class="fa-solid fa-chevron-right overview-new-arrow"></i>
+        <div><strong>Eerdere boodschappen</strong><div id="overviewHistorySummary" class="overview-new-muted">Bekijk je vorige boodschappen.</div></div>
       </div>
-    </div>
+    </button>
 
-    <div class="overview-new-card">
-      <div class="overview-new-title"><i class="fa-solid fa-list overview-new-lists"></i><span>Mijn lijsten</span></div>
+    <button type="button" class="overview-new-card overview-click-card" onclick="openSavedListsFromOverview()">
+      <div class="overview-new-title"><i class="fa-solid fa-list overview-new-lists"></i><span>Mijn lijsten</span><i class="fa-solid fa-chevron-right overview-new-arrow"></i></div>
       <div class="overview-new-row">
         <div><strong>Opgeslagen boodschappenlijsten</strong><div class="overview-new-muted">Bekijk en gebruik je opgeslagen lijsten.</div></div>
-        <i class="fa-solid fa-chevron-right overview-new-arrow"></i>
       </div>
-    </div>
+    </button>
   </div>
 </section>
 
@@ -4034,6 +4032,7 @@ async function deleteProduct() {
 
 async function clearList() {
 
+  recordShoppingHistory(boodschappen);
   boodschappen = [];
   selectedIndex = -1;
 
@@ -5943,11 +5942,99 @@ document.addEventListener('DOMContentLoaded', function(){
   var nav=document.querySelector('.bottomNav');
   if(nav && nav.parentElement !== document.body){ document.body.appendChild(nav); }
 });
+
+function getOverviewHistoryKey(){
+  var user = (typeof auth !== 'undefined' && auth && auth.currentUser) ? auth.currentUser.uid : 'local';
+  return 'boodschappenHistory_' + user;
+}
+function readOverviewHistory(){
+  try {
+    var value = JSON.parse(localStorage.getItem(getOverviewHistoryKey()) || '[]');
+    return Array.isArray(value) ? value : [];
+  } catch(e){ return []; }
+}
+function writeOverviewHistory(items){
+  try { localStorage.setItem(getOverviewHistoryKey(), JSON.stringify(items.slice(0,30))); } catch(e){}
+}
+function recordShoppingHistory(snapshot){
+  var items = normalizeBoodschappen(snapshot || []).map(function(item){
+    return {text:item.text, completed:!!item.completed};
+  }).filter(function(item){ return item.text; });
+  if(!items.length) return;
+  var history = readOverviewHistory();
+  history.unshift({savedAt:Date.now(), items:items});
+  writeOverviewHistory(history);
+}
+function getFrequentlyUsedProducts(){
+  var counts = {};
+  readOverviewHistory().forEach(function(trip){
+    (trip.items || []).forEach(function(item){
+      var name=String(item.text||'').trim();
+      var key=name.toLowerCase();
+      if(key) counts[key]=(counts[key]||0)+1;
+    });
+  });
+  // Also use the current list so the feature is useful immediately.
+  (typeof boodschappen !== 'undefined' ? boodschappen : []).forEach(function(item){
+    var name=String(item.text||'').trim(), key=name.toLowerCase();
+    if(key) counts[key]=(counts[key]||0)+1;
+  });
+  return Object.keys(counts).sort(function(a,b){ return counts[b]-counts[a] || a.localeCompare(b); }).slice(0,5).map(function(key){
+    var label=key.charAt(0).toUpperCase()+key.slice(1);
+    return {name:label,count:counts[key]};
+  });
+}
+function renderOverviewQuickAdd(){
+  var box=document.getElementById('overviewQuickNew');
+  if(!box) return;
+  var products=getFrequentlyUsedProducts();
+  box.innerHTML='';
+  if(!products.length){
+    box.innerHTML='<div class="overview-new-muted">Je vaak gebruikte producten verschijnen hier.</div>';
+    return;
+  }
+  products.forEach(function(product){
+    var btn=document.createElement('button');
+    btn.type='button'; btn.className='overviewQuickProduct';
+    btn.innerHTML='<span>'+product.name+'</span><i class="fa-solid fa-plus"></i>';
+    btn.addEventListener('click',function(e){ e.stopPropagation(); addProductFromOverview(product.name); });
+    box.appendChild(btn);
+  });
+}
+async function addProductFromOverview(name){
+  showMainListView();
+  setTimeout(async function(){
+    var input=document.getElementById('product');
+    if(!input) return;
+    input.value=name;
+    await addProduct();
+  },80);
+}
+function openQuickAddFromOverview(){
+  var products=getFrequentlyUsedProducts();
+  if(!products.length){ familyAlert('Snel opnieuw toevoegen','Er zijn nog geen vaak gebruikte producten. Voeg een paar boodschappen toe en bewaar daarna je volgende boodschappenlijst.','fa-bolt'); return; }
+  // The card itself opens the first quick product; individual product buttons remain available.
+  renderOverviewQuickAdd();
+}
+function openShoppingHistoryFromOverview(){
+  var history=readOverviewHistory();
+  if(!history.length){ familyAlert('Boodschappenhistorie','Je hebt nog geen eerdere boodschappen opgeslagen. Je eerste historie verschijnt zodra je een boodschappenlijst wist na het winkelen.','fa-clock-rotate-left'); return; }
+  var html=history.slice(0,10).map(function(trip){
+    var date=new Date(trip.savedAt).toLocaleString('nl-NL',{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'});
+    var names=(trip.items||[]).map(function(x){return x.text;}).join(', ');
+    return '<div class="historyTrip"><strong>'+date+'</strong><div>'+names+'</div></div>';
+  }).join('');
+  familyAlert('Boodschappenhistorie',html,'fa-clock-rotate-left',true);
+}
 function updateOverviewView(){
   var h=new Date().getHours();
   var greeting=h>=5&&h<12?"Goedemorgen":(h>=12&&h<18?"Goedemiddag":"Goedenavond");
   var g=document.getElementById("overviewGreetingNew");
   if(g) g.textContent=greeting+" 👋";
+  renderOverviewQuickAdd();
+  var history=readOverviewHistory();
+  var hs=document.getElementById("overviewHistorySummary");
+  if(hs) hs.textContent=history.length ? history.length+" eerdere boodschappenlijst"+(history.length===1?"":"en")+" beschikbaar." : "Bekijk je vorige boodschappen.";
   if(typeof updateOverviewSavedLists==="function") updateOverviewSavedLists();
 }
 
@@ -6009,6 +6096,20 @@ function updateOverviewView(){
 }
 </style>
 
+
+
+<style id="overview-interactions-final">
+.overview-click-card{width:100%;display:block;text-align:left;font:inherit;cursor:pointer;transition:transform .15s ease,box-shadow .15s ease;background:#fff}
+.overview-click-card:active{transform:scale(.99)}
+.overview-click-card .overview-new-title{margin-bottom:10px}
+.overview-quick-content{display:flex;flex-wrap:wrap;gap:8px}
+.overviewQuickProduct{border:0;border-radius:12px;background:#eef6f0;color:#3F5B45;padding:9px 11px;display:inline-flex;align-items:center;gap:8px;font:inherit;font-size:13px;font-weight:750;cursor:pointer}
+.overviewQuickProduct i{font-size:12px}
+.historyTrip{padding:10px 0;border-bottom:1px solid rgba(63,91,69,.12);color:#405047}
+.historyTrip:last-child{border-bottom:0}
+.historyTrip strong{display:block;margin-bottom:3px;color:#3F5B45}
+.historyTrip div{font-size:13px;line-height:1.4}
+</style>
 
 <style id="overview-my-lists">
 .overviewAllListsBtn{
