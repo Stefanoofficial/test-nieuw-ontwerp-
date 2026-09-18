@@ -2305,6 +2305,46 @@ body:not(.logged-in) #themePicker {
 }
 </style>
 
+
+<style id="article-trash-style">
+/* Alleen het verwijderen-icoon op een artikelregel. */
+.article-trash,
+.product-trash,
+.shopping-item-trash {
+  appearance:none;
+  -webkit-appearance:none;
+  border:0;
+  width:34px;
+  height:34px;
+  min-width:34px;
+  padding:0;
+  margin-left:8px;
+  border-radius:10px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  background:#f9e9e7;
+  color:#b85a52;
+  font-size:15px;
+  line-height:1;
+  cursor:pointer;
+  flex:0 0 auto;
+}
+.article-trash:hover,
+.product-trash:hover,
+.shopping-item-trash:hover { background:#f5dfdc; }
+.article-trash:active,
+.product-trash:active,
+.shopping-item-trash:active { transform:scale(.96); }
+
+body.dark-theme .article-trash,
+body.dark-theme .product-trash,
+body.dark-theme .shopping-item-trash {
+  background:#493330;
+  color:#e4a099;
+}
+</style>
+
 </head>
 
 <body>
@@ -2448,9 +2488,7 @@ body:not(.logged-in) #themePicker {
       <button type="button" class="moreAction moreActionClear" onclick="clearList(); closeFamilyMenu();">
         <i class="fa-solid fa-trash-can"></i><span>Lijst wissen</span>
       </button>
-      <button type="button" class="moreAction moreActionDelete" onclick="deleteProduct(); closeFamilyMenu();">
-        <i class="fa-solid fa-trash-can"></i><span>Verwijder product</span>
-      </button>
+      
     </div>
   </div>
 
@@ -2626,7 +2664,7 @@ body:not(.logged-in) #themePicker {
 
   <div class="buttons">
     <button class="clear" onclick="clearList()"><i class="fa-solid fa-trash-can"></i> Lijst wissen</button>
-    <button class="delete" onclick="deleteProduct()"><i class="fa-solid fa-trash-can"></i> Verwijder product</button>
+    
   </div>
 
   <div class="status" id="status">
@@ -6035,6 +6073,64 @@ body.dark-theme .overviewSavedListLine{color:#c2ccc5;border-bottom-color:rgba(25
   } else {
     installLoginChromeSync();
   }
+})();
+</script>
+
+
+<script id="article-trash-function">
+(function(){
+  function getProductRow(el){
+    return el.closest(
+      '[data-product-id], .product-row, .product-item, .shopping-item, ' +
+      '.boodschap-item, .list-item, .grocery-item'
+    );
+  }
+
+  function addTrashButtons(){
+    var rows=document.querySelectorAll(
+      '[data-product-id], .product-row, .product-item, .shopping-item, ' +
+      '.boodschap-item, .list-item, .grocery-item'
+    );
+    rows.forEach(function(row){
+      if(row.querySelector('.article-trash,.product-trash,.shopping-item-trash')) return;
+      var button=document.createElement('button');
+      button.type='button';
+      button.className='article-trash';
+      button.setAttribute('aria-label','Product verwijderen');
+      button.title='Product verwijderen';
+      button.innerHTML='<i class="fa-solid fa-trash" aria-hidden="true"></i>';
+      var id=row.getAttribute('data-product-id');
+      if(id) button.dataset.productId=id;
+      row.appendChild(button);
+    });
+  }
+
+  document.addEventListener('click',function(e){
+    var b=e.target.closest('.article-trash,.product-trash,.shopping-item-trash');
+    if(!b) return;
+    e.preventDefault();
+    e.stopPropagation();
+    var row=getProductRow(b);
+    if(!row) return;
+
+    var id=b.dataset.productId || row.getAttribute('data-product-id');
+    /* Laat bestaande app-code het verwijderen afhandelen als die functie bestaat. */
+    if(id && typeof window.deleteProduct==='function'){
+      window.deleteProduct(id);
+      return;
+    }
+    if(id && typeof window.removeProduct==='function'){
+      window.removeProduct(id);
+      return;
+    }
+    row.remove();
+  });
+
+  document.addEventListener('DOMContentLoaded',function(){
+    addTrashButtons();
+    var observer=new MutationObserver(function(){ addTrashButtons(); });
+    observer.observe(document.body,{childList:true,subtree:true});
+  });
 })();
 </script>
 
