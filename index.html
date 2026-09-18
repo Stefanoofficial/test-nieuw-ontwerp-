@@ -1072,6 +1072,33 @@ body.dark-theme .familyMenuPage {
 .overviewEmpty{color:#6d7c73;text-align:center;padding:16px 4px;font-size:15px}
 body.dark-theme .bottomNav{background:rgba(25,30,26,.97);border-top-color:rgba(255,255,255,.08)}
 body.dark-theme .bottomNavBtn{color:#aeb8b1}.bottomNavBtn.active{color:#3F5B45}body.dark-theme .bottomNavBtn.active{background:#304b39;color:#dce9df}
+
+/* === Meer: acties uit het hoofdscherm naar het Meer-menu === */
+.app.more-active .buttons{display:none !important;}
+.moreMenuActions{
+  margin: 10px 12px 12px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.moreAction{
+  width:100%;
+  min-height:46px;
+  border:0;
+  border-radius:14px;
+  padding:10px 14px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font:700 15px/1 inherit;
+  cursor:pointer;
+}
+.moreActionClear{background:#F5F7F5;color:#303530;}
+.moreActionDelete{background:#FBEAEA;color:#C43A34;}
+.moreAction i{font-size:17px;}
+body.dark-theme .moreActionClear{background:#2c332e;color:#e6ece8;}
+body.dark-theme .moreActionDelete{background:#442b2b;color:#f1b4b0;}
+
 body.dark-theme .overviewCard{background:#202620;border-color:rgba(255,255,255,.08)}body.dark-theme .overviewTitle{color:#bfe3c7}body.dark-theme .overviewStat{background:#28332b}body.dark-theme .overviewStat strong{color:#bfe3c7}body.dark-theme .overviewStat span,.overviewEmpty{color:#b8c0ba}body.dark-theme .overviewProgress{background:#303a32}
 @media(max-width:600px){.bottomNav{height:76px;padding-left:8px;padding-right:8px}.bottomNavBtn{border-radius:20px;font-size:12px}.bottomNavBtn i{font-size:23px}.app{padding-bottom:92px!important}.themeButton{bottom:92px!important}.themePicker{bottom:144px!important}}
 
@@ -2257,6 +2284,14 @@ body.dark-theme .sharedListInviteBox{background:rgba(255,255,255,.06);border-col
       <span>Over de app</span>
       <i class="fa-solid fa-chevron-right familyMenuArrow"></i>
     </button>
+    <div class="moreMenuActions">
+      <button type="button" class="moreAction moreActionClear" onclick="clearList(); closeFamilyMenu();">
+        <i class="fa-solid fa-trash-can"></i><span>Lijst wissen</span>
+      </button>
+      <button type="button" class="moreAction moreActionDelete" onclick="deleteProduct(); closeFamilyMenu();">
+        <i class="fa-solid fa-trash-can"></i><span>Verwijder product</span>
+      </button>
+    </div>
   </div>
 
   <div id="familyMenuSub" class="familyMenuPage familyMenuSub" style="display:none;">
@@ -5558,22 +5593,27 @@ function setBottomNav(active){
   var el=document.getElementById(active); if(el) el.classList.add('active');
 }
 function showMainListView(){
-  var app=document.querySelector('.app'); if(app) app.classList.remove('overview-active');
+  var app=document.querySelector('.app');
+  if(app) app.classList.remove('overview-active','more-active');
   setBottomNav('navList');
+  var menu=document.getElementById('familyMenu'); if(menu && menu.classList.contains('menu-open')) closeFamilyMenu();
   window.scrollTo({top:0,behavior:'smooth'});
 }
 function showOverviewView(){
-  var app=document.querySelector('.app'); if(app) app.classList.add('overview-active');
+  var app=document.querySelector('.app');
+  if(app) app.classList.remove('more-active'), app.classList.add('overview-active');
   setBottomNav('navOverview');
   updateOverviewView();
-  window.scrollTo({top:0,behavior:'smooth'});
   var menu=document.getElementById('familyMenu'); if(menu && menu.classList.contains('menu-open')) closeFamilyMenu();
+  window.scrollTo({top:0,behavior:'smooth'});
 }
 function showMoreView(){
-  showMainListView();
+  var app=document.querySelector('.app');
+  if(app) app.classList.remove('overview-active'), app.classList.add('more-active');
   setBottomNav('navMore');
   var menu=document.getElementById('familyMenu');
   if(menu && menu.classList.contains('menu-open')) closeFamilyMenu(); else toggleFamilyMenu();
+  window.scrollTo({top:0,behavior:'smooth'});
 }
 function updateOverviewView(){
   var arr=(typeof boodschappen!=='undefined' && Array.isArray(boodschappen))?boodschappen:[];
