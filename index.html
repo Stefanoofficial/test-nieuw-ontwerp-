@@ -6233,3 +6233,19 @@ body.logged-in {
 /* De maan is een directe licht/donker-schakelaar; geen popup nodig. */
 #themePicker { display:none !important; visibility:hidden !important; }
 </style>
+
+
+/* Delete action for individual product rows. */
+document.addEventListener('click', function (event) {
+  const btn = event.target.closest('.product-row-delete, .product-delete-btn');
+  if (!btn) return;
+  const row = btn.closest('[data-product-id], .product-row, .product-item, .shopping-item');
+  if (!row) return;
+  const id = btn.dataset.productId || row.dataset.productId;
+  if (id) {
+    window.dispatchEvent(new CustomEvent('product:delete', { detail: { id } }));
+  } else {
+    row.remove();
+  }
+});
+
