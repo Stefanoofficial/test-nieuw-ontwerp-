@@ -1387,46 +1387,6 @@ body.dark-theme .productSuggestion {
 }
 
 
-
-/* Product verwijderen - subtiele app-kleur */
-.productDeleteBtn {
-  flex: 0 0 42px;
-  width: 42px;
-  height: 42px;
-  border: 0;
-  border-radius: 12px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: #fdeaea;
-  color: #c94b4b;
-  font-size: 18px;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  transition: background-color .15s ease, transform .15s ease;
-}
-
-.productDeleteBtn:hover {
-  background: #f9dddd;
-}
-
-.productDeleteBtn:active {
-  transform: scale(.94);
-}
-
-body.dark-theme .productDeleteBtn {
-  background: rgba(201, 75, 75, .16);
-  color: #e98b8b;
-}
-
-body.dark-theme .productDeleteBtn:hover {
-  background: rgba(201, 75, 75, .24);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .productDeleteBtn { transition: none; }
-}
-
 /* ===== Stap 8: compacte, moderne opslagmelding ===== */
 .save-status,
 .storage-status,
@@ -2345,6 +2305,46 @@ body:not(.logged-in) #themePicker {
 }
 </style>
 
+
+<style id="article-trash-style">
+/* Alleen het verwijderen-icoon op een artikelregel. */
+.article-trash,
+.product-trash,
+.shopping-item-trash {
+  appearance:none;
+  -webkit-appearance:none;
+  border:0;
+  width:34px;
+  height:34px;
+  min-width:34px;
+  padding:0;
+  margin-left:8px;
+  border-radius:10px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  background:#FDE8E8;
+  color:#C62828;
+  font-size:15px;
+  line-height:1;
+  cursor:pointer;
+  flex:0 0 auto;
+}
+.article-trash:hover,
+.product-trash:hover,
+.shopping-item-trash:hover { background:#f9dede; }
+.article-trash:active,
+.product-trash:active,
+.shopping-item-trash:active { transform:scale(.96); }
+
+body.dark-theme .article-trash,
+body.dark-theme .product-trash,
+body.dark-theme .shopping-item-trash {
+  background:#5a3333;
+  color:#ffaaa3;
+}
+</style>
+
 </head>
 
 <body>
@@ -2488,9 +2488,7 @@ body:not(.logged-in) #themePicker {
       <button type="button" class="moreAction moreActionClear" onclick="clearList(); closeFamilyMenu();">
         <i class="fa-solid fa-trash-can"></i><span>Lijst wissen</span>
       </button>
-      <button type="button" class="moreAction moreActionDelete" onclick="deleteProduct(); closeFamilyMenu();">
-        <i class="fa-solid fa-trash-can"></i><span>Verwijder product</span>
-      </button>
+      
     </div>
   </div>
 
@@ -2666,6 +2664,7 @@ body:not(.logged-in) #themePicker {
 
   <div class="buttons">
     <button class="clear" onclick="clearList()"><i class="fa-solid fa-trash-can"></i> Lijst wissen</button>
+    
   </div>
 
   <div class="status" id="status">
@@ -3836,19 +3835,6 @@ function showList(animationType = "") {
     if (!iconValue) icon.style.visibility = "hidden";
     productWrap.appendChild(icon);
 
-    const deleteBtn = document.createElement("button");
-    deleteBtn.type = "button";
-    deleteBtn.className = "productDeleteBtn";
-    deleteBtn.setAttribute("aria-label", "Verwijder " + productText);
-    deleteBtn.title = "Verwijder product";
-    deleteBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
-    deleteBtn.addEventListener("click", async (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      await deleteProduct(index);
-    });
-    productWrap.appendChild(deleteBtn);
-
     div.appendChild(productWrap);
 
     // In zowel de familielijst als een Deellijst is zichtbaar wie een product heeft voltooid.
@@ -3994,11 +3980,11 @@ async function addProduct() {
 }
 
 
-async function deleteProduct(index = selectedIndex) {
+async function deleteProduct() {
 
-  if (!Number.isInteger(index) || index < 0 || index >= boodschappen.length) return;
+  if (selectedIndex < 0) return;
 
-  boodschappen.splice(index, 1);
+  boodschappen.splice(selectedIndex, 1);
 
   selectedIndex = -1;
 
@@ -6087,6 +6073,64 @@ body.dark-theme .overviewSavedListLine{color:#c2ccc5;border-bottom-color:rgba(25
   } else {
     installLoginChromeSync();
   }
+})();
+</script>
+
+
+<script id="article-trash-function">
+(function(){
+  function getProductRow(el){
+    return el.closest(
+      '[data-product-id], .product-row, .product-item, .shopping-item, ' +
+      '.boodschap-item, .list-item, .grocery-item'
+    );
+  }
+
+  function addTrashButtons(){
+    var rows=document.querySelectorAll(
+      '[data-product-id], .product-row, .product-item, .shopping-item, ' +
+      '.boodschap-item, .list-item, .grocery-item'
+    );
+    rows.forEach(function(row){
+      if(row.querySelector('.article-trash,.product-trash,.shopping-item-trash')) return;
+      var button=document.createElement('button');
+      button.type='button';
+      button.className='article-trash';
+      button.setAttribute('aria-label','Product verwijderen');
+      button.title='Product verwijderen';
+      button.innerHTML='<i class="fa-solid fa-trash-can" aria-hidden="true"></i>';
+      var id=row.getAttribute('data-product-id');
+      if(id) button.dataset.productId=id;
+      row.appendChild(button);
+    });
+  }
+
+  document.addEventListener('click',function(e){
+    var b=e.target.closest('.article-trash,.product-trash,.shopping-item-trash');
+    if(!b) return;
+    e.preventDefault();
+    e.stopPropagation();
+    var row=getProductRow(b);
+    if(!row) return;
+
+    var id=b.dataset.productId || row.getAttribute('data-product-id');
+    /* Laat bestaande app-code het verwijderen afhandelen als die functie bestaat. */
+    if(id && typeof window.deleteProduct==='function'){
+      window.deleteProduct(id);
+      return;
+    }
+    if(id && typeof window.removeProduct==='function'){
+      window.removeProduct(id);
+      return;
+    }
+    row.remove();
+  });
+
+  document.addEventListener('DOMContentLoaded',function(){
+    addTrashButtons();
+    var observer=new MutationObserver(function(){ addTrashButtons(); });
+    observer.observe(document.body,{childList:true,subtree:true});
+  });
 })();
 </script>
 
