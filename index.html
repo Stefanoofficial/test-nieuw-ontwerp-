@@ -2305,75 +2305,23 @@ body:not(.logged-in) #themePicker {
 }
 </style>
 
-
-<style id="article-trash-style">
-/* Alleen het verwijderen-icoon op een artikelregel. */
-.article-trash,
-.product-trash,
-.shopping-item-trash {
-  appearance:none;
-  -webkit-appearance:none;
-  border:0;
-  width:34px;
-  height:34px;
-  min-width:34px;
-  padding:0;
-  margin-left:8px;
-  border-radius:10px;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  background:#FDE8E8;
-  color:#C62828;
-  font-size:15px;
-  line-height:1;
-  cursor:pointer;
-  flex:0 0 auto;
-}
-.article-trash:hover,
-.product-trash:hover,
-.shopping-item-trash:hover { background:#f9dede; }
-.article-trash:active,
-.product-trash:active,
-.shopping-item-trash:active { transform:scale(.96); }
-
-body.dark-theme .article-trash,
-body.dark-theme .product-trash,
-body.dark-theme .shopping-item-trash {
-  background:#5a3333;
-  color:#ffaaa3;
-}
-
-/* Prullenbak direct op iedere productregel. */
-.productRowTrash {
-  appearance:none;
-  -webkit-appearance:none;
-  border:0;
-  width:42px;
-  height:42px;
-  min-width:42px;
-  padding:0;
-  margin-left:8px;
-  border-radius:12px;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  background:#FBEAEA;
-  color:#C43A34;
-  font-size:18px;
-  line-height:1;
-  cursor:pointer;
-  flex:0 0 auto;
-}
-.productRowTrash:hover { background:#f7dede; }
-.productRowTrash:active { transform:scale(.96); }
-body.dark-theme .productRowTrash {
-  background:#442b2b;
-  color:#F1B4B0;
-}
-</style>
-
-</head>
+<style id="overview-dashboard-style"><div id="overviewExtra" class="overview-extra">
+<h2 id="overviewGreeting" class="overview-greeting">Goedendag 👋</h2>
+<section class="overview-section"><div class="overview-section-title"><i class="fa-solid fa-bolt overview-quick-icon"></i><span>Snel opnieuw toevoegen</span></div><div id="overviewQuickList" class="overview-quick-list"><div class="overview-meta">Je vaak gebruikte producten verschijnen hier.</div></div></section>
+<section class="overview-section"><div class="overview-section-title"><i class="fa-solid fa-clock-rotate-left overview-history-icon"></i><span>Boodschappenhistorie</span></div><div id="overviewHistoryList" class="overview-history-list"><div class="overview-meta">Je eerdere boodschappen verschijnen hier.</div></div></section>
+<section class="overview-section"><div class="overview-section-title"><i class="fa-solid fa-list overview-lists-icon"></i><span>Mijn lijsten</span></div><div id="overviewMyLists" class="overview-my-lists"><div class="overview-list-item"><div><strong>Mijn boodschappenlijst</strong><div class="overview-meta">Huidige lijst</div></div><i class="fa-solid fa-chevron-right overview-arrow"></i></div></div></section>
+</div>
+.overview-extra{margin:14px 16px 90px}.overview-greeting{margin:0 0 14px;font-size:22px;font-weight:700}
+.overview-section{background:#fff;border-radius:18px;padding:15px;margin-bottom:12px;box-shadow:0 2px 10px rgba(0,0,0,.05)}
+.overview-section-title{display:flex;align-items:center;gap:9px;font-size:16px;font-weight:700;margin-bottom:11px}
+.overview-section-title i{width:30px;height:30px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center}
+.overview-quick-icon{background:#fff1c9;color:#c18a18}.overview-history-icon{background:#e7f3ec;color:#3d8060}.overview-lists-icon{background:#e8f0ff;color:#4e73ad}
+.overview-quick-item,.overview-history-item,.overview-list-item{display:flex;align-items:center;justify-content:space-between;min-height:42px;gap:10px}
+.overview-quick-list,.overview-history-list,.overview-my-lists{display:flex;flex-direction:column;gap:8px}
+.overview-quick-name,.overview-list-name{font-weight:600}.overview-meta{font-size:13px;opacity:.62;margin-top:2px}
+.overview-add{width:34px;height:34px;border:0;border-radius:10px;background:#e7f4ec;color:#3c8b5e;display:inline-flex;align-items:center;justify-content:center}
+.overview-arrow{color:#7aa086;font-size:14px}
+</style></head>
 
 <body>
 <div id="loginScreen">
@@ -2516,7 +2464,9 @@ body.dark-theme .productRowTrash {
       <button type="button" class="moreAction moreActionClear" onclick="clearList(); closeFamilyMenu();">
         <i class="fa-solid fa-trash-can"></i><span>Lijst wissen</span>
       </button>
-      
+      <button type="button" class="moreAction moreActionDelete" onclick="deleteProduct(); closeFamilyMenu();">
+        <i class="fa-solid fa-trash-can"></i><span>Verwijder product</span>
+      </button>
     </div>
   </div>
 
@@ -2692,7 +2642,7 @@ body.dark-theme .productRowTrash {
 
   <div class="buttons">
     <button class="clear" onclick="clearList()"><i class="fa-solid fa-trash-can"></i> Lijst wissen</button>
-    
+    <button class="delete" onclick="deleteProduct()"><i class="fa-solid fa-trash-can"></i> Verwijder product</button>
   </div>
 
   <div class="status" id="status">
@@ -3863,19 +3813,6 @@ function showList(animationType = "") {
     if (!iconValue) icon.style.visibility = "hidden";
     productWrap.appendChild(icon);
 
-    const trashButton = document.createElement("button");
-    trashButton.type = "button";
-    trashButton.className = "productRowTrash";
-    trashButton.setAttribute("aria-label", "Product verwijderen");
-    trashButton.title = "Product verwijderen";
-    trashButton.innerHTML = '<i class="fa-solid fa-trash-can" aria-hidden="true"></i>';
-    trashButton.addEventListener("click", async (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      await deleteProductAtIndex(index);
-    });
-    productWrap.appendChild(trashButton);
-
     div.appendChild(productWrap);
 
     // In zowel de familielijst als een Deellijst is zichtbaar wie een product heeft voltooid.
@@ -4021,19 +3958,16 @@ async function addProduct() {
 }
 
 
-async function deleteProductAtIndex(index) {
-  if (!Number.isInteger(index) || index < 0 || index >= boodschappen.length) return;
+async function deleteProduct() {
 
-  boodschappen.splice(index, 1);
+  if (selectedIndex < 0) return;
+
+  boodschappen.splice(selectedIndex, 1);
+
   selectedIndex = -1;
 
   showList();
   await saveList();
-}
-
-async function deleteProduct() {
-  if (selectedIndex < 0) return;
-  await deleteProductAtIndex(selectedIndex);
 }
 
 async function clearList() {
@@ -6120,10 +6054,13 @@ body.dark-theme .overviewSavedListLine{color:#c2ccc5;border-bottom-color:rgba(25
 })();
 </script>
 
-
-
-
-</body>
+<script id="overview-dashboard-logic">
+(function(){
+function greet(){var h=new Date().getHours();return h>=5&&h<12?'Goedemorgen':h>=12&&h<18?'Goedemiddag':'Goedenavond'}
+function update(){var e=document.getElementById('overviewGreeting');if(e)e.textContent=greet()+' 👋'}
+document.addEventListener('DOMContentLoaded',function(){update();setInterval(update,60000)})
+})();
+</script></body>
 </html>
 <style id="polish-more-actions">
 /* === Final polish: destructive actions live only in Meer === */
