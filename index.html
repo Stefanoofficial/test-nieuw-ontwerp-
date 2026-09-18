@@ -2363,6 +2363,38 @@ body.dark-theme .shopping-item-trash {
 body.dark-theme .overview-new-greeting,body.dark-theme .overview-new-title,body.dark-theme .overview-new-row{color:#e2ebe5}
 body.dark-theme .overview-new-card{background:#202923;border-color:#34443a}
 </style>
+
+<style id="overview-middle-scroll-final">
+/* Alleen de inhoud van Overzicht scrollt; begroeting en onderste navigatie blijven staan. */
+#overviewDashboardFinal{
+  display:flex;
+  flex-direction:column;
+  box-sizing:border-box;
+  height:calc(100dvh - 150px);
+  min-height:0;
+  overflow:hidden;
+}
+#overviewDashboardFinal > .ov-greeting{
+  flex:0 0 auto;
+}
+#overviewDashboardFinal > .ov-card{
+  flex:0 0 auto;
+}
+#overviewDashboardFinal > .ov-card:nth-of-type(n+2){
+  /* Cards below the first are placed in a scroll container by JS. */
+}
+#overviewDashboardScrollArea{
+  flex:1 1 auto;
+  min-height:0;
+  overflow-y:auto;
+  overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
+  padding:0 1px 90px 1px;
+  scrollbar-width:none;
+}
+#overviewDashboardScrollArea::-webkit-scrollbar{display:none}
+</style>
 </head>
 
 <body>
@@ -6362,6 +6394,24 @@ document.addEventListener("DOMContentLoaded",function(){
   refreshOverviewGreeting();
   setInterval(refreshOverviewGreeting,60000);
 });
+</script>
+
+<script id="overview-middle-scroll-final-logic">
+(function(){
+  function setupOverviewScroll(){
+    var root=document.getElementById('overviewDashboardFinal');
+    if(!root || document.getElementById('overviewDashboardScrollArea')) return;
+    var greeting=root.querySelector('.ov-greeting');
+    var cards=Array.prototype.slice.call(root.querySelectorAll(':scope > .ov-card'));
+    if(!greeting || cards.length<2) return;
+    var area=document.createElement('div');
+    area.id='overviewDashboardScrollArea';
+    cards.slice(1).forEach(function(card){ area.appendChild(card); });
+    root.appendChild(area);
+  }
+  document.addEventListener('DOMContentLoaded',setupOverviewScroll);
+  window.addEventListener('load',setupOverviewScroll);
+})();
 </script>
 </body>
 
