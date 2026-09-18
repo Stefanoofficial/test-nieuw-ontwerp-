@@ -2156,6 +2156,31 @@ body.dark-theme .sharedListInviteBox{background:rgba(255,255,255,.06);border-col
 }
 </style>
 
+<style id="smooth-tab-slide">
+/* Vloeiende overgang tussen de drie hoofdschermen.
+   Vooruit = nieuw scherm komt rustig van rechts binnen.
+   Terug = nieuw scherm komt rustig van links binnen.
+   De vaste onderste navigatie blijft buiten deze animatie. */
+@keyframes tabSlideInFromRight {
+  from { opacity: .82; transform: translate3d(34px,0,0); }
+  to   { opacity: 1; transform: translate3d(0,0,0); }
+}
+@keyframes tabSlideInFromLeft {
+  from { opacity: .82; transform: translate3d(-34px,0,0); }
+  to   { opacity: 1; transform: translate3d(0,0,0); }
+}
+.app.nav-slide-forward > :not(.bottomNav) {
+  animation: tabSlideInFromRight .34s cubic-bezier(.22,.61,.36,1) both;
+}
+.app.nav-slide-backward > :not(.bottomNav) {
+  animation: tabSlideInFromLeft .34s cubic-bezier(.22,.61,.36,1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .app.nav-slide-forward > :not(.bottomNav),
+  .app.nav-slide-backward > :not(.bottomNav) { animation: none !important; }
+}
+</style>
+
 <style id="final-scroll-nav-fix">
 /* Definitieve navigatie-/scrollfix:
    - de app zelf kan scrollen;
@@ -5764,7 +5789,22 @@ function setBottomNav(active){
   document.querySelectorAll('.bottomNavBtn').forEach(function(b){b.classList.remove('active');});
   var el=document.getElementById(active); if(el) el.classList.add('active');
 }
+var __activeMainTab = 0; // 0=Lijst, 1=Overzicht, 2=Meer
+function slideToTab(tabIndex){
+  var app=document.querySelector('.app');
+  if(!app || tabIndex === __activeMainTab) return;
+  var direction = tabIndex > __activeMainTab ? 'forward' : 'backward';
+  app.classList.remove('nav-slide-forward','nav-slide-backward');
+  void app.offsetWidth;
+  app.classList.add(direction === 'backward' ? 'nav-slide-backward' : 'nav-slide-forward');
+  __activeMainTab = tabIndex;
+  clearTimeout(window.__tabSlideTimer);
+  window.__tabSlideTimer=setTimeout(function(){
+    app.classList.remove('nav-slide-forward','nav-slide-backward');
+  },380);
+}
 function showMainListView(){
+  slideToTab(0);
   var app=document.querySelector('.app');
   if(app) app.classList.remove('overview-active','more-active');
   setBottomNav('navList');
@@ -5772,6 +5812,7 @@ function showMainListView(){
   window.scrollTo({top:0,behavior:'smooth'});
 }
 function showOverviewView(){
+  slideToTab(1);
   var app=document.querySelector('.app');
   if(app) app.classList.remove('more-active'), app.classList.add('overview-active');
   setBottomNav('navOverview');
@@ -5780,6 +5821,7 @@ function showOverviewView(){
   window.scrollTo({top:0,behavior:'smooth'});
 }
 function showMoreView(){
+  slideToTab(2);
   var app=document.querySelector('.app');
   if(app) app.classList.remove('overview-active'), app.classList.add('more-active');
   setBottomNav('navMore');
