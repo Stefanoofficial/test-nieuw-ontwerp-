@@ -2364,7 +2364,7 @@ body:has(.app.more-active) #themePicker {
     <i class="fa-solid fa-moon"></i><span>Donker thema</span>
   </button>
 </div>
-<button type="button" id="themeButton" class="themeButton" onclick="toggleThemePicker()" aria-label="Thema kiezen" aria-expanded="false">
+<button type="button" id="themeButton" class="themeButton" onclick="toggleTheme()" aria-label="Nachtmodus aan/uit" aria-expanded="false">
   <i id="themeButtonIcon" class="fa-solid fa-moon"></i>
 </button>
 
@@ -2707,6 +2707,9 @@ function closeThemePicker() {
 function toggleTheme() {
   setTheme(getActiveTheme() === "dark" ? "light" : "dark");
 }
+
+// Herstel het opgeslagen thema bij openen/verversen.
+document.addEventListener("DOMContentLoaded", applyTheme);
 
 function closeFamilyMenu() {
   if (__menuTransitionTimer) { clearTimeout(__menuTransitionTimer); __menuTransitionTimer = null; }
@@ -6182,4 +6185,9 @@ body.logged-in {
     right: 16px !important;
   }
 }
+</style>
+
+<style id="direct-moon-toggle-final">
+/* De maan is een directe licht/donker-schakelaar; geen popup nodig. */
+#themePicker { display:none !important; visibility:hidden !important; }
 </style>
