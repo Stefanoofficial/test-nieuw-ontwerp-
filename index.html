@@ -5672,6 +5672,36 @@ function updateOverviewView(){
 }
 </style>
 
+<style id="more-final-layout">
+/* Meer is a real, scrollable screen. The bottom navigation stays fixed. */
+.app.more-active {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+.app.more-active .moreView {
+  min-height: calc(100vh - 110px);
+  box-sizing: border-box;
+  padding: 14px 0 125px !important;
+}
+.app.more-active #familyMenu {
+  margin-bottom: 8px;
+}
+.app.more-active #familyMenuMain {
+  padding-bottom: 4px;
+}
+.app.more-active .familyMenuItem {
+  min-height: 56px;
+}
+.app.more-active .moreMenuActions {
+  padding-bottom: 8px;
+}
+/* Submenu pages are allowed to grow naturally when opened. */
+.app.more-active .familyMenuPage {
+  max-height: none;
+}
+</style>
 </body>
 </html>
 <style id="polish-more-actions">
