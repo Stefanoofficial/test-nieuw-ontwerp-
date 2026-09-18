@@ -2226,52 +2226,42 @@ body.dark-theme .sharedListInviteBox{background:rgba(255,255,255,.06);border-col
 }
 </style>
 
-<style id="moon-visibility-exact">
-/* Default: no moon anywhere. */
-body .moon-toggle,
-body .moon-button,
-body .theme-toggle,
-body .theme-button,
-body .dark-mode-toggle,
-body .night-mode-toggle,
-body [id*="moon" i],
-body [id*="theme" i],
-body [id*="dark" i],
-body [id*="nacht" i] {
+<style id="moon-only-more-absolute-final">
+/* The theme button lives outside .app. Therefore its visibility must be
+   driven by the actual .app.more-active state. */
+#themeButton,
+#themePicker {
   display:none !important;
   visibility:hidden !important;
 }
 
-/* More only: reveal the real moon control if it has one of the above hooks. */
-body.more-tab-active .moon-toggle,
-body.more-tab-active .moon-button,
-body.more-tab-active .theme-toggle,
-body.more-tab-active .theme-button,
-body.more-tab-active .dark-mode-toggle,
-body.more-tab-active .night-mode-toggle,
-body.more-tab-active [id*="moon" i],
-body.more-tab-active [id*="theme" i],
-body.more-tab-active [id*="dark" i],
-body.more-tab-active [id*="nacht" i] {
+/* Only the Meer screen gets the moon. */
+.app.more-active ~ #themeButton,
+.app.more-active ~ #themePicker,
+body:has(.app.more-active) #themeButton,
+body:has(.app.more-active) #themePicker {
   display:flex !important;
   visibility:visible !important;
 }
 
-/* Lijst + Overzicht: header right side is completely empty. */
-body:not(.more-tab-active) .headerBar > *:not(h1) {
-  display:none !important;
-}
-body:not(.more-tab-active) .headerBar::after {
-  content:none !important;
-  display:none !important;
+/* Picker itself is a block, not flex. */
+body:has(.app.more-active) #themePicker {
+  display:block !important;
 }
 
-/* Prevent an empty moon wrapper from reserving space on Lijst/Overzicht. */
-body:not(.more-tab-active) .headerBar .moon-wrap,
-body:not(.more-tab-active) .headerBar .theme-wrap,
-body:not(.more-tab-active) .headerBar .header-actions,
-body:not(.more-tab-active) .headerBar .right-actions {
+/* Never reserve room for an action on the right of the green header. */
+.headerBar > .familyMenu,
+.headerBar > .familyButton,
+.headerBar > .header-actions,
+.headerBar > .right-actions {
   display:none !important;
+}
+.headerBar {
+  justify-content:flex-start !important;
+}
+.headerBar h1 {
+  margin-right:0 !important;
+  padding-right:0 !important;
 }
 </style>
 
@@ -5901,33 +5891,41 @@ body.dark-theme .overviewAllListsBtn{background:#304b39;color:#dce9df}
 body.dark-theme .overviewSavedListLine{color:#c2ccc5;border-bottom-color:rgba(255,255,255,.08)}
 </style>
 
-<script id="moon-tab-exact">
+<script id="moon-more-state-final">
 (function(){
-  function sync(){
-    var active=document.querySelector('.appTabButton.active,[data-tab="more"].active');
-    var isMore=!!(active && active.getAttribute('data-tab')==='more');
-    document.body.classList.toggle('more-tab-active',isMore);
-  }
-  document.addEventListener('DOMContentLoaded',function(){
-    sync();
-    setTimeout(sync,100);
-    setTimeout(sync,500);
-  });
-  document.addEventListener('click',function(e){
-    if(e.target.closest && e.target.closest('.appTabButton')){
-      setTimeout(sync,0);
-      setTimeout(sync,50);
+  function setMoonVisibility(){
+    var app=document.querySelector('.app');
+    var btn=document.getElementById('themeButton');
+    var picker=document.getElementById('themePicker');
+    var more=!!(app && app.classList.contains('more-active'));
+    if(btn){
+      btn.style.setProperty('display', more ? 'flex' : 'none', 'important');
+      btn.style.setProperty('visibility', more ? 'visible' : 'hidden', 'important');
     }
-  });
-  var old=window.switchAppTab;
-  if(typeof old==='function'){
-    window.switchAppTab=function(tab){
-      var r=old.apply(this,arguments);
-      setTimeout(sync,0);
-      setTimeout(sync,50);
-      return r;
-    };
+    if(picker){
+      if(!more){
+        picker.classList.remove('open','theme-closing');
+        picker.style.setProperty('display','none','important');
+        picker.style.setProperty('visibility','hidden','important');
+        picker.setAttribute('aria-hidden','true');
+      } else if(picker.classList.contains('open')){
+        picker.style.setProperty('display','block','important');
+        picker.style.setProperty('visibility','visible','important');
+      }
+    }
   }
+
+  function install(){
+    var app=document.querySelector('.app');
+    if(app){
+      new MutationObserver(setMoonVisibility).observe(app,{attributes:true,attributeFilter:['class']});
+    }
+    setMoonVisibility();
+    setTimeout(setMoonVisibility,100);
+    setTimeout(setMoonVisibility,500);
+  }
+
+  document.addEventListener('DOMContentLoaded',install);
 })();
 </script>
 
