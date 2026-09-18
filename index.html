@@ -1053,6 +1053,28 @@ body.dark-theme .themeOption i{color:#dce9df;}
 body.dark-theme .familyMenuPage {
   background: #252b27;
 }
+
+/* === Moderne onderste navigatie === */
+.bottomNav{position:fixed;left:0;right:0;bottom:0;height:82px;background:rgba(255,255,255,.97);border-top:1px solid rgba(63,91,69,.10);display:flex;align-items:stretch;justify-content:space-around;padding:7px 12px calc(7px + env(safe-area-inset-bottom));box-sizing:border-box;z-index:9000;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.bottomNavBtn{flex:1;max-width:150px;border:0;background:transparent;border-radius:22px;color:#718078;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font:700 13px/1 inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .18s ease,color .18s ease,transform .12s ease}
+.bottomNavBtn i{font-size:25px;line-height:1}
+.bottomNavBtn.active{background:#E8F3EA;color:#3F5B45}
+.bottomNavBtn:active{transform:scale(.97)}
+.overviewView{display:none;margin-top:18px;padding-bottom:115px}
+.app.overview-active .overviewView{display:block}
+.app.overview-active h2,.app.overview-active .input-row-wrap,.app.overview-active .searchBox,.app.overview-active #refresh,.app.overview-active .list,.app.overview-active .saveListMainBtn,.app.overview-active .buttons,.app.overview-active .status{display:none!important}
+.overviewCard{background:#fff;border:1px solid rgba(63,91,69,.10);border-radius:24px;padding:22px;box-shadow:0 8px 24px rgba(63,91,69,.07);margin-bottom:14px}
+.overviewTitle{font-size:22px;font-weight:800;color:#3F5B45;margin-bottom:18px}
+.overviewStats{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.overviewStat{background:#F3F8F4;border-radius:18px;padding:17px 14px;text-align:center}
+.overviewStat strong{display:block;font-size:28px;color:#3F5B45;line-height:1.1}.overviewStat span{display:block;margin-top:5px;color:#6d7c73;font-size:13px;font-weight:700}
+.overviewProgress{height:11px;background:#E8F0EA;border-radius:99px;overflow:hidden;margin-top:18px}.overviewProgressFill{height:100%;width:0;background:#5C7F65;border-radius:99px;transition:width .35s ease}
+.overviewEmpty{color:#6d7c73;text-align:center;padding:16px 4px;font-size:15px}
+body.dark-theme .bottomNav{background:rgba(25,30,26,.97);border-top-color:rgba(255,255,255,.08)}
+body.dark-theme .bottomNavBtn{color:#aeb8b1}.bottomNavBtn.active{color:#3F5B45}body.dark-theme .bottomNavBtn.active{background:#304b39;color:#dce9df}
+body.dark-theme .overviewCard{background:#202620;border-color:rgba(255,255,255,.08)}body.dark-theme .overviewTitle{color:#bfe3c7}body.dark-theme .overviewStat{background:#28332b}body.dark-theme .overviewStat strong{color:#bfe3c7}body.dark-theme .overviewStat span,.overviewEmpty{color:#b8c0ba}body.dark-theme .overviewProgress{background:#303a32}
+@media(max-width:600px){.bottomNav{height:76px;padding-left:8px;padding-right:8px}.bottomNavBtn{border-radius:20px;font-size:12px}.bottomNavBtn i{font-size:23px}.app{padding-bottom:92px!important}.themeButton{bottom:92px!important}.themePicker{bottom:144px!important}}
+
 </style>
 <style>
 /* Zoekbalk: kruisje alleen zichtbaar wanneer er tekst is */
@@ -2092,69 +2114,6 @@ body.dark-theme .sharedListInviteBox{background:rgba(255,255,255,.06);border-col
 }
 </style>
 
-
-<style id="modern-navigation-plan">
-  .app{padding-bottom:88px;}
-  .mainListContent{display:block;}
-  .overviewPanel{display:none; padding:4px 0 18px;}
-  .overviewPanel.visible{display:block; animation:overviewIn .24s ease both;}
-  @keyframes overviewIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
-  .overviewHeader{display:flex;align-items:center;justify-content:space-between;margin:4px 2px 16px;}
-  .overviewEyebrow{display:block;color:#7c8880;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:3px;}
-  .overviewHeader h2{text-align:left;margin:0;font-size:24px;color:#245c3a;}
-  .overviewLeaf{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#e8f3ea;color:#3f5b45;font-size:18px;}
-  .overviewCards{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
-  .overviewCard{background:#fff;border:1px solid #e3e9e4;border-radius:17px;padding:14px;box-shadow:0 5px 16px rgba(63,91,69,.07);}
-  .overviewCardIcon{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#e8f3ea;color:#3f5b45;margin-bottom:9px;}
-  .overviewCard strong{display:block;font-size:25px;line-height:1.1;color:#263229;}
-  .overviewCard span{display:block;color:#7b847e;font-size:12px;margin-top:3px;}
-  .overviewProgressCard,.overviewSection{background:#fff;border:1px solid #e3e9e4;border-radius:17px;padding:15px;margin-bottom:12px;box-shadow:0 5px 16px rgba(63,91,69,.06);}
-  .overviewProgressTop{display:flex;justify-content:space-between;align-items:center;font-size:14px;color:#4d5951;font-weight:700;}
-  .overviewProgressTop strong{color:#3f5b45;}
-  .overviewProgressTrack{height:9px;background:#edf1ee;border-radius:99px;overflow:hidden;margin-top:11px;}
-  #overviewProgressBar{height:100%;width:0;background:#3f5b45;border-radius:99px;transition:width .35s ease;}
-  .overviewProgressCard p{font-size:12px;color:#7b847e;margin:9px 0 0;}
-  .overviewSectionTitle{font-size:12px;color:#7c8880;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
-  .overviewInfoRow{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #eef1ef;font-size:14px;color:#39443d;}
-  .overviewInfoRow:last-child{border-bottom:0;padding-bottom:0;}
-  .overviewInfoRow i{width:22px;color:#54705e;margin-right:5px;}
-  .bottomNav{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:min(100%,600px);height:68px;box-sizing:border-box;padding:7px 12px calc(7px + env(safe-area-inset-bottom));background:rgba(255,255,255,.97);border-top:1px solid #e4e9e5;box-shadow:0 -5px 20px rgba(63,91,69,.08);display:flex;justify-content:space-around;z-index:9000;backdrop-filter:blur(10px);}
-  .bottomNavItem{flex:1;border:0;background:transparent;color:#7b847e;padding:5px 8px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;}
-  .bottomNavItem i{font-size:19px;line-height:1;}
-  .bottomNavItem.active{color:#3f5b45;background:#e8f3ea;}
-  .bottomNavItem:active{transform:scale(.97);}
-  /* The old header menu remains the functional menu, but is accessed through Meer. */
-  .headerBar .familyButton{display:none;}
-  .familyMenu.moreMenuPosition{position:fixed;left:50%;right:auto;top:auto;bottom:76px;transform:translateX(-50%) translateY(10px) scale(.985);transform-origin:bottom center;width:min(330px,calc(100vw - 28px));max-width:none;z-index:9500;}
-  .familyMenu.moreMenuPosition.menu-open{transform:translateX(-50%) translateY(0) scale(1);}
-  #themeButton{bottom:82px;right:18px;}
-  #themePicker{bottom:136px;}
-  body.dark-theme .bottomNav{background:rgba(28,34,29,.97);border-top-color:#343c36;box-shadow:0 -5px 20px rgba(0,0,0,.25);}
-  body.dark-theme .bottomNavItem{color:#aeb8b1;}
-  body.dark-theme .bottomNavItem.active{color:#c9e4cf;background:#304b39;}
-  body.dark-theme .overviewCard,body.dark-theme .overviewProgressCard,body.dark-theme .overviewSection{background:#202620;border-color:#343c36;}
-  body.dark-theme .overviewCard strong,body.dark-theme .overviewInfoRow{color:#f0f3f0;}
-  body.dark-theme .overviewHeader h2{color:#c9e4cf;}
-  body.dark-theme .overviewProgressTrack{background:#343c36;}
-  @media(max-width:430px){
-    .app{padding-left:14px;padding-right:14px;padding-bottom:86px;}
-    .bottomNav{height:66px;}
-    .familyMenu.moreMenuPosition{bottom:73px;}
-  }
-</style>
-
-
-<style id="navigation-button-color-fix">
-#loginScreen .loginBox > button:not(.togglePassword),
-#loginScreen .registerButton,
-#loginScreen .registerSubmit {
-  background:#3F5B45 !important;
-  background-color:#3F5B45 !important;
-  color:#fff !important;
-  border-color:#3F5B45 !important;
-}
-</style>
-
 </head>
 
 <body>
@@ -2445,7 +2404,6 @@ body.dark-theme .sharedListInviteBox{background:rgba(255,255,255,.06);border-col
   </div>
 
 
-<div id="mainListContent" class="mainListContent">
   <h2>Voeg iets toe aan je lijst</h2>
 
   <div class="input-row-wrap">
@@ -2477,59 +2435,32 @@ body.dark-theme .sharedListInviteBox{background:rgba(255,255,255,.06);border-col
    <i class=\"fa-solid fa-cloud\"></i> Lijst automatisch opgeslagen
     <span>Laatste update: vandaag</span>
 </div>
-  
-  </div>
 
-</div>
-  <section id="overviewPanel" class="overviewPanel" aria-labelledby="overviewTitle">
-    <div class="overviewHeader">
-      <div>
-        <span class="overviewEyebrow">Jouw lijst</span>
-        <h2 id="overviewTitle">Overzicht</h2>
+  <section id="overviewView" class="overviewView" aria-label="Overzicht">
+    <div class="overviewCard">
+      <div class="overviewTitle">Overzicht</div>
+      <div class="overviewStats">
+        <div class="overviewStat"><strong id="overviewTotal">0</strong><span>Producten</span></div>
+        <div class="overviewStat"><strong id="overviewDone">0</strong><span>Voltooid</span></div>
+        <div class="overviewStat"><strong id="overviewOpen">0</strong><span>Openstaand</span></div>
+        <div class="overviewStat"><strong id="overviewPercent">0%</strong><span>Voortgang</span></div>
       </div>
-      <div class="overviewLeaf"><i class="fa-solid fa-leaf"></i></div>
+      <div class="overviewProgress"><div id="overviewProgressFill" class="overviewProgressFill"></div></div>
     </div>
-
-    <div class="overviewCards">
-      <div class="overviewCard">
-        <div class="overviewCardIcon"><i class="fa-solid fa-cart-shopping"></i></div>
-        <strong id="overviewTotal">0</strong>
-        <span>producten</span>
-      </div>
-      <div class="overviewCard">
-        <div class="overviewCardIcon"><i class="fa-solid fa-circle-check"></i></div>
-        <strong id="overviewDone">0</strong>
-        <span>voltooid</span>
-      </div>
-    </div>
-
-    <div class="overviewProgressCard">
-      <div class="overviewProgressTop">
-        <span>Voortgang</span>
-        <strong id="overviewPercent">0%</strong>
-      </div>
-      <div class="overviewProgressTrack"><div id="overviewProgressBar"></div></div>
-      <p id="overviewProgressText">Nog geen producten op je lijst.</p>
-    </div>
-
-    <div class="overviewSection">
-      <div class="overviewSectionTitle">Deze lijst</div>
-      <div class="overviewInfoRow"><span><i class="fa-solid fa-list-check"></i> Openstaand</span><strong id="overviewOpen">0</strong></div>
-      <div class="overviewInfoRow"><span><i class="fa-solid fa-check"></i> Klaar</span><strong id="overviewDoneSmall">0</strong></div>
+    <div class="overviewCard">
+      <div class="overviewTitle">Vandaag</div>
+      <div id="overviewMessage" class="overviewEmpty">Je overzicht wordt automatisch bijgewerkt wanneer je producten toevoegt of afvinkt.</div>
     </div>
   </section>
 
-  <nav id="bottomNav" class="bottomNav" aria-label="Hoofdnavigatie">
-    <button type="button" class="bottomNavItem active" data-tab="list" onclick="showAppTab('list')">
-      <i class="fa-solid fa-cart-shopping"></i><span>Lijst</span>
-    </button>
-    <button type="button" class="bottomNavItem" data-tab="overview" onclick="showAppTab('overview')">
-      <i class="fa-solid fa-chart-simple"></i><span>Overzicht</span>
-    </button>
-    <button type="button" class="bottomNavItem" data-tab="more" onclick="openMoreMenu()">
-      <i class="fa-solid fa-bars"></i><span>Meer</span>
-    </button>
+  <nav class="bottomNav" aria-label="Hoofdnavigatie">
+    <button type="button" id="navList" class="bottomNavBtn active" onclick="showMainListView()"><i class="fa-solid fa-cart-shopping"></i><span>Lijst</span></button>
+    <button type="button" id="navOverview" class="bottomNavBtn" onclick="showOverviewView()"><i class="fa-solid fa-chart-simple"></i><span>Overzicht</span></button>
+    <button type="button" id="navMore" class="bottomNavBtn" onclick="showMoreView()"><i class="fa-solid fa-bars"></i><span>Meer</span></button>
   </nav>
+
+  
+  </div>
 
 </div>
 
@@ -5620,6 +5551,39 @@ function toggleRegisterPassword(fieldId, button) {
     return base + '?code=' + encodeURIComponent(code || '');
   };
 })();
+
+/* === Bottom navigation === */
+function setBottomNav(active){
+  document.querySelectorAll('.bottomNavBtn').forEach(function(b){b.classList.remove('active');});
+  var el=document.getElementById(active); if(el) el.classList.add('active');
+}
+function showMainListView(){
+  var app=document.querySelector('.app'); if(app) app.classList.remove('overview-active');
+  setBottomNav('navList');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function showOverviewView(){
+  var app=document.querySelector('.app'); if(app) app.classList.add('overview-active');
+  setBottomNav('navOverview');
+  updateOverviewView();
+  window.scrollTo({top:0,behavior:'smooth'});
+  var menu=document.getElementById('familyMenu'); if(menu && menu.classList.contains('menu-open')) closeFamilyMenu();
+}
+function showMoreView(){
+  showMainListView();
+  setBottomNav('navMore');
+  var menu=document.getElementById('familyMenu');
+  if(menu && menu.classList.contains('menu-open')) closeFamilyMenu(); else toggleFamilyMenu();
+}
+function updateOverviewView(){
+  var arr=(typeof boodschappen!=='undefined' && Array.isArray(boodschappen))?boodschappen:[];
+  var total=arr.length, done=arr.filter(function(x){return !!x.completed;}).length, open=Math.max(0,total-done), pct=total?Math.round(done/total*100):0;
+  var set=function(id,v){var e=document.getElementById(id);if(e)e.textContent=v;};
+  set('overviewTotal',total);set('overviewDone',done);set('overviewOpen',open);set('overviewPercent',pct+'%');
+  var f=document.getElementById('overviewProgressFill');if(f)f.style.width=pct+'%';
+  var msg=document.getElementById('overviewMessage');if(msg)msg.textContent=total?'Je hebt '+done+' van '+total+' producten voltooid.':'Je lijst is nog leeg. Voeg een product toe om te beginnen.';
+}
+
 </script>
 
 <style>
