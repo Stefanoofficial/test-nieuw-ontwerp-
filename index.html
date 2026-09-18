@@ -2226,48 +2226,42 @@ body.dark-theme .sharedListInviteBox{background:rgba(255,255,255,.06);border-col
 }
 </style>
 
-<style id="moon-only-more-final">
-/* Nachtknop: alleen zichtbaar op Meer */
-.moon-toggle,
-#moonToggle,
-#themeToggle,
-.theme-toggle,
-.dark-mode-toggle,
-.night-mode-toggle,
-#darkModeToggle {
+<style id="moon-only-more-absolute-final">
+/* The theme button lives outside .app. Therefore its visibility must be
+   driven by the actual .app.more-active state. */
+#themeButton,
+#themePicker {
+  display:none !important;
+  visibility:hidden !important;
+}
+
+/* Only the Meer screen gets the moon. */
+.app.more-active ~ #themeButton,
+.app.more-active ~ #themePicker,
+body:has(.app.more-active) #themeButton,
+body:has(.app.more-active) #themePicker {
+  display:flex !important;
+  visibility:visible !important;
+}
+
+/* Picker itself is a block, not flex. */
+body:has(.app.more-active) #themePicker {
+  display:block !important;
+}
+
+/* Never reserve room for an action on the right of the green header. */
+.headerBar > .familyMenu,
+.headerBar > .familyButton,
+.headerBar > .header-actions,
+.headerBar > .right-actions {
   display:none !important;
 }
-
-/* Als de bestaande knop in een header/container zit, blijft de rechterkant
-   van Lijst en Overzicht volledig leeg. */
-.app[data-current-tab="more"] .moon-toggle,
-.app[data-current-tab="more"] #moonToggle,
-.app[data-current-tab="more"] #themeToggle,
-.app[data-current-tab="more"] .theme-toggle,
-.app[data-current-tab="more"] .dark-mode-toggle,
-.app[data-current-tab="more"] .night-mode-toggle,
-.app[data-current-tab="more"] #darkModeToggle,
-body[data-current-tab="more"] .moon-toggle,
-body[data-current-tab="more"] #moonToggle,
-body[data-current-tab="more"] #themeToggle,
-body[data-current-tab="more"] .theme-toggle,
-body[data-current-tab="more"] .dark-mode-toggle,
-body[data-current-tab="more"] .night-mode-toggle,
-body[data-current-tab="more"] #darkModeToggle {
-  display:flex !important;
-}
-
-/* Geen reserveplek rechts in de groene titelbalk */
 .headerBar {
   justify-content:flex-start !important;
 }
 .headerBar h1 {
   margin-right:0 !important;
-}
-.headerBar .header-actions,
-.headerBar .actions,
-.headerBar .right-actions {
-  display:none !important;
+  padding-right:0 !important;
 }
 </style>
 
@@ -5897,30 +5891,41 @@ body.dark-theme .overviewAllListsBtn{background:#304b39;color:#dce9df}
 body.dark-theme .overviewSavedListLine{color:#c2ccc5;border-bottom-color:rgba(255,255,255,.08)}
 </style>
 
-<script id="moon-tab-state-final">
+<script id="moon-more-state-final">
 (function(){
-  function syncMoonTab(){
+  function setMoonVisibility(){
     var app=document.querySelector('.app');
-    var body=document.body;
-    var more=document.querySelector('[data-tab="more"].active');
-    var isMore=!!more;
-    if(app) app.setAttribute('data-current-tab', isMore?'more':'');
-    if(body) body.setAttribute('data-current-tab', isMore?'more':'');
+    var btn=document.getElementById('themeButton');
+    var picker=document.getElementById('themePicker');
+    var more=!!(app && app.classList.contains('more-active'));
+    if(btn){
+      btn.style.setProperty('display', more ? 'flex' : 'none', 'important');
+      btn.style.setProperty('visibility', more ? 'visible' : 'hidden', 'important');
+    }
+    if(picker){
+      if(!more){
+        picker.classList.remove('open','theme-closing');
+        picker.style.setProperty('display','none','important');
+        picker.style.setProperty('visibility','hidden','important');
+        picker.setAttribute('aria-hidden','true');
+      } else if(picker.classList.contains('open')){
+        picker.style.setProperty('display','block','important');
+        picker.style.setProperty('visibility','visible','important');
+      }
+    }
   }
-  var oldSwitch=window.switchAppTab;
-  if(typeof oldSwitch==='function'){
-    window.switchAppTab=function(tab){
-      var result=oldSwitch.apply(this,arguments);
-      setTimeout(syncMoonTab,0);
-      return result;
-    };
+
+  function install(){
+    var app=document.querySelector('.app');
+    if(app){
+      new MutationObserver(setMoonVisibility).observe(app,{attributes:true,attributeFilter:['class']});
+    }
+    setMoonVisibility();
+    setTimeout(setMoonVisibility,100);
+    setTimeout(setMoonVisibility,500);
   }
-  document.addEventListener('click',function(e){
-    if(e.target.closest && e.target.closest('.appTabButton')) setTimeout(syncMoonTab,30);
-  });
-  document.addEventListener('DOMContentLoaded',function(){
-    setTimeout(syncMoonTab,100);
-  });
+
+  document.addEventListener('DOMContentLoaded',install);
 })();
 </script>
 
