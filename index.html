@@ -295,8 +295,8 @@ button {
   background: rgba(0,0,0,0.45);
   border-radius: 12px;
   padding: 18px 8px 8px;
-  height: 300px !important;
-max-height: 300px !important;
+  height: 330px !important;
+max-height: 330px !important;
 overflow-y: auto !important;
 overflow-x: hidden;
 }
@@ -1202,6 +1202,28 @@ body.dark-theme .overviewCard{background:#202620;border-color:rgba(255,255,255,.
   object-fit: contain;
   display: block;
 }
+
+/* Kleine verwijderknop direct op iedere productregel. */
+.productDeleteBtn {
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 10px;
+  background: #fbeaea;
+  color: #c43a34;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  font-size: 16px;
+  transition: background .15s ease, transform .15s ease;
+}
+.productDeleteBtn:active { transform: scale(.94); }
+.productDeleteBtn:hover { background: #f6dada; }
+body.dark-theme .productDeleteBtn { background: #442b2b; color: #f1b4b0; }
+body.dark-theme .productDeleteBtn:hover { background: #523232; }
 
 .productSuggestionIcon {
   width: 30px;
