@@ -2364,36 +2364,42 @@ body.dark-theme .overview-new-greeting,body.dark-theme .overview-new-title,body.
 body.dark-theme .overview-new-card{background:#202923;border-color:#34443a}
 </style>
 
-<style id="overview-middle-scroll-final">
-/* Alleen de inhoud van Overzicht scrollt; begroeting en onderste navigatie blijven staan. */
-#overviewDashboardFinal{
+<style id="overview-scroll-correct">
+/* Overzicht: begroeting blijft vast; alleen de inhoud eronder scrollt. */
+.app.overview-active .overviewView{
+  height:calc(100dvh - 100px);
+  max-height:calc(100dvh - 100px);
+  box-sizing:border-box;
+  overflow:hidden;
+  padding-bottom:0;
+  margin-top:18px;
+}
+.app.overview-active .overview-new{
+  height:100%;
+  min-height:0;
+  box-sizing:border-box;
+  padding:0 12px;
   display:flex;
   flex-direction:column;
-  box-sizing:border-box;
-  height:calc(100dvh - 150px);
-  min-height:0;
-  overflow:hidden;
 }
-#overviewDashboardFinal > .ov-greeting{
+.app.overview-active .overview-new-greeting{
   flex:0 0 auto;
 }
-#overviewDashboardFinal > .ov-card{
-  flex:0 0 auto;
-}
-#overviewDashboardFinal > .ov-card:nth-of-type(n+2){
-  /* Cards below the first are placed in a scroll container by JS. */
-}
-#overviewDashboardScrollArea{
+.app.overview-active #overviewScrollArea{
   flex:1 1 auto;
   min-height:0;
   overflow-y:auto;
   overflow-x:hidden;
   -webkit-overflow-scrolling:touch;
-  overscroll-behavior:contain;
-  padding:0 1px 90px 1px;
+  overscroll-behavior-y:contain;
   scrollbar-width:none;
+  padding-bottom:22px;
 }
-#overviewDashboardScrollArea::-webkit-scrollbar{display:none}
+.app.overview-active #overviewScrollArea::-webkit-scrollbar{display:none}
+.overview-week-card .overview-dashboard-heading i{
+  background:#e8f0ff;
+  color:#4e73ad;
+}
 </style>
 </head>
 
@@ -2726,6 +2732,7 @@ body.dark-theme .overview-new-card{background:#202923;border-color:#34443a}
 <section id="overviewView" class="overviewView" aria-label="Overzicht">
   <div class="overview-new">
     <h2 id="overviewGreetingNew" class="overview-new-greeting">Goedendag 👋</h2>
+  <div id="overviewScrollArea">
 
     <div class="overview-new-card overview-click-card" onclick="openQuickAddFromOverview()">
       <div class="overview-new-title"><i class="fa-solid fa-bolt overview-new-bolt"></i><span>Snel opnieuw toevoegen</span><i class="fa-solid fa-chevron-right overview-new-arrow"></i></div>
@@ -2757,15 +2764,21 @@ body.dark-theme .overview-new-card{background:#202923;border-color:#34443a}
       </div>
     </section>
 
-    <section class="overview-dashboard-card overview-frequent-card" aria-label="Vaak toegevoegd">
-      <h3 class="overview-dashboard-heading"><i class="fa-solid fa-star"></i> Vaak toegevoegd</h3>
-      <div id="overviewFrequentProducts" class="overview-frequent-list"></div>
+    <section class="overview-dashboard-card overview-week-card" aria-label="Deze week">
+      <h3 class="overview-dashboard-heading"><i class="fa-solid fa-calendar-week"></i> Deze week</h3>
+      <div class="overview-dashboard-stats">
+        <div class="overview-dashboard-stat"><strong id="overviewWeekLists">0</strong><span>Lijsten</span></div>
+        <div class="overview-dashboard-stat"><strong id="overviewWeekProducts">0</strong><span>Producten</span></div>
+        <div class="overview-dashboard-stat"><strong id="overviewWeekCompleted">0</strong><span>Voltooid</span></div>
+      </div>
     </section>
 
     <section class="overview-dashboard-card overview-activity-card" aria-label="Laatste activiteit">
       <h3 class="overview-dashboard-heading"><i class="fa-solid fa-clock-rotate-left"></i> Laatste activiteit</h3>
       <div id="overviewActivity" class="overview-activity-list"></div>
     </section>
+
+  </div>
   </div>
 </section>
 
@@ -6090,24 +6103,18 @@ function updateOverviewDashboard(){
   if(completedEl) completedEl.textContent=String(completed);
   if(historyEl) historyEl.textContent=String(history.length);
 
-  var frequent=document.getElementById("overviewFrequentProducts");
-  if(frequent){
-    var products=getFrequentlyUsedProducts().slice(0,4);
-    frequent.innerHTML="";
-    if(!products.length){
-      frequent.innerHTML='<div class="overview-dashboard-muted">Je vaak gebruikte producten verschijnen hier zodra je boodschappen hebt toegevoegd.</div>';
-    }else{
-      products.forEach(function(product){
-        var row=document.createElement("button");
-        row.type="button";
-        row.className="overview-frequent-row";
-        row.innerHTML='<span><i class="fa-solid fa-cart-shopping"></i><b></b></span><span class="overview-frequent-add"><i class="fa-solid fa-plus"></i></span>';
-        row.querySelector("b").textContent=product.name;
-        row.addEventListener("click",function(){ addProductFromOverview(product.name); });
-        frequent.appendChild(row);
-      });
-    }
-  }
+  var now=Date.now(), weekStart=now-7*24*60*60*1000;
+  var weekTrips=Array.isArray(history) ? history.filter(function(trip){ return Number(trip.savedAt||0)>=weekStart; }) : [];
+  var weekProducts=weekTrips.reduce(function(sum,trip){ return sum+((trip.items||[]).length); },0);
+  var weekCompleted=weekTrips.reduce(function(sum,trip){
+    return sum+(trip.items||[]).filter(function(item){return item && item.completed;}).length;
+  },0);
+  var weekListsEl=document.getElementById("overviewWeekLists");
+  var weekProductsEl=document.getElementById("overviewWeekProducts");
+  var weekCompletedEl=document.getElementById("overviewWeekCompleted");
+  if(weekListsEl) weekListsEl.textContent=String(weekTrips.length);
+  if(weekProductsEl) weekProductsEl.textContent=String(weekProducts);
+  if(weekCompletedEl) weekCompletedEl.textContent=String(weekCompleted);
 
   var activity=document.getElementById("overviewActivity");
   if(activity){
@@ -6394,24 +6401,6 @@ document.addEventListener("DOMContentLoaded",function(){
   refreshOverviewGreeting();
   setInterval(refreshOverviewGreeting,60000);
 });
-</script>
-
-<script id="overview-middle-scroll-final-logic">
-(function(){
-  function setupOverviewScroll(){
-    var root=document.getElementById('overviewDashboardFinal');
-    if(!root || document.getElementById('overviewDashboardScrollArea')) return;
-    var greeting=root.querySelector('.ov-greeting');
-    var cards=Array.prototype.slice.call(root.querySelectorAll(':scope > .ov-card'));
-    if(!greeting || cards.length<2) return;
-    var area=document.createElement('div');
-    area.id='overviewDashboardScrollArea';
-    cards.slice(1).forEach(function(card){ area.appendChild(card); });
-    root.appendChild(area);
-  }
-  document.addEventListener('DOMContentLoaded',setupOverviewScroll);
-  window.addEventListener('load',setupOverviewScroll);
-})();
 </script>
 </body>
 
