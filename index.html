@@ -2290,19 +2290,6 @@ body:has(.app.more-active) #themePicker {
 }
 </style>
 
-
-<style id="login-screen-isolation-fix">
-/* Login screen is standalone: no app navigation or theme control visible. */
-body:has(#loginScreen) #themeButton,
-body:has(#loginScreen) #themePicker,
-body:has(#loginScreen) .bottomNav {
-  display: none !important;
-}
-
-body:has(#loginScreen) #loginScreen {
-  z-index: 99999 !important;
-}
-</style>
 </head>
 
 <body>
@@ -6246,19 +6233,3 @@ body.logged-in {
 /* De maan is een directe licht/donker-schakelaar; geen popup nodig. */
 #themePicker { display:none !important; visibility:hidden !important; }
 </style>
-
-
-/* Delete action for individual product rows. */
-document.addEventListener('click', function (event) {
-  const btn = event.target.closest('.product-row-delete, .product-delete-btn');
-  if (!btn) return;
-  const row = btn.closest('[data-product-id], .product-row, .product-item, .shopping-item');
-  if (!row) return;
-  const id = btn.dataset.productId || row.dataset.productId;
-  if (id) {
-    window.dispatchEvent(new CustomEvent('product:delete', { detail: { id } }));
-  } else {
-    row.remove();
-  }
-});
-
