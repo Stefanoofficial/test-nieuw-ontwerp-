@@ -5445,36 +5445,6 @@ function togglePassword() {
     alert("Wachtwoord resetten mislukt: " + error.message);
   }
 }
-async function finishSuccessfulLogin(user){
-  if(!user) return;
-  document.body.classList.add("logged-in");
-  const loginScreen = document.getElementById("loginScreen");
-  if (loginScreen) {
-    loginScreen.classList.remove("loginScreenLeaving");
-    loginScreen.style.display = "none";
-  }
-
-  const sharedInviteCode = new URLSearchParams(window.location.search).get("deellijst");
-  if (sharedInviteCode) return;
-
-  const householdId = await getOrCreateHousehold();
-  if (householdId) {
-    activeListType = "family";
-    await loadList();
-  } else {
-    const savedMode = localStorage.getItem("boodschappenUseMode_" + user.uid);
-    if (savedMode === "private") {
-      await loadPrivateList();
-    } else if (savedMode === "skip") {
-      openAppWithoutList();
-    } else {
-      openUseModeModal();
-    }
-  }
-  await updateMemberCount();
-  watchMemberCount();
-}
-
 async function login(){
   const emailEl=document.getElementById("loginEmail");
   const passwordEl=document.getElementById("loginPassword");
@@ -5492,21 +5462,16 @@ async function login(){
     btn.dataset.loginBusy="1";
   }
 
-  // Mark this as an explicit login so the session-restoration listener does not
-  // run a second navigation at the same time.
-  loginFlowActive = true;
+  // Do not wait for auth persistence. Firebase can sign in immediately;
+  // the existing onAuthStateChanged handler will finish the normal flow.
   auth.signInWithEmailAndPassword(email,password)
-    .then(async (credential)=>{
-      try { await finishSuccessfulLogin(credential.user); }
-      catch (error) { console.error("Na inloggen openen van de lijst mislukt:", error); familyAlert("Inloggen", "Je bent ingelogd, maar de lijst kon niet worden geopend.", "fa-triangle-exclamation"); }
-      finally { loginFlowActive = false; }
+    .then(()=>{
       if(btn){
         btn.disabled=false;
         delete btn.dataset.loginBusy;
       }
     })
     .catch(err=>{
-      loginFlowActive = false;
       if(btn){
         btn.disabled=false;
         delete btn.dataset.loginBusy;
