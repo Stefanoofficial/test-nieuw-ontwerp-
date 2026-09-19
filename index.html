@@ -2422,6 +2422,31 @@ body.dark-theme .overview-new-card{background:#202923;border-color:#34443a}
 .overview-week-card .overview-dashboard-stat strong{font-size:23px !important;}
 .overview-week-card .overview-dashboard-stat span{margin-top:5px !important;font-size:11px !important;}
 </style>
+
+<style id="overview-week-clickable-final">
+.overview-stat-clickable{
+  position:relative;
+  border:0;
+  background:transparent;
+  font:inherit;
+  color:inherit;
+  cursor:pointer;
+  text-align:center;
+  -webkit-tap-highlight-color:transparent;
+  padding:8px 18px;
+}
+.overview-stat-clickable > i{
+  position:absolute;
+  right:3px;
+  top:50%;
+  transform:translateY(-50%);
+  font-size:11px;
+  opacity:.45;
+}
+.overview-stat-clickable:active{
+  transform:scale(.98);
+}
+</style>
 </head>
 
 <body>
@@ -2785,9 +2810,9 @@ body.dark-theme .overview-new-card{background:#202923;border-color:#34443a}
     <section class="overview-dashboard-card overview-week-card" aria-label="Deze week">
       <h3 class="overview-dashboard-heading"><i class="fa-solid fa-calendar-week"></i> Deze week</h3>
       <div class="overview-dashboard-stats">
-        <div class="overview-dashboard-stat"><strong id="overviewWeekLists">0</strong><span>Lijsten</span></div>
-        <div class="overview-dashboard-stat"><strong id="overviewWeekProducts">0</strong><span>Producten</span></div>
-        <div class="overview-dashboard-stat"><strong id="overviewWeekCompleted">0</strong><span>Voltooid</span></div>
+        <button type="button" class="overview-dashboard-stat overview-stat-clickable" onclick="openWeekLists()" aria-label="Bekijk lijsten van deze week"><strong id="overviewWeekLists">0</strong><span>Lijsten</span><i class="fa-solid fa-chevron-right"></i></button>
+        <button type="button" class="overview-dashboard-stat overview-stat-clickable" onclick="openWeekProducts()" aria-label="Bekijk producten van deze week"><strong id="overviewWeekProducts">0</strong><span>Producten</span><i class="fa-solid fa-chevron-right"></i></button>
+        <button type="button" class="overview-dashboard-stat overview-stat-clickable" onclick="openWeekCompleted()" aria-label="Bekijk voltooide boodschappen van deze week"><strong id="overviewWeekCompleted">0</strong><span>Voltooid</span><i class="fa-solid fa-chevron-right"></i></button>
       </div>
     </section>
 
@@ -6434,6 +6459,36 @@ document.addEventListener("DOMContentLoaded",function(){
   refreshOverviewGreeting();
   setInterval(refreshOverviewGreeting,60000);
 });
+</script>
+
+<script id="overview-week-clickable-logic">
+function openWeekLists(){
+  // De lijst-teller verwijst naar de opgeslagen boodschappenlijsten.
+  showMoreView();
+  setTimeout(function(){
+    try{
+      if(typeof openSavedListsSubmenu==='function'){
+        openSavedListsSubmenu({preventDefault:function(){},stopPropagation:function(){}});
+      }
+    }catch(e){ console.error(e); }
+  },60);
+}
+function openWeekProducts(){
+  // Producten van deze week worden vanuit de hoofd-lijst bekeken.
+  showMainListView();
+  setTimeout(function(){
+    var list=document.getElementById('shoppingList') || document.querySelector('.shoppingList,.itemsList,#itemsList');
+    if(list) list.scrollIntoView({behavior:'smooth',block:'start'});
+  },80);
+}
+function openWeekCompleted(){
+  // Open de lijst en ga naar het eerste momenteel voltooide product.
+  showMainListView();
+  setTimeout(function(){
+    var done=document.querySelector('.item.completed');
+    if(done) done.scrollIntoView({behavior:'smooth',block:'center'});
+  },100);
+}
 </script>
 </body>
 
