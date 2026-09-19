@@ -2730,11 +2730,6 @@ body.dark-theme .overview-new-card{background:#202923;border-color:#34443a}
       <i class="fa-solid fa-circle-question"></i>
       <span>Help &amp; uitleg</span>
     </button>
-    <button type="button" class="familyMenuItem" onclick="openFamilyListFromAbout(event)">
-      <i class="fa-solid fa-list"></i>
-      <span>Familielijst</span>
-      <i class="fa-solid fa-chevron-right familyMenuArrow"></i>
-    </button>
     <div class="aboutMenuHint">Boodschappenlijst · versie 1.0</div>
   </div>
 </div>
@@ -3220,24 +3215,6 @@ async function logoutFromMenu() {
     explicitLogoutInProgress = false;
     await familyAlert("Uitloggen", "Uitloggen is niet gelukt.", "fa-triangle-exclamation");
   }
-}
-async function openFamilyListFromAbout(event){
-  if(event) event.stopPropagation();
-  const user=auth.currentUser;
-  if(!user) return;
-
-  // Same navigation pattern as a Deellijst item (e.g. Kerst):
-  // go to the real Lijst tab first, close the menu, then load the family list.
-  activeListType = "family";
-  if(currentSharedListUnsubscribe){
-    currentSharedListUnsubscribe();
-    currentSharedListUnsubscribe = null;
-  }
-  currentSharedListId = null;
-  currentSharedListInviteCode = null;
-
-  showMainListView();
-  await loadList();
 }
 function showAboutApp() {
   closeFamilyMenuForDialog();
@@ -4910,43 +4887,31 @@ async function deleteCurrentSharedList(){
 
 async function returnToFamilyList(event){
   if(event) event.stopPropagation();
-  if(!auth.currentUser) return;
+  const user=auth.currentUser;
+  if(!user) return;
 
-  const activePage=document.getElementById("sharedListActiveMenuSub");
-  const menu=document.getElementById("familyMenu");
+  // EXACT dezelfde navigatie als wanneer je op "Kerst" drukt:
+  // eerst naar de hoofdweergave Lijst en het menu sluiten.
+  showMainListView();
+  closeFamilyMenu();
 
-  if(__menuTransitionTimer){ clearTimeout(__menuTransitionTimer); __menuTransitionTimer=null; }
-  if(activePage){
-    __resetMenuPageClasses(activePage);
-    activePage.style.display="block";
-    activePage.classList.add("menuSlideOutRight");
+  // Daarna expliciet terug naar de gewone familielijst.
+  activeListType="family";
+
+  if(currentSharedListUnsubscribe){
+    currentSharedListUnsubscribe();
+    currentSharedListUnsubscribe=null;
   }
 
-  // Shared-list UI must disappear immediately; the family list itself is
-  // loaded only after the menu transition so no shared-list frame leaks through.
-  document.querySelectorAll("#deleteSharedListBtn,.sharedDeleteIconButton").forEach(el=>el.remove());
-
-  activeListType="family";
-  if(currentSharedListId){ try{ localStorage.removeItem("sharedListInviteCode:"+currentSharedListId); }catch(_){} }
   currentSharedListId=null;
   currentSharedListInviteCode=null;
-  if(currentSharedListUnsubscribe){ currentSharedListUnsubscribe(); currentSharedListUnsubscribe=null; }
+
+  document.querySelectorAll("#deleteSharedListBtn,.sharedDeleteIconButton").forEach(el=>el.remove());
 
   const h=document.querySelector(".headerBar h1");
   if(h) h.textContent="Boodschappenlijst";
 
-  if(menu){
-    menu.classList.remove("menu-open");
-  }
-
-  await new Promise(resolve=>setTimeout(resolve,290));
-  if(activePage){ activePage.style.display="none"; __resetMenuPageClasses(activePage); }
-  const pageIds=["familyMenuSub","sharedListsMenuSub","sharedListActiveMenuSub","settingsMenuSub","savedListsMenuSub","accountMenuSub","aboutMenuSub"];
-  pageIds.forEach(id=>{ const p=document.getElementById(id); if(p){ p.style.display="none"; __resetMenuPageClasses(p); }});
-  const main=document.getElementById("familyMenuMain");
-  if(main){ main.style.display="block"; __resetMenuPageClasses(main); }
-  __menuCurrentPage="familyMenuMain";
-
+  // En vervolgens dezelfde familielijst laden die je normaal op Lijst ziet.
   await loadList();
 }
 
