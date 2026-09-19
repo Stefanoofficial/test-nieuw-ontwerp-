@@ -1255,6 +1255,18 @@ body.dark-theme .overviewCard{background:#202620;border-color:rgba(255,255,255,.
   display: block;
 }
 
+.productInlineIcon {
+  width: 28px;
+  height: 28px;
+  max-width: 28px;
+  max-height: 28px;
+  display: block;
+}
+.productSuggestionIcon .productInlineIcon {
+  width: 26px;
+  height: 26px;
+}
+
 
 /* ===== Stap 3: verfijnd boodschappenpaneel ===== */
 .list {
@@ -3695,12 +3707,12 @@ const productCatalog = [
   ["meergranen brood", "🍞"], ["stokbrood", "🥖"], ["baguette", "🥖"], ["croissant", "🥐"],
   ["bolletjes", "🥯"], ["broodjes", "🥯"], ["beschuit", "🍞"], ["cracker", "🍘"], ["crackers", "🍘"],
   ["kaas", "🧀"], ["jonge kaas", "🧀"], ["oude kaas", "🧀"], ["ham", "🥓"], ["salami", "🥩"],
-  ["worst", "🌭"], ["pindakaas", "🥜"], ["hagelslag", "🍫"], ["chocopasta", "🍫"],
-  ["jam", "🍓"], ["honing", "🍯"], ["stroop", "🍯"], ["boter", "🧈"], ["margarine", "🧈"],
+  ["worst", "🌭"], ["pindakaas", "peanut-butter-jar"], ["hagelslag", "🍫"], ["chocopasta", "🍫"],
+  ["jam", "jam-jar"], ["aardbeienjam", "jam-jar"], ["aardbeien jam", "jam-jar"], ["honing", "🍯"], ["stroop", "🍯"], ["boter", "🧈"], ["margarine", "🧈"],
 
   // Zuivel & eieren
   ["melk", "milk-carton"], ["volle melk", "🥛"], ["halfvolle melk", "🥛"], ["magere melk", "🥛"],
-  ["chocomelk", "🥛"], ["karnemelk", "🥛"], ["yoghurt", "🥛"], ["kwark", "🥛"],
+  ["chocomelk", "🥛"], ["karnemelk", "🥛"], ["yoghurt", "🥛"], ["kwark", "quark-cup"],
   ["vla", "🍮"], ["slagroom", "🥛"], ["room", "🥛"], ["creme fraiche", "🥛"],
   ["crème fraîche", "🥛"], ["pudding", "🍮"], ["eieren", "🥚"], ["ei", "🥚"],
 
@@ -3737,7 +3749,7 @@ const productCatalog = [
 
   // Persoonlijke verzorging
   ["shampoo", "🧴"], ["conditioner", "🧴"], ["zeep", "🧼"], ["handzeep", "🧼"],
-  ["douchegel", "🧴"], ["tandpasta", "🪥"], ["tandenborstel", "🪥"], ["deodorant", "🧴"],
+  ["douchegel", "🧴"], ["tandpasta", "toothpaste-tube"], ["tandenborstel", "🪥"], ["deodorant", "🧴"],
   ["scheerschuim", "🪒"], ["scheermes", "🪒"], ["toiletpapier", "toilet-paper"], ["wc papier", "🧻"],
   ["zakdoekjes", "🤧"], ["wattenstaafjes", "🧴"], ["wattenschijfjes", "🧴"], ["zonnebrand", "🧴"],
 
@@ -3805,6 +3817,50 @@ function normalizeProductName(text) {
 }
 
 function productIconMarkup(icon) {
+  if (icon === "jam-jar") {
+    return `<svg class="productInlineIcon" viewBox="0 0 64 64" aria-hidden="true">
+      <ellipse cx="32" cy="12" rx="20" ry="6" fill="#d9413f"/>
+      <rect x="12" y="10" width="40" height="10" rx="4" fill="#ef5a55"/>
+      <path d="M13 18h38v33c0 6-5 10-11 10H24c-6 0-11-4-11-10z" fill="#d92f2d" stroke="#b52b2a" stroke-width="1.5"/>
+      <rect x="17" y="28" width="30" height="20" rx="5" fill="#fff8ec"/>
+      <path d="M24 40c3-7 10-7 16 0" fill="none" stroke="#e44b47" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="27" cy="36" r="3" fill="#e44b47"/><circle cx="37" cy="35" r="3" fill="#e44b47"/>
+    </svg>`;
+  }
+
+  if (icon === "peanut-butter-jar") {
+    return `<svg class="productInlineIcon" viewBox="0 0 64 64" aria-hidden="true">
+      <ellipse cx="32" cy="12" rx="19" ry="6" fill="#7a4a24"/>
+      <rect x="13" y="9" width="38" height="10" rx="4" fill="#8b5529"/>
+      <path d="M14 18h36v33c0 7-5 11-12 11H26c-7 0-12-4-12-11z" fill="#c88732" stroke="#9d6428" stroke-width="1.5"/>
+      <rect x="17" y="28" width="30" height="20" rx="5" fill="#fff3dc"/>
+      <path d="M22 40c4-5 7-5 10 0s6 5 10 0" fill="none" stroke="#8b5529" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="27" cy="35" r="2.5" fill="#8b5529"/><circle cx="37" cy="35" r="2.5" fill="#8b5529"/>
+    </svg>`;
+  }
+
+  if (icon === "quark-cup") {
+    return `<svg class="productInlineIcon" viewBox="0 0 64 64" aria-hidden="true">
+      <path d="M10 17h44l-4 39H14z" fill="#f7fbff" stroke="#cbd7df" stroke-width="1.5"/>
+      <ellipse cx="32" cy="17" rx="22" ry="7" fill="#eaf6ff" stroke="#cbd7df" stroke-width="1.5"/>
+      <path d="M12 38h40l-2 18H14z" fill="#9ad7f3"/>
+      <ellipse cx="32" cy="31" rx="14" ry="8" fill="#fff"/>
+      <path d="M23 31c4-6 14-6 18 0" fill="none" stroke="#e9edf0" stroke-width="2"/>
+      <path d="M18 43h28" stroke="#5fb7d8" stroke-width="2" stroke-linecap="round"/>
+    </svg>`;
+  }
+
+  if (icon === "toothpaste-tube") {
+    return `<svg class="productInlineIcon" viewBox="0 0 64 64" aria-hidden="true">
+      <path d="M18 12h28l-4 42H22z" fill="#f8fbff" stroke="#cfd8df" stroke-width="1.5"/>
+      <path d="M18 12h28l-2 12H20z" fill="#dff1fb"/>
+      <path d="M20 29h24l-2 13H22z" fill="#4aa8dc"/>
+      <path d="M25 34c3-5 8-5 14 0" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M22 54h20v6H22z" fill="#d9e1e6"/>
+      <path d="M25 8h14v6H25z" fill="#d9e1e6"/>
+    </svg>`;
+  }
+
   if (icon === "red-bell-pepper") {
     return `<svg class="productInlineIcon" viewBox="0 0 64 64" aria-hidden="true">
       <path d="M31 14c-1.7-4.4 1.1-8.2 5.1-9.2 1.3-.3 2.6.7 2.4 2-.3 2.3-1.8 4.1-4 5.1l-.4 2.1z" fill="#4f6b42"/>
