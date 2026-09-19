@@ -2626,7 +2626,7 @@ body.dark-theme .overview-new-card{background:#202923;border-color:#34443a}
   </div>
 
   <div id="sharedListsMenuSub" class="familyMenuPage sharedListsMenuPage" style="display:none;">
-    <button type="button" class="settingsMenuBack" onclick="returnToFamilyList(event)">
+    <button type="button" class="settingsMenuBack" onclick="returnToFamilyListFromSharedMenu(event)">
       <i class="fa-solid fa-chevron-left"></i>
       <span>Familielijst</span>
     </button>
@@ -4883,6 +4883,34 @@ async function deleteCurrentSharedList(){
       "fa-triangle-exclamation"
     );
   }
+}
+
+async function returnToFamilyListFromSharedMenu(event){
+  if(event) event.stopPropagation();
+  if(!auth.currentUser) return;
+
+  // Deze knop staat bovenaan het Deellijst-menu en moet rechtstreeks naar
+  // de gewone boodschappenlijst gaan, niet één niveau terug in het menu.
+  activeListType="family";
+  if(currentSharedListId){ try{ localStorage.removeItem("sharedListInviteCode:"+currentSharedListId); }catch(_){} }
+  currentSharedListId=null;
+  currentSharedListInviteCode=null;
+  if(currentSharedListUnsubscribe){ currentSharedListUnsubscribe(); currentSharedListUnsubscribe=null; }
+
+  const h=document.querySelector(".headerBar h1");
+  if(h) h.textContent="Boodschappenlijst";
+
+  // Sluit het menu volledig en ga direct naar de hoofdlijst.
+  const menu=document.getElementById("familyMenu");
+  if(menu) menu.classList.remove("menu-open");
+  const pageIds=["familyMenuSub","sharedListsMenuSub","sharedListActiveMenuSub","settingsMenuSub","savedListsMenuSub","accountMenuSub","aboutMenuSub"];
+  pageIds.forEach(id=>{ const p=document.getElementById(id); if(p){ p.style.display="none"; __resetMenuPageClasses(p); }});
+  const main=document.getElementById("familyMenuMain");
+  if(main){ main.style.display="block"; __resetMenuPageClasses(main); }
+  __menuCurrentPage="familyMenuMain";
+
+  showMainListView();
+  await loadList();
 }
 
 async function returnToFamilyList(event){
