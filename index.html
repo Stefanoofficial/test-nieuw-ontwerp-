@@ -2626,7 +2626,7 @@ body.dark-theme .overview-new-card{background:#202923;border-color:#34443a}
   </div>
 
   <div id="sharedListsMenuSub" class="familyMenuPage sharedListsMenuPage" style="display:none;">
-    <button type="button" class="settingsMenuBack" onclick="returnToFamilyList(event)">
+    <button type="button" class="settingsMenuBack" onclick="closeSharedListsSubmenu(event)">
       <i class="fa-solid fa-chevron-left"></i>
       <span>Familielijst</span>
     </button>
@@ -2729,6 +2729,11 @@ body.dark-theme .overview-new-card{background:#202923;border-color:#34443a}
     <button type="button" class="familyMenuItem" onclick="showAboutHelp()">
       <i class="fa-solid fa-circle-question"></i>
       <span>Help &amp; uitleg</span>
+    </button>
+    <button type="button" class="familyMenuItem" onclick="returnToFamilyList(event)">
+      <i class="fa-solid fa-list"></i>
+      <span>Familielijst</span>
+      <i class="fa-solid fa-chevron-right familyMenuArrow"></i>
     </button>
     <div class="aboutMenuHint">Boodschappenlijst · versie 1.0</div>
   </div>
