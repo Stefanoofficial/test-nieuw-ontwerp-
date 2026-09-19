@@ -4887,31 +4887,43 @@ async function deleteCurrentSharedList(){
 
 async function returnToFamilyList(event){
   if(event) event.stopPropagation();
-  const user=auth.currentUser;
-  if(!user) return;
+  if(!auth.currentUser) return;
 
-  // EXACT dezelfde navigatie als wanneer je op "Kerst" drukt:
-  // eerst naar de hoofdweergave Lijst en het menu sluiten.
-  showMainListView();
-  closeFamilyMenu();
+  const activePage=document.getElementById("sharedListActiveMenuSub");
+  const menu=document.getElementById("familyMenu");
 
-  // Daarna expliciet terug naar de gewone familielijst.
-  activeListType="family";
-
-  if(currentSharedListUnsubscribe){
-    currentSharedListUnsubscribe();
-    currentSharedListUnsubscribe=null;
+  if(__menuTransitionTimer){ clearTimeout(__menuTransitionTimer); __menuTransitionTimer=null; }
+  if(activePage){
+    __resetMenuPageClasses(activePage);
+    activePage.style.display="block";
+    activePage.classList.add("menuSlideOutRight");
   }
 
+  // Shared-list UI must disappear immediately; the family list itself is
+  // loaded only after the menu transition so no shared-list frame leaks through.
+  document.querySelectorAll("#deleteSharedListBtn,.sharedDeleteIconButton").forEach(el=>el.remove());
+
+  activeListType="family";
+  if(currentSharedListId){ try{ localStorage.removeItem("sharedListInviteCode:"+currentSharedListId); }catch(_){} }
   currentSharedListId=null;
   currentSharedListInviteCode=null;
-
-  document.querySelectorAll("#deleteSharedListBtn,.sharedDeleteIconButton").forEach(el=>el.remove());
+  if(currentSharedListUnsubscribe){ currentSharedListUnsubscribe(); currentSharedListUnsubscribe=null; }
 
   const h=document.querySelector(".headerBar h1");
   if(h) h.textContent="Boodschappenlijst";
 
-  // En vervolgens dezelfde familielijst laden die je normaal op Lijst ziet.
+  if(menu){
+    menu.classList.remove("menu-open");
+  }
+
+  await new Promise(resolve=>setTimeout(resolve,290));
+  if(activePage){ activePage.style.display="none"; __resetMenuPageClasses(activePage); }
+  const pageIds=["familyMenuSub","sharedListsMenuSub","sharedListActiveMenuSub","settingsMenuSub","savedListsMenuSub","accountMenuSub","aboutMenuSub"];
+  pageIds.forEach(id=>{ const p=document.getElementById(id); if(p){ p.style.display="none"; __resetMenuPageClasses(p); }});
+  const main=document.getElementById("familyMenuMain");
+  if(main){ main.style.display="block"; __resetMenuPageClasses(main); }
+  __menuCurrentPage="familyMenuMain";
+
   await loadList();
 }
 
