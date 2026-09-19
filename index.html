@@ -2234,6 +2234,30 @@ body.dark-theme .sharedListInviteBox{background:rgba(255,255,255,.06);border-col
   .app.nav-slide-forward > :not(.bottomNav),
   .app.nav-slide-backward > :not(.bottomNav) { animation: none !important; }
 }
+
+/* Meer opent als één scherm, niet als meerdere gelijktijdige lagen.
+   De algemene tab-animatie wordt voor Meer overgeslagen; alleen het Meer-scherm
+   krijgt de overgang. Zo voorkomt de dubbele/gesplitste indruk bij openen. */
+@keyframes moreScreenInFromRight {
+  from { opacity: .86; transform: translate3d(28px,0,0); }
+  to   { opacity: 1; transform: translate3d(0,0,0); }
+}
+@keyframes mainScreenInFromLeft {
+  from { opacity: .86; transform: translate3d(-28px,0,0); }
+  to   { opacity: 1; transform: translate3d(0,0,0); }
+}
+.app.more-screen-enter > #moreView {
+  animation: moreScreenInFromRight .30s cubic-bezier(.22,.61,.36,1) both;
+}
+.app.main-screen-enter > :not(.bottomNav):not(#moreView):not(#overviewView) {
+  animation: mainScreenInFromLeft .30s cubic-bezier(.22,.61,.36,1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .app.more-screen-enter > #moreView,
+  .app.main-screen-enter > :not(.bottomNav):not(#moreView):not(#overviewView) {
+    animation: none !important;
+  }
+}
 </style>
 
 <style id="final-scroll-nav-fix">
@@ -6089,14 +6113,27 @@ var __activeMainTab = 0; // 0=Lijst, 1=Overzicht, 2=Meer
 function slideToTab(tabIndex){
   var app=document.querySelector('.app');
   if(!app || tabIndex === __activeMainTab) return;
-  var direction = tabIndex > __activeMainTab ? 'forward' : 'backward';
-  app.classList.remove('nav-slide-forward','nav-slide-backward');
+
+  var previous = __activeMainTab;
+  app.classList.remove('nav-slide-forward','nav-slide-backward','more-screen-enter','main-screen-enter');
   void app.offsetWidth;
-  app.classList.add(direction === 'backward' ? 'nav-slide-backward' : 'nav-slide-forward');
+
+  // Meer is één zelfstandig scherm. Laat niet tegelijk de algemene app-animatie
+  // én het Meer-scherm bewegen; dat gaf de indruk dat Meer dubbel open ging.
+  if(tabIndex === 2){
+    app.classList.add('more-screen-enter');
+  } else if(previous === 2 && tabIndex === 0){
+    // Bij teruggaan naar Lijst schuift alleen het hoofdscherm één keer binnen.
+    app.classList.add('main-screen-enter');
+  } else {
+    var direction = tabIndex > previous ? 'forward' : 'backward';
+    app.classList.add(direction === 'backward' ? 'nav-slide-backward' : 'nav-slide-forward');
+  }
+
   __activeMainTab = tabIndex;
   clearTimeout(window.__tabSlideTimer);
   window.__tabSlideTimer=setTimeout(function(){
-    app.classList.remove('nav-slide-forward','nav-slide-backward');
+    app.classList.remove('nav-slide-forward','nav-slide-backward','more-screen-enter','main-screen-enter');
   },380);
 }
 function showMainListView(){
