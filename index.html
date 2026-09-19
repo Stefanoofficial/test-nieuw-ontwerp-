@@ -2730,7 +2730,7 @@ body.dark-theme .overview-new-card{background:#202923;border-color:#34443a}
       <i class="fa-solid fa-circle-question"></i>
       <span>Help &amp; uitleg</span>
     </button>
-    <button type="button" class="familyMenuItem" onclick="returnToFamilyList(event)">
+    <button type="button" class="familyMenuItem" onclick="goToFamilyListFromAbout(event)">
       <i class="fa-solid fa-list"></i>
       <span>Familielijst</span>
       <i class="fa-solid fa-chevron-right familyMenuArrow"></i>
@@ -3221,6 +3221,32 @@ async function logoutFromMenu() {
     await familyAlert("Uitloggen", "Uitloggen is niet gelukt.", "fa-triangle-exclamation");
   }
 }
+async function goToFamilyListFromAbout(event){
+  if(event) event.stopPropagation();
+  if(!auth.currentUser) return;
+
+  activeListType="family";
+  if(currentSharedListId){ try{ localStorage.removeItem("sharedListInviteCode:"+currentSharedListId); }catch(_){} }
+  currentSharedListId=null;
+  currentSharedListInviteCode=null;
+  if(currentSharedListUnsubscribe){ currentSharedListUnsubscribe(); currentSharedListUnsubscribe=null; }
+
+  const menu=document.getElementById("familyMenu");
+  if(menu) menu.classList.remove("menu-open");
+  const pageIds=["familyMenuSub","sharedListsMenuSub","sharedListActiveMenuSub","settingsMenuSub","savedListsMenuSub","accountMenuSub","aboutMenuSub"];
+  pageIds.forEach(id=>{
+    const p=document.getElementById(id);
+    if(p){ p.style.display="none"; __resetMenuPageClasses(p); }
+  });
+  const main=document.getElementById("familyMenuMain");
+  if(main){ main.style.display="block"; __resetMenuPageClasses(main); }
+  __menuCurrentPage="familyMenuMain";
+
+  // Switch the actual bottom navigation to the Lijst view, then load the family list.
+  showMainListView();
+  await loadList();
+}
+
 function showAboutApp() {
   closeFamilyMenuForDialog();
   familyAlert("Over de app", "Boodschappenlijst helpt je eenvoudig boodschappen bijhouden en delen met je familie.\n\nDeellijst: maak een aparte lijst voor vrienden, familie of een feestje. Je kunt een Deellijst delen met een deelcode of Deellink en bij Leden de deelnemers bekijken.\n\nVersie 1.0", "fa-circle-info");
