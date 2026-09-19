@@ -3086,29 +3086,7 @@ function openFamilySubmenu(event) {
 function closeFamilySubmenu(event) { returnMenuToMain("familyMenuSub", event); }
 function openSettingsSubmenu(event) {
   if (event) event.stopPropagation();
-  const main = document.getElementById("familyMenuMain");
-  const family = document.getElementById("familyMenuSub");
-  const settings = document.getElementById("settingsMenuSub");
-  const savedLists = document.getElementById("savedListsMenuSub");
-  const sharedLists = document.getElementById("sharedListsMenuSub");
-  if (!main || !settings) return;
-
-  main.classList.remove("familyMenuMainEnter");
-  main.classList.add("familyMenuMainExit");
-  setTimeout(() => {
-    main.style.display = "none";
-    if (family) { family.style.display = "none"; family.classList.remove("familyMenuSubEnter", "familyMenuSubExit"); }
-    if (savedLists) { savedLists.style.display = "none"; savedLists.classList.remove("familyMenuSubEnter", "familyMenuSubExit"); }
-    const account = document.getElementById("accountMenuSub");
-    const about = document.getElementById("aboutMenuSub");
-    if (account) { account.style.display = "none"; account.classList.remove("familyMenuSubEnter", "familyMenuSubExit"); }
-    if (about) { about.style.display = "none"; about.classList.remove("familyMenuSubEnter", "familyMenuSubExit"); }
-    main.classList.remove("familyMenuMainExit");
-    settings.style.display = "block";
-    settings.classList.remove("familyMenuSubExit");
-    void settings.offsetWidth;
-    settings.classList.add("familyMenuSubEnter");
-  }, 170);
+  switchMenuPage("settingsMenuSub", event);
 }
 function closeSettingsSubmenu(event) {
   if (event) event.stopPropagation();
@@ -3129,24 +3107,8 @@ function closeSettingsSubmenu(event) {
 
 function openSavedListsSubmenu(event) {
   if (event) event.stopPropagation();
-  const main = document.getElementById("familyMenuMain");
-  const family = document.getElementById("familyMenuSub");
-  const settings = document.getElementById("settingsMenuSub");
-  const saved = document.getElementById("savedListsMenuSub");
-  if (!main || !saved) return;
-  main.classList.remove("familyMenuMainEnter");
-  main.classList.add("familyMenuMainExit");
-  setTimeout(() => {
-    main.style.display = "none";
-    if (family) { family.style.display = "none"; family.classList.remove("familyMenuSubEnter", "familyMenuSubExit"); }
-    if (settings) { settings.style.display = "none"; settings.classList.remove("familyMenuSubEnter", "familyMenuSubExit"); }
-    main.classList.remove("familyMenuMainExit");
-    saved.style.display = "block";
-    saved.classList.remove("familyMenuSubExit");
-    void saved.offsetWidth;
-    saved.classList.add("familyMenuSubEnter");
-    renderSavedLists();
-  }, 170);
+  switchMenuPage("savedListsMenuSub", event);
+  renderSavedLists();
 }
 function closeSavedListsSubmenu(event) {
   if (event) event.stopPropagation();
