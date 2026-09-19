@@ -2563,6 +2563,48 @@ body.dark-theme .overview-new-card{background:#202923;border-color:#34443a}
 }
 </style>
 
+
+<style id="more-submenu-horizontal-fix">
+/* In Meer staan de submenu's boven elkaar in dezelfde ruimte.
+   Daardoor komt Mijn account/Over de app niet meer van onderen binnen,
+   maar gebruikt het exact dezelfde rechts-naar-links overgang als de andere submenu's. */
+.app.more-active #familyMenu {
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) !important;
+  align-items:start !important;
+  overflow:hidden !important;
+}
+.app.more-active #familyMenu .familyMenuPage {
+  grid-column:1 !important;
+  grid-row:1 !important;
+  width:100% !important;
+  min-width:0 !important;
+  box-sizing:border-box !important;
+}
+.app.more-active #familyMenu .familyMenuPage[style*="display:none"] {
+  pointer-events:none !important;
+}
+.aboutInfoCard,.helpSection{
+  background:#F7FAF7;
+  border-radius:16px;
+  padding:12px 13px;
+  margin:0 0 9px;
+}
+.aboutInfoTitle{font-size:15px;font-weight:800;color:#3F5B45;display:flex;align-items:center;gap:9px;}
+.aboutInfoTitle i{width:30px;height:30px;border-radius:50%;background:#E8F3EA;display:flex;align-items:center;justify-content:center;}
+.aboutInfoVersion{font-size:11px;color:#87928B;margin:5px 0 7px 39px;}
+.aboutInfoCard p,.helpSection p{margin:0;color:#68746C;font-size:12px;line-height:1.45;}
+.aboutInfoSection{margin-top:10px;}
+.aboutInfoSectionTitle{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#87928B;margin:0 7px 7px;}
+.aboutInfoLine{display:flex;align-items:center;gap:9px;padding:8px 7px;font-size:12px;color:#435149;}
+.aboutInfoLine i{width:24px;text-align:center;color:#3F5B45;}
+.helpQuestion{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:800;color:#3F5B45;margin-bottom:6px;}
+.helpQuestion i{width:29px;height:29px;border-radius:50%;background:#E8F3EA;display:flex;align-items:center;justify-content:center;font-size:12px;}
+body.dark-theme .aboutInfoCard,body.dark-theme .helpSection{background:#29312B;}
+body.dark-theme .aboutInfoTitle,body.dark-theme .helpQuestion,body.dark-theme .aboutInfoLine{color:#DCE9DF;}
+body.dark-theme .aboutInfoCard p,body.dark-theme .helpSection p{color:#AAB4AD;}
+</style>
+
 </head>
 
 <body>
@@ -2847,6 +2889,60 @@ body.dark-theme .overview-new-card{background:#202923;border-color:#34443a}
       <span>Help &amp; uitleg</span>
     </button>
     <div class="aboutMenuHint">Boodschappenlijst · versie 1.0</div>
+  </div>
+
+  <div id="appInfoMenuSub" class="familyMenuPage aboutMenuPage" style="display:none;">
+    <button type="button" class="settingsMenuBack" onclick="closeAppInfoSubmenu(event)">
+      <i class="fa-solid fa-chevron-left"></i>
+      <span>App-informatie</span>
+    </button>
+    <div class="familyMenuSubTitle">APP-INFORMATIE</div>
+    <div class="aboutInfoCard">
+      <div class="aboutInfoTitle"><i class="fa-solid fa-cart-shopping"></i> Boodschappenlijst</div>
+      <div class="aboutInfoVersion">Versie 1.0</div>
+      <p>Een eenvoudige boodschappenlijst om producten snel toe te voegen, af te vinken en je lijst overzichtelijk te houden.</p>
+    </div>
+    <div class="aboutInfoSection">
+      <div class="aboutInfoSectionTitle">Wat kun je ermee?</div>
+      <div class="aboutInfoLine"><i class="fa-solid fa-list-check"></i><span>Producten toevoegen met slimme productsuggesties.</span></div>
+      <div class="aboutInfoLine"><i class="fa-solid fa-users"></i><span>Samenwerken met je familie.</span></div>
+      <div class="aboutInfoLine"><i class="fa-solid fa-people-group"></i><span>Deellijsten maken voor vrienden, familie of een feestje.</span></div>
+      <div class="aboutInfoLine"><i class="fa-solid fa-folder-open"></i><span>Lijsten opslaan en later opnieuw gebruiken.</span></div>
+      <div class="aboutInfoLine"><i class="fa-solid fa-chart-column"></i><span>Een overzicht bekijken van je boodschappen.</span></div>
+    </div>
+    <div class="aboutMenuHint">© 2026 Boodschappenlijst</div>
+  </div>
+
+  <div id="helpMenuSub" class="familyMenuPage aboutMenuPage" style="display:none;">
+    <button type="button" class="settingsMenuBack" onclick="closeHelpSubmenu(event)">
+      <i class="fa-solid fa-chevron-left"></i>
+      <span>Help &amp; uitleg</span>
+    </button>
+    <div class="familyMenuSubTitle">HELP &amp; UITLEG</div>
+    <div class="helpSection">
+      <div class="helpQuestion"><i class="fa-solid fa-plus"></i><span>Een product toevoegen</span></div>
+      <p>Typ bijvoorbeeld <strong>jam</strong>, <strong>pindakaas</strong> of <strong>brood</strong>. Kies daarna de juiste productsuggestie als die verschijnt en tik op Toevoegen.</p>
+    </div>
+    <div class="helpSection">
+      <div class="helpQuestion"><i class="fa-solid fa-circle-check"></i><span>Een product afvinken</span></div>
+      <p>Tik op het rondje naast een product om het af te vinken. Zo zie je direct wat al in je winkelwagen zit.</p>
+    </div>
+    <div class="helpSection">
+      <div class="helpQuestion"><i class="fa-solid fa-users"></i><span>Familie gebruiken</span></div>
+      <p>Via Mijn familie kun je een nieuwe familie maken of met een familiecode aansluiten bij een bestaande familie.</p>
+    </div>
+    <div class="helpSection">
+      <div class="helpQuestion"><i class="fa-solid fa-people-group"></i><span>Deellijsten</span></div>
+      <p>Maak een aparte lijst voor bijvoorbeeld een feestje. Je kunt deelnemers toevoegen en de lijst samen gebruiken.</p>
+    </div>
+    <div class="helpSection">
+      <div class="helpQuestion"><i class="fa-solid fa-folder-open"></i><span>Opgeslagen lijsten</span></div>
+      <p>Bewaar een lijst om hem later opnieuw te laden. Je gewone boodschappenlijst blijft daarbij behouden.</p>
+    </div>
+    <div class="helpSection">
+      <div class="helpQuestion"><i class="fa-solid fa-arrow-down-a-z"></i><span>Sorteren</span></div>
+      <p>Gebruik de lijstopties om alfabetisch, per categorie of op nieuwste eerst te sorteren.</p>
+    </div>
   </div>
 </div>
   </div>
@@ -3180,7 +3276,7 @@ function switchMenuPage(pageId, event) {
   if (__menuTransitionTimer) { clearTimeout(__menuTransitionTimer); __menuTransitionTimer = null; }
 
   const pageIds = ["familyMenuMain","familyMenuSub","sharedListsMenuSub","sharedListActiveMenuSub",
-    "settingsMenuSub","savedListsMenuSub","accountMenuSub","aboutMenuSub"];
+    "settingsMenuSub","savedListsMenuSub","accountMenuSub","aboutMenuSub","appInfoMenuSub","helpMenuSub"];
   let current = document.getElementById(__menuCurrentPage);
   if (!current || current === page || getComputedStyle(current).display === "none") {
     current = pageIds.map(id=>document.getElementById(id)).find(el => el && el !== page && getComputedStyle(el).display !== "none") || null;
@@ -3296,13 +3392,33 @@ async function logoutFromMenu() {
     await familyAlert("Uitloggen", "Uitloggen is niet gelukt.", "fa-triangle-exclamation");
   }
 }
-function showAboutApp() {
-  closeFamilyMenuForDialog();
-  familyAlert("Over de app", "Boodschappenlijst helpt je eenvoudig boodschappen bijhouden en delen met je familie.\n\nDeellijst: maak een aparte lijst voor vrienden, familie of een feestje. Je kunt een Deellijst delen met een deelcode of Deellink en bij Leden de deelnemers bekijken.\n\nVersie 1.0", "fa-circle-info");
+function showAboutApp(event) {
+  switchMenuPage("appInfoMenuSub", event);
 }
-function showAboutHelp() {
-  closeFamilyMenuForDialog();
-  familyAlert("Help & uitleg", "Typ een product en voeg het toe. Tik op een product om het af te vinken. Via Menu vind je je familie, instellingen en opgeslagen lijsten.\n\nDeellijst: ga naar Deellijst om een nieuwe lijst te maken of een deelcode in te voeren. Open Deelcode om de code te kopiëren of een Deellink te delen. Bij Leden zie je automatisch het aantal deelnemers uit de database en na het openen de namen van de leden. Een afgevinkt product laat zien wie het heeft voltooid. Met Familielijst ga je terug naar je gewone familielijst.\n\nJe kunt een lijst opslaan en later opnieuw laden.", "fa-circle-question");
+function closeAppInfoSubmenu(event) { returnMenuToPage("appInfoMenuSub", "aboutMenuSub", event); }
+function showAboutHelp(event) {
+  switchMenuPage("helpMenuSub", event);
+}
+function closeHelpSubmenu(event) { returnMenuToPage("helpMenuSub", "aboutMenuSub", event); }
+function returnMenuToPage(pageId, targetId, event) {
+  if (event) event.stopPropagation();
+  const page = document.getElementById(pageId);
+  const target = document.getElementById(targetId);
+  if (!page || !target) return;
+  if (__menuTransitionTimer) { clearTimeout(__menuTransitionTimer); __menuTransitionTimer=null; }
+  __resetMenuPageClasses(page);
+  __resetMenuPageClasses(target);
+  page.style.display="block";
+  target.style.display="block";
+  page.classList.add("menuSlideOutRight");
+  target.classList.add("menuSlideInLeft");
+  __menuCurrentPage=targetId;
+  __menuTransitionTimer=setTimeout(()=>{
+    page.style.display="none";
+    __resetMenuPageClasses(page);
+    __resetMenuPageClasses(target);
+    __menuTransitionTimer=null;
+  },290);
 }
 
 function getSavedListsKey() {
@@ -5073,7 +5189,7 @@ async function returnToFamilyListFromSharedMenu(event){
   // Sluit het menu volledig en ga direct naar de hoofdlijst.
   const menu=document.getElementById("familyMenu");
   if(menu) menu.classList.remove("menu-open");
-  const pageIds=["familyMenuSub","sharedListsMenuSub","sharedListActiveMenuSub","settingsMenuSub","savedListsMenuSub","accountMenuSub","aboutMenuSub"];
+  const pageIds=["familyMenuSub","sharedListsMenuSub","sharedListActiveMenuSub","settingsMenuSub","savedListsMenuSub","accountMenuSub","aboutMenuSub","appInfoMenuSub","helpMenuSub"];
   pageIds.forEach(id=>{ const p=document.getElementById(id); if(p){ p.style.display="none"; __resetMenuPageClasses(p); }});
   const main=document.getElementById("familyMenuMain");
   if(main){ main.style.display="block"; __resetMenuPageClasses(main); }
@@ -5116,7 +5232,7 @@ async function returnToFamilyList(event){
 
   await new Promise(resolve=>setTimeout(resolve,290));
   if(activePage){ activePage.style.display="none"; __resetMenuPageClasses(activePage); }
-  const pageIds=["familyMenuSub","sharedListsMenuSub","sharedListActiveMenuSub","settingsMenuSub","savedListsMenuSub","accountMenuSub","aboutMenuSub"];
+  const pageIds=["familyMenuSub","sharedListsMenuSub","sharedListActiveMenuSub","settingsMenuSub","savedListsMenuSub","accountMenuSub","aboutMenuSub","appInfoMenuSub","helpMenuSub"];
   pageIds.forEach(id=>{ const p=document.getElementById(id); if(p){ p.style.display="none"; __resetMenuPageClasses(p); }});
   const main=document.getElementById("familyMenuMain");
   if(main){ main.style.display="block"; __resetMenuPageClasses(main); }
@@ -6248,7 +6364,7 @@ function showMoreView(){
   setBottomNav('navMore');
   var menu=document.getElementById('familyMenu');
   var main=document.getElementById('familyMenuMain');
-  var pageIds=["familyMenuSub","sharedListsMenuSub","sharedListActiveMenuSub","settingsMenuSub","savedListsMenuSub","accountMenuSub","aboutMenuSub"];
+  var pageIds=["familyMenuSub","sharedListsMenuSub","sharedListActiveMenuSub","settingsMenuSub","savedListsMenuSub","accountMenuSub","aboutMenuSub","appInfoMenuSub","helpMenuSub"];
   pageIds.forEach(function(id){ var p=document.getElementById(id); if(p){ p.style.display='none'; __resetMenuPageClasses(p); }});
   if(main){ main.style.display='block'; __resetMenuPageClasses(main); }
   __menuCurrentPage='familyMenuMain';
@@ -6862,27 +6978,8 @@ body.dark-theme .listOptionItem:hover,body.dark-theme .listOptionBack:hover{back
     }
   };
 
-  // iPhone/iPad-safe action handling. Inline onclick remains as a fallback,
-  // while this delegated handler makes taps on the whole menu item reliable.
-  document.addEventListener('click', function(e){
-    var target=e.target && e.target.closest ? e.target.closest(
-      '#listOptionsPanel .listOptionItem, #sortOptionsPanel .listOptionItem, #sortOptionsPanel .listOptionBack'
-    ) : null;
-    if(!target) return;
-
-    // Let the inline handler do the action, but make sure the tap is not
-    // swallowed by the full-screen panel/background.
-    e.stopPropagation();
-  }, true);
-
-  document.addEventListener('pointerup', function(e){
-    var target=e.target && e.target.closest ? e.target.closest(
-      '#listOptionsPanel .listOptionItem, #sortOptionsPanel .listOptionItem, #sortOptionsPanel .listOptionBack'
-    ) : null;
-    if(!target) return;
-    // Prevent ghost/duplicate pointer events only; click still fires normally.
-  }, true);
-
+  // Keep the native/inline button handlers intact. On iPhone/iPad the
+  // click must be allowed to reach the button itself.
   document.addEventListener('click', function(e){
     var p=panel('listOptionsPanel'), s=panel('sortOptionsPanel'), b=panel('listOptionsButton');
     if(p && p.classList.contains('open') && e.target===p) closeListOptions();
