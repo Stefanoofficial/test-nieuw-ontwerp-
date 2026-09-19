@@ -3703,18 +3703,18 @@ const productCatalog = [
   ["champignons", "🍄"], ["champignon", "🍄"], ["biet", "🫜"], ["radijs", "🌱"],
 
   // Brood, ontbijt & beleg
-  ["brood", "🍞"], ["bruin brood", "🍞"], ["wit brood", "🍞"], ["volkoren brood", "🍞"],
-  ["meergranen brood", "🍞"], ["stokbrood", "🥖"], ["baguette", "🥖"], ["croissant", "🥐"],
+  ["brood", "bread-loaf"], ["bruin brood", "bread-loaf"], ["wit brood", "bread-loaf"], ["volkoren brood", "bread-loaf"],
+  ["meergranen brood", "bread-loaf"], ["stokbrood", "🥖"], ["baguette", "🥖"], ["croissant", "🥐"],
   ["bolletjes", "🥯"], ["broodjes", "🥯"], ["beschuit", "🍞"], ["cracker", "🍘"], ["crackers", "🍘"],
-  ["kaas", "🧀"], ["jonge kaas", "🧀"], ["oude kaas", "🧀"], ["ham", "🥓"], ["salami", "🥩"],
+  ["kaas", "cheese-block"], ["jonge kaas", "cheese-block"], ["oude kaas", "cheese-block"], ["ham", "🥓"], ["salami", "🥩"],
   ["worst", "🌭"], ["pindakaas", "peanut-butter-jar"], ["hagelslag", "🍫"], ["chocopasta", "🍫"],
-  ["jam", "jam-jar"], ["aardbeienjam", "jam-jar"], ["aardbeien jam", "jam-jar"], ["honing", "🍯"], ["stroop", "🍯"], ["boter", "🧈"], ["margarine", "🧈"],
+  ["jam", "jam-jar"], ["aardbeienjam", "jam-jar"], ["aardbeien jam", "jam-jar"], ["honing", "🍯"], ["stroop", "🍯"], ["boter", "butter-pack"], ["margarine", "butter-pack"],
 
   // Zuivel & eieren
-  ["melk", "milk-carton"], ["volle melk", "🥛"], ["halfvolle melk", "🥛"], ["magere melk", "🥛"],
-  ["chocomelk", "🥛"], ["karnemelk", "🥛"], ["yoghurt", "🥛"], ["kwark", "quark-cup"],
-  ["vla", "🍮"], ["slagroom", "🥛"], ["room", "🥛"], ["creme fraiche", "🥛"],
-  ["crème fraîche", "🥛"], ["pudding", "🍮"], ["eieren", "🥚"], ["ei", "🥚"],
+  ["melk", "milk-carton"], ["volle melk", "milk-carton"], ["halfvolle melk", "milk-carton"], ["magere melk", "milk-carton"],
+  ["chocomelk", "milk-carton"], ["karnemelk", "milk-carton"], ["yoghurt", "quark-cup"], ["kwark", "quark-cup"],
+  ["vla", "quark-cup"], ["slagroom", "quark-cup"], ["room", "quark-cup"], ["creme fraiche", "quark-cup"],
+  ["crème fraîche", "quark-cup"], ["pudding", "quark-cup"], ["eieren", "egg-carton"], ["ei", "egg-carton"],
 
   // Vlees, vis & vegetarisch
   ["kip", "🍗"], ["kipfilet", "🍗"], ["kippenpoten", "🍗"], ["vlees", "🥩"], ["gehakt", "🥩"],
@@ -3817,6 +3817,49 @@ function normalizeProductName(text) {
 }
 
 function productIconMarkup(icon) {
+  if (icon === "butter-pack") {
+    return `<svg class="productInlineIcon" viewBox="0 0 64 64" aria-hidden="true">
+      <path d="M10 20h44v31H10z" rx="4" fill="#f6c94a" stroke="#c89d24" stroke-width="1.5"/>
+      <path d="M10 20l9-9h35l-10 9z" fill="#ffe27a" stroke="#c89d24" stroke-width="1.5"/>
+      <rect x="16" y="28" width="32" height="15" rx="4" fill="#fff7cf"/>
+      <circle cx="32" cy="35.5" r="5" fill="#f0b92f"/>
+    </svg>`;
+  }
+
+  if (icon === "egg-carton") {
+    return `<svg class="productInlineIcon" viewBox="0 0 64 64" aria-hidden="true">
+      <path d="M8 22h48l-4 34H12z" fill="#c9b49a" stroke="#9f8a73" stroke-width="1.5"/>
+      <path d="M8 22l4-10h40l4 10z" fill="#dbc7ae" stroke="#9f8a73" stroke-width="1.5"/>
+      <ellipse cx="20" cy="30" rx="7" ry="6" fill="#f8f3e8" stroke="#b9a58d"/>
+      <ellipse cx="32" cy="30" rx="7" ry="6" fill="#f8f3e8" stroke="#b9a58d"/>
+      <ellipse cx="44" cy="30" rx="7" ry="6" fill="#f8f3e8" stroke="#b9a58d"/>
+      <ellipse cx="20" cy="44" rx="7" ry="6" fill="#f8f3e8" stroke="#b9a58d"/>
+      <ellipse cx="32" cy="44" rx="7" ry="6" fill="#f8f3e8" stroke="#b9a58d"/>
+      <ellipse cx="44" cy="44" rx="7" ry="6" fill="#f8f3e8" stroke="#b9a58d"/>
+    </svg>`;
+  }
+
+  if (icon === "bread-loaf") {
+    return `<svg class="productInlineIcon" viewBox="0 0 64 64" aria-hidden="true">
+      <path d="M12 27c0-10 9-17 20-17s20 7 20 17v23c0 4-3 6-7 6H19c-4 0-7-2-7-6z" fill="#d89a4a" stroke="#a96e2f" stroke-width="1.5"/>
+      <path d="M16 27c2-7 8-11 16-11s14 4 16 11" fill="#efbc70"/>
+      <path d="M23 25c2-4 5-6 9-6" fill="none" stroke="#c27f36" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M35 21c4 1 7 3 9 7" fill="none" stroke="#c27f36" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M22 36h20" stroke="#f5cf91" stroke-width="2" stroke-linecap="round"/>
+    </svg>`;
+  }
+
+  if (icon === "cheese-block") {
+    return `<svg class="productInlineIcon" viewBox="0 0 64 64" aria-hidden="true">
+      <path d="M12 24l25-12 17 12v28H12z" fill="#f4c84b" stroke="#bd9429" stroke-width="1.5"/>
+      <path d="M12 24l25 12 17-12" fill="none" stroke="#d9aa32" stroke-width="1.5"/>
+      <circle cx="27" cy="31" r="3" fill="#d59f26"/>
+      <circle cx="42" cy="41" r="4" fill="#d59f26"/>
+      <circle cx="22" cy="45" r="2.5" fill="#d59f26"/>
+      <path d="M12 52h42" stroke="#a77c1e" stroke-width="1.5"/>
+    </svg>`;
+  }
+
   if (icon === "jam-jar") {
     return `<svg class="productInlineIcon" viewBox="0 0 64 64" aria-hidden="true">
       <ellipse cx="32" cy="12" rx="20" ry="6" fill="#d9413f"/>
@@ -6736,45 +6779,117 @@ body.dark-theme .listOptionItem:hover,body.dark-theme .listOptionBack:hover{back
 
 <script id="list-options-and-language-logic">
 (function(){
-  function panel(id){return document.getElementById(id);}
+  function panel(id){ return document.getElementById(id); }
+
+  function setPanel(id, open){
+    var p=panel(id);
+    if(!p) return;
+    p.classList.toggle('open', !!open);
+    p.setAttribute('aria-hidden', open ? 'false' : 'true');
+  }
+
   window.toggleListOptions=function(e){
-    if(e)e.stopPropagation();
-    var p=panel('listOptionsPanel'),b=panel('listOptionsButton');
-    if(!p)return;
-    var open=!p.classList.contains('open');
-    p.classList.toggle('open',open); p.setAttribute('aria-hidden',open?'false':'true');
-    if(b)b.setAttribute('aria-expanded',open?'true':'false');
+    if(e){ e.preventDefault(); e.stopPropagation(); }
+    var p=panel('listOptionsPanel');
+    var open=p ? !p.classList.contains('open') : false;
+    setPanel('sortOptionsPanel', false);
+    setPanel('listOptionsPanel', open);
+    var b=panel('listOptionsButton');
+    if(b) b.setAttribute('aria-expanded', open ? 'true' : 'false');
   };
+
   window.closeListOptions=function(){
-    var p=panel('listOptionsPanel'); if(p){p.classList.remove('open');p.setAttribute('aria-hidden','true');}
-    var b=panel('listOptionsButton'); if(b)b.setAttribute('aria-expanded','false');
+    setPanel('listOptionsPanel', false);
+    var b=panel('listOptionsButton');
+    if(b) b.setAttribute('aria-expanded','false');
   };
-  window.clearListFromOptions=async function(){closeListOptions();await clearList();};
-  window.openSortOptions=function(){
-    var p=panel('sortOptionsPanel'); if(p){p.classList.add('open');p.setAttribute('aria-hidden','false');}
+
+  window.clearListFromOptions=async function(e){
+    if(e){ e.preventDefault(); e.stopPropagation(); }
+    closeListOptions();
+    try {
+      if(typeof clearList === 'function') await clearList();
+    } catch(err) { console.error('List wissen mislukt', err); }
   };
-  window.closeSortOptions=function(){
-    var p=panel('sortOptionsPanel'); if(p){p.classList.remove('open');p.setAttribute('aria-hidden','true');}
+
+  window.openSortOptions=function(e){
+    if(e){ e.preventDefault(); e.stopPropagation(); }
+    setPanel('listOptionsPanel', false);
+    setPanel('sortOptionsPanel', true);
   };
-  window.sortCurrentList=function(mode){
+
+  window.closeSortOptions=function(e){
+    if(e){ e.preventDefault(); e.stopPropagation(); }
+    setPanel('sortOptionsPanel', false);
+  };
+
+  window.sortCurrentList=function(mode,e){
+    if(e){ e.preventDefault(); e.stopPropagation(); }
     try{
-      if(!Array.isArray(boodschappen)||boodschappen.length<2){closeSortOptions();closeListOptions();return;}
-      if(mode==='alpha') boodschappen.sort(function(a,b){return String(a.name||a.text||'').localeCompare(String(b.name||b.text||''),'en',{sensitivity:'base'});});
-      else if(mode==='newest') boodschappen.sort(function(a,b){return Number(b.createdAt||b.addedAt||0)-Number(a.createdAt||a.addedAt||0);});
-      else if(mode==='category') boodschappen.sort(function(a,b){return String(a.category||'Other').localeCompare(String(b.category||'Other'),'en',{sensitivity:'base'})||String(a.name||a.text||'').localeCompare(String(b.name||b.text||''),'en',{sensitivity:'base'});});
+      if(!Array.isArray(boodschappen)) boodschappen=[];
+      var items=boodschappen;
+
+      if(mode==='alpha'){
+        items.sort(function(a,b){
+          return String(a && (a.name ?? a.text) || '')
+            .localeCompare(String(b && (b.name ?? b.text) || ''),'nl',{sensitivity:'base'});
+        });
+      } else if(mode==='newest'){
+        items.sort(function(a,b){
+          return Number((b && (b.createdAt ?? b.addedAt)) || 0) -
+                 Number((a && (a.createdAt ?? a.addedAt)) || 0);
+        });
+      } else if(mode==='category'){
+        items.sort(function(a,b){
+          var ca=String(a && a.category || 'Overig');
+          var cb=String(b && b.category || 'Overig');
+          return ca.localeCompare(cb,'nl',{sensitivity:'base'}) ||
+            String(a && (a.name ?? a.text) || '').localeCompare(
+              String(b && (b.name ?? b.text) || ''),'nl',{sensitivity:'base'});
+        });
+      }
+
       if(typeof showList==='function') showList();
-      if(typeof saveList==='function'){try{saveList();}catch(_){} }
-    }catch(err){console.error('Sorting failed',err);}
-    closeSortOptions();closeListOptions();
+      if(typeof saveList==='function'){
+        var result=saveList();
+        if(result && typeof result.catch==='function') result.catch(function(err){console.error(err);});
+      }
+    } catch(err) {
+      console.error('Sorteren mislukt',err);
+    } finally {
+      closeSortOptions();
+      closeListOptions();
+    }
   };
-  document.addEventListener('click',function(e){
-    var p=panel('listOptionsPanel'),s=panel('sortOptionsPanel'),b=panel('listOptionsButton');
-    if(p&&p.classList.contains('open')&&e.target===p)closeListOptions();
-    if(s&&s.classList.contains('open')&&e.target===s)closeSortOptions();
-    if(b&&b.contains(e.target))return;
+
+  // iPhone/iPad-safe action handling. Inline onclick remains as a fallback,
+  // while this delegated handler makes taps on the whole menu item reliable.
+  document.addEventListener('click', function(e){
+    var target=e.target && e.target.closest ? e.target.closest(
+      '#listOptionsPanel .listOptionItem, #sortOptionsPanel .listOptionItem, #sortOptionsPanel .listOptionBack'
+    ) : null;
+    if(!target) return;
+
+    // Let the inline handler do the action, but make sure the tap is not
+    // swallowed by the full-screen panel/background.
+    e.stopPropagation();
+  }, true);
+
+  document.addEventListener('pointerup', function(e){
+    var target=e.target && e.target.closest ? e.target.closest(
+      '#listOptionsPanel .listOptionItem, #sortOptionsPanel .listOptionItem, #sortOptionsPanel .listOptionBack'
+    ) : null;
+    if(!target) return;
+    // Prevent ghost/duplicate pointer events only; click still fires normally.
+  }, true);
+
+  document.addEventListener('click', function(e){
+    var p=panel('listOptionsPanel'), s=panel('sortOptionsPanel'), b=panel('listOptionsButton');
+    if(p && p.classList.contains('open') && e.target===p) closeListOptions();
+    if(s && s.classList.contains('open') && e.target===s) closeSortOptions();
+    if(b && b.contains(e.target)) return;
   });
 
-  /* English translation removed: the app remains Dutch. */
   try { localStorage.removeItem('appLanguage'); } catch (_) {}
   document.documentElement.lang='nl-NL';
 })();
