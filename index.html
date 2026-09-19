@@ -3237,6 +3237,8 @@ async function showAccountName() {
     if(!next){ input.focus(); return; }
     try {
       await database.ref("users/" + user.uid + "/name").set(next);
+      __overviewNameCacheUid = user.uid;
+      __overviewNameCache = next;
       closeFamilyDialog(overlay);
       await updateMemberCount();
       await familyAlert("Mijn account", "Je naam is opgeslagen.", "fa-user");
@@ -6305,11 +6307,41 @@ function updateOverviewDashboard(){
   }
 }
 
+
+var __overviewNameCacheUid = "";
+var __overviewNameCache = "";
+
+async function refreshOverviewGreeting(){
+  var h = new Date().getHours();
+  var greeting = h>=5 && h<12 ? "Goedemorgen" : (h>=12 && h<18 ? "Goedemiddag" : "Goedenavond");
+  var el = document.getElementById("overviewGreetingNew");
+  if (!el) return;
+
+  var name = "";
+  var user = (typeof auth !== "undefined" && auth) ? auth.currentUser : null;
+
+  if (user) {
+    if (__overviewNameCacheUid === user.uid && __overviewNameCache) {
+      name = __overviewNameCache;
+    } else {
+      try {
+        var snap = await database.ref("users/" + user.uid + "/name").once("value");
+        name = String(snap.val() || "").trim();
+      } catch (_) {}
+      if (!name) name = String(user.displayName || "").trim();
+      __overviewNameCacheUid = user.uid;
+      __overviewNameCache = name;
+    }
+  } else {
+    __overviewNameCacheUid = "";
+    __overviewNameCache = "";
+  }
+
+  el.textContent = name ? greeting + ", " + name + " 👋" : greeting + " 👋";
+}
+
 function updateOverviewView(){
-  var h=new Date().getHours();
-  var greeting=h>=5&&h<12?"Goedemorgen":(h>=12&&h<18?"Goedemiddag":"Goedenavond");
-  var g=document.getElementById("overviewGreetingNew");
-  if(g) g.textContent=greeting+" 👋";
+  refreshOverviewGreeting();
   renderOverviewQuickAdd();
   var history=readOverviewHistory();
   var hs=document.getElementById("overviewHistorySummary");
@@ -6556,12 +6588,6 @@ body.dark-theme .overviewSavedListLine{color:#c2ccc5;border-bottom-color:rgba(25
 
 <script id="overview-greeting-refresh-final">
 document.addEventListener("DOMContentLoaded",function(){
-  function refreshOverviewGreeting(){
-    var h=new Date().getHours();
-    var text=h>=5&&h<12?"Goedemorgen":(h>=12&&h<18?"Goedemiddag":"Goedenavond");
-    var el=document.getElementById("overviewGreetingNew");
-    if(el) el.textContent=text+" 👋";
-  }
   refreshOverviewGreeting();
   setInterval(refreshOverviewGreeting,60000);
 });
