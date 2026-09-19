@@ -3222,11 +3222,12 @@ async function logoutFromMenu() {
   }
 }
 async function openFamilyListFromAbout(event){
-  if(event) event.preventDefault();
   if(event) event.stopPropagation();
-  if(!auth.currentUser) return;
+  const user=auth.currentUser;
+  if(!user) return;
 
-  // Stop any active shared list first.
+  // Same navigation pattern as a Deellijst item (e.g. Kerst):
+  // go to the real Lijst tab first, close the menu, then load the family list.
   activeListType = "family";
   if(currentSharedListUnsubscribe){
     currentSharedListUnsubscribe();
@@ -3235,11 +3236,8 @@ async function openFamilyListFromAbout(event){
   currentSharedListId = null;
   currentSharedListInviteCode = null;
 
-  // Load the actual family shopping list, then switch the visible app tab to Lijst.
-  const loaded = await loadList();
-  if(loaded !== false){
-    showMainListView();
-  }
+  showMainListView();
+  await loadList();
 }
 function showAboutApp() {
   closeFamilyMenuForDialog();
