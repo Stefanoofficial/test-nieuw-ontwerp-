@@ -2526,6 +2526,31 @@ body.dark-theme .overview-new-card{background:#202923;border-color:#34443a}
   transform:scale(.98);
 }
 </style>
+
+<style id="submenu-text-size-fix">
+/* Submenu-teksten: rustiger en in verhouding met de rest van Meer.
+   De Familielijst blijft bewust onaangeraakt. */
+.app.more-active .sharedListsMenuPage .familyMenuItem,
+.app.more-active .savedListsMenuPage .familyMenuItem,
+.app.more-active .accountMenuPage .familyMenuItem,
+.app.more-active .aboutMenuPage .familyMenuItem,
+.app.more-active .settingsMenuPage .familyMenuItem {
+  font-size: 13.5px !important;
+  min-height: 44px;
+  padding: 6px 6px;
+  gap: 8px;
+}
+.app.more-active .sharedListsMenuPage .familyMenuItem > span,
+.app.more-active .savedListsMenuPage .familyMenuItem > span,
+.app.more-active .accountMenuPage .familyMenuItem > span,
+.app.more-active .aboutMenuPage .familyMenuItem > span,
+.app.more-active .settingsMenuPage .familyMenuItem > span {
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  line-height: 1.2;
+}
+</style>
+
 </head>
 
 <body>
