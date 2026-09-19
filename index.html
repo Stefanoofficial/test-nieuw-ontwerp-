@@ -4724,6 +4724,13 @@ async function openSharedList(id, showInvite){
   const user=auth.currentUser;
   if(!user) return;
 
+  // Open een Deellijst altijd direct in het hoofdscherm "Lijst".
+  // Dit is vooral belangrijk wanneer de gebruiker vanuit Meer/Deellijst komt:
+  // de geselecteerde deellijst moet meteen zichtbaar zijn, zonder eerst
+  // handmatig onderaan op "Lijst" te hoeven drukken.
+  showMainListView();
+  closeFamilyMenu();
+
   // De Deellijst krijgt een eigen modus. Hierdoor kan een gelijktijdige
   // familielijst-load de inhoud van de Deellijst niet meer overschrijven.
   const previousSharedId = currentSharedListId;
