@@ -4527,9 +4527,12 @@ async function renderSharedLists(){
       btn.innerHTML='<i class="fa-solid fa-people-group"></i><span></span><i class="fa-solid fa-chevron-right familyMenuArrow"></i>';
       btn.querySelector("span").textContent=v.name||"Deellijst";
       btn.addEventListener("click",async()=>{
+        // Open the selected Deellijst directly in the main list screen.
+        // The previous version opened the secondary menu instead, which
+        // made it look like the Kerst list did not open.
         await openSharedList(id,false);
         if(activeListType==="shared" && currentSharedListId===id){
-          switchMenuPage("sharedListActiveMenuSub");
+          closeFamilyMenu();
         }
       });
       box.appendChild(btn);
