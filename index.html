@@ -834,7 +834,9 @@ overflow-x: hidden;
 }
 
 
-/* Stap 3: eerste keuze voor gebruikers zonder familie */
+/* Stap 3: eerste keuze voor gebruikers zonder familie.
+   De popup gebruikt dezelfde rechts-naar-links slide als de andere
+   moderne dialogs in de app. */
 .useModeModal{
   position:fixed;
   inset:0;
@@ -844,8 +846,17 @@ overflow-x: hidden;
   justify-content:center;
   padding:20px;
   box-sizing:border-box;
-  background:rgba(0,0,0,.40);
-  animation:useModeOverlayIn .22s ease-out both;
+  background:rgba(22,30,25,.28);
+  backdrop-filter:blur(3px);
+  -webkit-backdrop-filter:blur(3px);
+  opacity:0;
+  visibility:hidden;
+  transition:opacity .18s ease, visibility 0s linear .30s;
+}
+.useModeModal.useModeShown{
+  opacity:1;
+  visibility:visible;
+  transition-delay:0s;
 }
 .useModeBox{
   width:85%;
@@ -855,20 +866,27 @@ overflow-x: hidden;
   border-radius:24px;
   background:#ffffff;
   text-align:center;
-  box-shadow:0 10px 35px rgba(0,0,0,.22);
-  animation:useModeBoxIn .28s cubic-bezier(.22,.8,.3,1) both;
+  box-shadow:0 18px 45px rgba(0,0,0,.24);
+  opacity:0;
+  transform:translateX(70px) scale(.985);
+  transition:opacity .22s ease, transform .30s cubic-bezier(.22,.8,.3,1);
   will-change:transform,opacity;
 }
-@keyframes useModeOverlayIn {
-  from { opacity:0; }
-  to { opacity:1; }
+.useModeModal.useModeShown .useModeBox{
+  opacity:1;
+  transform:translateX(0) scale(1);
 }
-@keyframes useModeBoxIn {
-  from { opacity:0; transform:translateY(28px) scale(.985); }
-  to { opacity:1; transform:translateY(0) scale(1); }
+.useModeModal.useModeClosing{
+  opacity:0;
+}
+.useModeModal.useModeClosing .useModeBox{
+  opacity:0;
+  transform:translateX(70px) scale(.985);
 }
 @media (prefers-reduced-motion: reduce) {
-  .useModeModal, .useModeBox { animation:none !important; }
+  .useModeModal, .useModeBox {
+    transition:none !important;
+  }
 }
 .useModeBox h2{
   margin:0 0 10px;
@@ -5531,15 +5549,26 @@ function openUseModeModal() {
   const modal = document.getElementById("useModeModal");
   if (!modal) return;
   lockPageScroll();
+  modal.classList.remove("useModeClosing");
   modal.style.display = "flex";
   modal.setAttribute("aria-hidden", "false");
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => modal.classList.add("useModeShown"));
+  });
 }
 
 function closeUseModeModal() {
   const modal = document.getElementById("useModeModal");
   if (!modal) return;
-  modal.style.display = "none";
+  modal.classList.remove("useModeShown");
+  modal.classList.add("useModeClosing");
   modal.setAttribute("aria-hidden", "true");
+  setTimeout(() => {
+    if (!modal.classList.contains("useModeShown")) {
+      modal.style.display = "none";
+      modal.classList.remove("useModeClosing");
+    }
+  }, 300);
   unlockPageScroll();
 }
 
