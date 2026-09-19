@@ -4307,6 +4307,9 @@ const authPersistenceReady = auth.setPersistence(firebase.auth.Auth.Persistence.
   throw error;
 });
 let loginFlowActive = false;
+  // Tijdens registratie is Firebase de nieuwe gebruiker kort automatisch ingelogd.
+  // De normale auth-flow mag dan nog geen boodschappenlijst/popup openen.
+  let registrationInProgress = false;
   let explicitLogoutInProgress = false;
   let currentHouseholdId = null;
 let currentSharedListId = null;
@@ -5667,6 +5670,10 @@ async function register() {
   }
 
   try {
+    // Firebase logt een nieuw account automatisch in. Zet eerst de registratievlag,
+    // zodat onAuthStateChanged niet alvast de gebruikswijze-popup opent.
+    registrationInProgress = true;
+
     const credential = await auth.createUserWithEmailAndPassword(email, password);
 
     await database.ref("users/" + credential.user.uid + "/name").set(name);
@@ -5674,6 +5681,7 @@ async function register() {
     // Een nieuw Firebase-account wordt automatisch ingelogd.
     // Direct uitloggen voorkomt dat de gebruiker onverwacht meteen binnenkomt.
     await auth.signOut();
+    registrationInProgress = false;
 
     document.getElementById("registerName").value = "";
     document.getElementById("registerEmail").value = "";
@@ -5684,6 +5692,7 @@ async function register() {
     document.getElementById("loginScreen").style.display = "flex";
     alert("Account aangemaakt. Je kunt nu inloggen.");
   } catch (error) {
+    registrationInProgress = false;
     console.error("Registratie fout:", error);
 
     // If Auth succeeded but saving the profile failed, do not leave the
@@ -5836,6 +5845,10 @@ function toggleRegisterPassword(fieldId, button) {
     }
 
     firstAuthState = false;
+
+    // Tijdens registratie wordt een nieuwe Firebase-gebruiker automatisch ingelogd.
+    // Negeer die tijdelijke auth-state: pas na een echte login mag de normale flow starten.
+    if (registrationInProgress) return;
 
     // Tijdens een normale login doet login() zelf de overgang en het laden.
     if (loginFlowActive) return;
