@@ -1256,15 +1256,25 @@ body.dark-theme .overviewCard{background:#202620;border-color:rgba(255,255,255,.
 }
 
 .productInlineIcon {
-  width: 28px;
-  height: 28px;
-  max-width: 28px;
-  max-height: 28px;
+  width: 32px;
+  height: 32px;
+  max-width: 32px;
+  max-height: 32px;
   display: block;
 }
 .productSuggestionIcon .productInlineIcon {
   width: 26px;
   height: 26px;
+}
+.productRealImage {
+  object-fit: contain;
+  border-radius: 4px;
+}
+.productSuggestionIcon .productRealImage {
+  width: 28px;
+  height: 28px;
+  max-width: 28px;
+  max-height: 28px;
 }
 
 
@@ -2443,7 +2453,7 @@ body.dark-theme .shopping-item-trash {
 .product-row-trash-can:active{transform:scale(.96)}
 .overview-new{padding:14px 12px 105px}
 .overview-new-greeting{margin:2px 4px 14px;font-size:22px;font-weight:750;color:#30453a}
-.overview-new-card{background:#fff;border:1px solid #e1ece4;border-radius:16px;padding:14px;margin:0 0 11px;box-shadow:0 2px 8px rgba(40,70,50,.05)}
+.overview-new-card{background:#fff;border:1px solid #e1ece4;border-radius:16px;padding:14px;margin:0 0 11px;box-shadow:0 10px 28px rgba(63,91,69,.08)}
 .overview-new-title{display:flex;align-items:center;gap:9px;font-size:16px;font-weight:750;color:#30453a;margin-bottom:10px}
 .overview-new-title i{width:30px;height:30px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center}
 .overview-new-bolt{background:#fff1c9;color:#c18a18}.overview-new-history{background:#e7f3ec;color:#3d8060}.overview-new-lists{background:#e8f0ff;color:#4e73ad}
@@ -2910,6 +2920,7 @@ body.dark-theme .aboutInfoCard p,body.dark-theme .helpSection p{color:#AAB4AD;}
       <div class="aboutInfoLine"><i class="fa-solid fa-folder-open"></i><span>Lijsten opslaan en later opnieuw gebruiken.</span></div>
       <div class="aboutInfoLine"><i class="fa-solid fa-chart-column"></i><span>Een overzicht bekijken van je boodschappen.</span></div>
     </div>
+    <div class="aboutMenuHint">Productfoto's: Open Food Facts · CC BY-SA 3.0</div>
     <div class="aboutMenuHint">© 2026 Boodschappenlijst</div>
   </div>
 
@@ -3037,8 +3048,14 @@ body.dark-theme .aboutInfoCard p,body.dark-theme .helpSection p{color:#AAB4AD;}
       <button type="button" class="listOptionItem listOptionDanger" onclick="clearListFromOptions()">
         <i class="fa-solid fa-trash-can"></i><span>Lijst wissen</span>
       </button>
-      <button type="button" class="listOptionItem" onclick="openSortOptions()">
-        <i class="fa-solid fa-arrow-down-a-z"></i><span>Lijst sorteren</span><i class="fa-solid fa-chevron-right listOptionArrow"></i>
+      <button type="button" class="listOptionItem" onclick="sortCurrentList('alpha')">
+        <i class="fa-solid fa-arrow-down-a-z"></i><span>Alfabetisch</span>
+      </button>
+      <button type="button" class="listOptionItem" onclick="sortCurrentList('category')">
+        <i class="fa-solid fa-layer-group"></i><span>Per categorie</span>
+      </button>
+      <button type="button" class="listOptionItem" onclick="sortCurrentList('newest')">
+        <i class="fa-solid fa-clock"></i><span>Nieuwste eerst</span>
       </button>
     </div>
   </div>
@@ -3798,8 +3815,8 @@ function relativeCompletedTime(timestamp) {
 
 const productCatalog = [
   // Fruit
-  ["appel", "🍎"], ["appels", "🍎"], ["peer", "🍐"], ["peren", "🍐"],
-  ["banaan", "🍌"], ["bananen", "🍌"], ["sinaas", "🍊"], ["sinaasappel", "🍊"], ["sinaasappels", "🍊"],
+  ["appel", "apple"], ["appels", "apple"], ["peer", "🍐"], ["peren", "🍐"],
+  ["banaan", "banana"], ["bananen", "banana"], ["sinaas", "🍊"], ["sinaasappel", "🍊"], ["sinaasappels", "🍊"],
   ["mandarijn", "🍊"], ["mandarijnen", "🍊"], ["citroen", "🍋"], ["citroenen", "🍋"],
   ["limoen", "🍋"], ["druif", "🍇"], ["druiven", "🍇"], ["aardbei", "🍓"], ["aardbeien", "🍓"],
   ["framboos", "🫐"], ["frambozen", "🫐"], ["blauwe bessen", "🫐"], ["kiwi", "🥝"],
@@ -3809,7 +3826,7 @@ const productCatalog = [
 
   // Groenten
   ["aardappel", "🥔"], ["aardappelen", "🥔"], ["zoete aardappel", "🍠"],
-  ["tomaat", "🍅"], ["tomaten", "🍅"], ["komkommer", "🥒"], ["wortel", "🥕"], ["wortels", "🥕"],
+  ["tomaat", "tomatoes"], ["tomaten", "tomatoes"], ["komkommer", "🥒"], ["wortel", "🥕"], ["wortels", "🥕"],
   ["ui", "🧅"], ["uien", "🧅"], ["rode ui", "🧅"], ["knoflook", "🧄"],
   ["paprika", "🫑"], ["rode paprika", "red-bell-pepper"], ["groene paprika", "🫑"], ["gele paprika", "🫑"],
   ["sla", "🥬"], ["spinazie", "🥬"], ["broccoli", "🥦"], ["bloemkool", "🥦"],
@@ -3932,7 +3949,106 @@ function normalizeProductName(text) {
   return String(text || "").toLowerCase().trim();
 }
 
+const openFoodFactsImageTerms = {
+  "milk-carton": "melk", "bread-loaf": "brood", "egg-carton": "eieren",
+  "butter-pack": "boter", "cheese-block": "kaas", "peanut-butter-jar": "pindakaas",
+  "jam-jar": "jam", "quark-cup": "kwark", "toothpaste-tube": "tandpasta",
+  "apple": "appel", "banana": "bananen", "tomatoes": "tomaten"
+};
+const openFoodFactsImageCache = new Map();
+const openFoodFactsImagePromises = new Map();
+function offSearchTerm(value, icon) {
+  const raw = normalizeProductLookup(value);
+  if (raw) return raw;
+  return openFoodFactsImageTerms[icon] || "";
+}
+async function fetchOpenFoodFactsImageForTerm(term) {
+  const normalizedTerm = normalizeProductLookup(term);
+  if (!normalizedTerm) return "";
+  if (openFoodFactsImageCache.has(normalizedTerm)) return openFoodFactsImageCache.get(normalizedTerm) || "";
+  if (openFoodFactsImagePromises.has(normalizedTerm)) return openFoodFactsImagePromises.get(normalizedTerm);
+  const promise = (async () => {
+    try {
+      const url = "https://world.openfoodfacts.org/cgi/search.pl?search_terms=" +
+        encodeURIComponent(normalizedTerm) +
+        "&search_simple=1&action=process&json=1&page_size=12&fields=product_name,image_front_url,image_url";
+      const response = await fetch(url, { headers: { "Accept": "application/json" } });
+      if (!response.ok) throw new Error("Open Food Facts request failed");
+      const data = await response.json();
+      const products = Array.isArray(data.products) ? data.products : [];
+      const words = normalizedTerm.split(/\s+/).filter(Boolean);
+      const candidate = products.find(product => {
+        const name = normalizeProductLookup(product.product_name || "");
+        if (!(product.image_front_url || product.image_url) || !name) return false;
+        return words.some(word => word.length >= 3 && name.includes(word));
+      }) || products.find(product => product.image_front_url || product.image_url);
+      const imageUrl = candidate ? (candidate.image_front_url || candidate.image_url || "") : "";
+      openFoodFactsImageCache.set(normalizedTerm, imageUrl);
+      return imageUrl;
+    } catch (error) {
+      console.warn("Open Food Facts productfoto niet geladen:", normalizedTerm, error);
+      openFoodFactsImageCache.set(normalizedTerm, "");
+      return "";
+    } finally {
+      openFoodFactsImagePromises.delete(normalizedTerm);
+    }
+  })();
+  openFoodFactsImagePromises.set(normalizedTerm, promise);
+  return promise;
+}
+async function hydrateOpenFoodFactsImages(root = document) {
+  const images = root.querySelectorAll ? root.querySelectorAll("img[data-off-term], img[data-off-icon]") : [];
+  await Promise.all(Array.from(images).map(async image => {
+    const remoteUrl = await fetchOpenFoodFactsImageForTerm(image.dataset.offTerm || openFoodFactsImageTerms[image.dataset.offIcon] || "");
+    if (remoteUrl) {
+      image.src = remoteUrl;
+      image.dataset.source = "Open Food Facts";
+      image.style.display = "block";
+    } else if (image.dataset.hideOnFail === "true") {
+      image.style.display = "none";
+    }
+  }));
+}
+async function hydrateProductPhotoForElement(container, productName, iconValue) {
+  if (!container) return;
+  const term = offSearchTerm(productName, iconValue);
+  if (!term) return;
+  const img = document.createElement("img");
+  img.className = "productInlineIcon productRemotePhoto";
+  img.alt = "";
+  img.setAttribute("aria-hidden", "true");
+  img.dataset.offTerm = term;
+  img.dataset.hideOnFail = "true";
+  img.style.display = "none";
+  img.addEventListener("load", () => {
+    const fallback = container.querySelector(".productFallbackIcon");
+    if (fallback) fallback.style.display = "none";
+    img.style.display = "block";
+  });
+  img.addEventListener("error", () => { img.style.display = "none"; });
+  container.appendChild(img);
+  const remoteUrl = await fetchOpenFoodFactsImageForTerm(term);
+  if (remoteUrl) img.src = remoteUrl;
+} 
+
 function productIconMarkup(icon) {
+  const fallbackImages = {
+    "milk-carton": "assets/product-icons/milk-carton.png",
+    "bread-loaf": "assets/product-icons/bread-loaf.png",
+    "egg-carton": "assets/product-icons/egg-carton.png",
+    "butter-pack": "assets/product-icons/butter-pack.png",
+    "cheese-block": "assets/product-icons/cheese-block.png",
+    "peanut-butter-jar": "assets/product-icons/peanut-butter-jar.png",
+    "jam-jar": "assets/product-icons/jam-jar.png",
+    "quark-cup": "assets/product-icons/quark-cup.png",
+    "toothpaste-tube": "assets/product-icons/toothpaste-tube.png",
+    "apple": "assets/product-icons/apple.png",
+    "banana": "assets/product-icons/banana.png",
+    "tomatoes": "assets/product-icons/tomatoes.png"
+  };
+  if (fallbackImages[icon]) {
+    return `<img class="productInlineIcon productRealImage" src="${fallbackImages[icon]}" data-off-icon="${icon}" alt="" aria-hidden="true">`;
+  }
   if (icon === "butter-pack") {
     return `<svg class="productInlineIcon" viewBox="0 0 64 64" aria-hidden="true">
       <path d="M10 20h44v31H10z" rx="4" fill="#f6c94a" stroke="#c89d24" stroke-width="1.5"/>
@@ -4162,6 +4278,7 @@ function updateProductSuggestions() {
     button.type = "button";
     button.className = "productSuggestion";
     button.innerHTML = `<span>${name.charAt(0).toUpperCase() + name.slice(1)}</span><span class="productSuggestionIcon">${productIconMarkup(icon)}</span>`;
+    hydrateOpenFoodFactsImages(button);
     button.addEventListener("click", () => {
       input.value = name.charAt(0).toUpperCase() + name.slice(1);
       box.classList.remove("open");
@@ -4260,7 +4377,16 @@ function showList(animationType = "") {
     const iconValue = getProductIcon(productText);
     icon.innerHTML = productIconMarkup(iconValue);
     if (!iconValue) icon.style.visibility = "hidden";
+    const fallbackIcon = icon.querySelector(".productFallbackIcon");
+    if (!fallbackIcon && iconValue && !icon.querySelector("img")) {
+      const fallback = document.createElement("span");
+      fallback.className = "productFallbackIcon";
+      fallback.textContent = iconValue;
+      icon.innerHTML = "";
+      icon.appendChild(fallback);
+    }
     productWrap.appendChild(icon);
+    hydrateProductPhotoForElement(icon, productText, iconValue);
 
     const trashButton = document.createElement("button");
     trashButton.type = "button";
@@ -4304,6 +4430,7 @@ function showList(animationType = "") {
   });
 
   updateListProgress();
+  hydrateOpenFoodFactsImages(list);
 }
 
 async function saveList() {
@@ -6840,7 +6967,7 @@ function openWeekCompleted(){
 </body>
 
 <style id="overview-dashboard-final">
-.overview-dashboard-card{background:#fff;border:1px solid #e1ece4;border-radius:16px;padding:15px;margin:0 0 11px;box-shadow:0 2px 8px rgba(40,70,50,.05)}
+.overview-dashboard-card{background:#fff;border:1px solid #e1ece4;border-radius:16px;padding:15px;margin:0 0 11px;box-shadow:0 10px 28px rgba(63,91,69,.08)}
 .overview-dashboard-heading{display:flex;align-items:center;gap:9px;margin:0 0 12px;font-size:16px;font-weight:800;color:#30453a}
 .overview-dashboard-heading i{width:30px;height:30px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;background:#e7f3ec;color:#3d8060}
 .overview-dashboard-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
@@ -6994,6 +7121,15 @@ body.dark-theme .listOptionItem:hover,body.dark-theme .listOptionBack:hover{back
 
 <style id="list-options-login-fix">body:not(.logged-in) #listOptionsButton{display:none!important}</style>
 
+<style id="dynamic-product-photo-and-single-popup">
+.productRemotePhoto{width:42px;height:42px;object-fit:contain;display:block;flex:0 0 42px;}
+.productFallbackIcon{display:inline-flex;align-items:center;justify-content:center;font-size:30px;line-height:1;width:42px;height:42px;}
+.productIcon{width:48px;min-width:48px;height:48px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;}
+.productIcon .productRealImage{width:42px;height:42px;object-fit:contain;}
+/* Alle lijstacties blijven in één compact veld onder de drie puntjes. */
+#listOptionsPanel .listOptionsPanelInner{display:flex;flex-direction:column;gap:1px;}
+#sortOptionsPanel{display:none !important;}
+</style>
 <style id="compact-list-options-final">
 /* Klein pop-over menu: geen schermhoge zijbalk. */
 .listOptionsPanel{
@@ -7024,7 +7160,7 @@ body.dark-theme .listOptionItem:hover,body.dark-theme .listOptionBack:hover{back
 .listOptionDanger i:first-child{color:#b75a52 !important;}
 .listOptionBack{margin-bottom:2px !important;}
 body.dark-theme .listOptionsPanelInner{background:#202923 !important;box-shadow:0 12px 28px rgba(0,0,0,.35) !important;}
-@media(max-width:600px){.listOptionsPanelInner{top:calc(env(safe-area-inset-top) + 82px) !important; width:178px !important; right:12px !important;}}
+@media(max-width:600px){.listOptionsPanelInner{top:calc(env(safe-area-inset-top) + 82px) !important; width:205px !important; right:12px !important;}}
 
 /* Meer bevat geen destructieve lijstactie. */
 .app.more-active .moreMenuActions{display:none !important;}
