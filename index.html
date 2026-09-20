@@ -1514,7 +1514,7 @@ body.dark-theme .saveToast { background: rgba(31,37,32,.97); color: #f1f4f1; bor
 body.dark-theme .saveToastIcon { background: rgba(111,180,125,.16); color: #bfe8c7; }
 body.dark-theme .saveToastSub { color: #aab4ad; }
 @media (max-width: 480px) {
-  .saveToast { top: 12px; right: 12px; min-width: 0; width: calc(100vw - 24px); max-width: none; }
+  .saveToast { min-width: 0; max-width: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .saveToast { transition: opacity .15s ease; transform: none; }
@@ -3525,6 +3525,19 @@ function showSaveToast(name) {
   toast.setAttribute('aria-live', 'polite');
   toast.innerHTML = `<div class="saveToastIcon"><i class="fa-solid fa-check"></i></div><div><div class="saveToastText">Lijst opgeslagen!</div><div class="saveToastSub">${name ? '“' + String(name).replace(/[<>]/g, '') + '” is opgeslagen.' : 'Je lijst is succesvol opgeslagen.'}</div></div>`;
   document.body.appendChild(toast);
+
+  // Plaats de melding precies over de knop 'Lijst opslaan', zodat de bevestiging
+  // niet bovenaan bij de titel verschijnt maar logisch op de actie zelf aansluit.
+  const saveBtn = document.querySelector('.saveListMainBtn');
+  if (saveBtn) {
+    const r = saveBtn.getBoundingClientRect();
+    toast.style.top = `${Math.round(r.top)}px`;
+    toast.style.right = `${Math.max(12, Math.round(window.innerWidth - r.right))}px`;
+    toast.style.width = `${Math.round(r.width)}px`;
+    toast.style.maxWidth = `${Math.round(r.width)}px`;
+    toast.style.minWidth = '0';
+    toast.style.boxSizing = 'border-box';
+  }
   requestAnimationFrame(() => toast.classList.add('show'));
   clearTimeout(window.__saveToastTimer);
   window.__saveToastTimer = setTimeout(() => {
