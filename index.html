@@ -2805,6 +2805,16 @@ body.dark-theme .aboutInfoCard p,body.dark-theme .helpSection p{color:#AAB4AD;}
       <i class="fa-solid fa-plus"></i>
       <span>Nieuwe lijst</span>
     </button>
+    <div class="familyMenuItem" onclick="showSharedListCodeFromMenu()">
+      <i class="fa-solid fa-link"></i>
+      <span>Deelcode</span>
+    </div>
+
+    <div class="familyMenuItem" onclick="joinSharedListByCode()">
+      <i class="fa-solid fa-keyboard"></i>
+      <span>Code invoeren</span>
+    </div>
+
     <div class="familyMenuSubTitle">Mijn deellijsten</div>
     <div id="sharedListsContainer" class="savedListsContainer"></div>
     <div class="settingsMenuHint">Maak een lijst voor vrienden, familie of een feestje. Iedereen met toegang kan samen producten toevoegen en afvinken.</div>
@@ -4767,6 +4777,18 @@ function makeSharedListLink(code){
   return base + "?code=" + encodeURIComponent(code);
 }
 
+async function showSharedListCodeFromMenu(){
+  if(activeListType!=="shared" || !currentSharedListId){
+    await familyAlert(
+      "Deelcode",
+      "Open eerst de deellijst waarvan je de deelcode wilt bekijken.",
+      "fa-link"
+    );
+    return;
+  }
+  await showSharedListCode();
+}
+
 async function createSharedList(){
   const user=auth.currentUser;
   if(!user){ await familyAlert("Inloggen vereist","Je bent niet ingelogd.","fa-user"); return; }
@@ -5182,7 +5204,12 @@ function updateSharedDeleteButton(isOwner){
    btn.setAttribute("title","Deellijst verwijderen");
   btn.innerHTML='<i class="fa-solid fa-trash"></i>';
   btn.onclick=deleteCurrentSharedList;
-  header.insertBefore(btn, header.firstChild);
+  const optionsBtn=document.getElementById("listOptionsButton");
+  if(optionsBtn && optionsBtn.parentElement===header){
+    header.insertBefore(btn, optionsBtn);
+  }else{
+    header.appendChild(btn);
+  }
 }
 
 async function deleteCurrentSharedList(){
@@ -5227,6 +5254,9 @@ async function deleteCurrentSharedList(){
     currentSharedListInviteCode=null;
     const delBtn=document.getElementById("deleteSharedListBtn");
     if(delBtn) delBtn.remove();
+    const headerTitle=document.querySelector(".headerBar h1");
+    if(headerTitle) headerTitle.textContent="Boodschappenlijst";
+    showMainListView();
     await loadList();
     await familyAlert("Deellijst verwijderd","De deellijst is verwijderd.","fa-trash");
   }catch(error){
