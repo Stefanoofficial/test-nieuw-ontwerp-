@@ -1475,63 +1475,6 @@ body.dark-theme .productSuggestion {
 
 
 
-/* ===== Opslaan: bevestiging die exact over de knop 'Lijst opslaan' schuift ===== */
-.saveListMainWrap {
-  position: relative;
-  width: 100%;
-}
-.saveListMainWrap .saveListMainBtn {
-  margin: 8px 0 7px;
-}
-.saveToast {
-  position: fixed;
-  left: 0;
-  top: 0;
-  width: 0;
-  height: 0;
-  z-index: 100000;
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-  padding: 8px 14px;
-  border: 1px solid rgba(63,91,69,.18);
-  border-radius: 14px;
-  background: rgba(255,255,255,.98);
-  color: #3F5B45;
-  box-shadow: 0 8px 22px rgba(0,0,0,.13);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  transform: translateX(105%);
-  opacity: 0;
-  transition: transform .38s cubic-bezier(.22,.8,.25,1), opacity .28s ease;
-  pointer-events: none;
-  overflow: hidden;
-}
-.saveToast.show { transform: translateX(0); opacity: 1; }
-.saveToast.hide { transform: translateX(105%); opacity: 0; }
-.saveToastIcon {
-  width: 34px; height: 34px; flex: 0 0 34px;
-  display: grid; place-items: center;
-  border-radius: 50%;
-  background: #e7f5ea; color: #3f6b48;
-  font-size: 15px;
-}
-.saveToastText { font-size: 14px; font-weight: 700; line-height: 1.2; }
-.saveToastSub { margin-top: 3px; font-size: 11px; font-weight: 500; color: #7a847d; }
-body.dark-theme .saveToast { background: rgba(31,37,32,.97); color: #f1f4f1; border-color: rgba(255,255,255,.10); box-shadow: 0 14px 32px rgba(0,0,0,.42); }
-body.dark-theme .saveToastIcon { background: rgba(111,180,125,.16); color: #bfe8c7; }
-body.dark-theme .saveToastSub { color: #aab4ad; }
-@media (max-width: 480px) {
-  .saveToast { width: 100%; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .saveToast { transition: opacity .15s ease; transform: none; }
-  .saveToast.show { opacity: 1; }
-  .saveToast.hide { opacity: 0; }
-}
-
 /* ===== Stap 9: moderne, consistente Menu-stijl ===== */
 .familyMenu {
   border-radius: 18px !important;
@@ -1799,19 +1742,36 @@ body.dark-theme .saveListMainBtn {
   justify-content:center;
   text-align:center;
 }
-.savedListDeleteBtn {
-  width:34px;
-  height:34px;
-  flex:0 0 34px;
-  border:0;
-  border-radius:11px;
-  background:#f8e7e5;
-  color:#b45f56;
-  display:grid;
-  place-items:center;
-  font-size:14px;
+ .savedListDeleteBtn {
+  width:34px !important;
+  height:34px !important;
+  min-width:34px !important;
+  min-height:34px !important;
+  max-width:34px !important;
+  max-height:34px !important;
+  flex:0 0 34px !important;
+  box-sizing:border-box !important;
+  padding:0 !important;
+  margin:0 0 0 2px !important;
+  border:0 !important;
+  border-radius:10px !important;
+  background:#f8e7e5 !important;
+  color:#b45f56 !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  align-self:center !important;
+  font-size:14px !important;
+  line-height:1 !important;
   cursor:pointer;
   transition:transform .16s ease, background .16s ease;
+}
+.savedListDeleteBtn i {
+  display:block;
+  width:auto;
+  height:auto;
+  line-height:1;
+  margin:0;
 }
 .savedListDeleteBtn:active { transform:scale(.94); }
 @media (hover:hover) {
@@ -3586,43 +3546,6 @@ function renderSavedLists() {
   });
 }
 
-function showSaveToast(name) {
-  const old = document.querySelector('.saveToast');
-  if (old) old.remove();
-  const toast = document.createElement('div');
-  toast.className = 'saveToast';
-  toast.setAttribute('role', 'status');
-  toast.setAttribute('aria-live', 'polite');
-  toast.innerHTML = `<div class="saveToastIcon"><i class="fa-solid fa-check"></i></div><div><div class="saveToastText">Lijst opgeslagen!</div><div class="saveToastSub">${name ? '“' + String(name).replace(/[<>]/g, '') + '” is opgeslagen.' : 'Je lijst is succesvol opgeslagen.'}</div></div>`;
-  // Plaats de melding exact bovenop de knop "Lijst opslaan".
-  // We gebruiken de echte schermpositie van de knop, zodat hij nooit
-  // midden in de boodschappenlijst kan verschijnen.
-  const saveWrap = document.querySelector('.saveListMainWrap');
-  const saveBtn = document.querySelector('.saveListMainBtn');
-  document.body.appendChild(toast);
-  if (saveBtn) {
-    const rect = saveBtn.getBoundingClientRect();
-    toast.style.left = rect.left + 'px';
-    toast.style.top = rect.top + 'px';
-    toast.style.width = rect.width + 'px';
-    toast.style.height = rect.height + 'px';
-    toast.style.borderRadius = getComputedStyle(saveBtn).borderRadius;
-  } else if (saveWrap) {
-    const rect = saveWrap.getBoundingClientRect();
-    toast.style.left = rect.left + 'px';
-    toast.style.top = rect.top + 'px';
-    toast.style.width = rect.width + 'px';
-    toast.style.height = rect.height + 'px';
-  }
-  requestAnimationFrame(() => toast.classList.add('show'));
-  clearTimeout(window.__saveToastTimer);
-  window.__saveToastTimer = setTimeout(() => {
-    toast.classList.remove('show');
-    toast.classList.add('hide');
-    setTimeout(() => toast.remove(), 420);
-  }, 2600);
-}
-
 function saveCurrentListAs() {
   if (!boodschappen.length) {
     familyAlert("Lijst opslaan", "Je lijst is nog leeg. Voeg eerst één of meer producten toe.", "fa-floppy-disk");
@@ -3646,7 +3569,6 @@ function saveCurrentListAs() {
     if (existing >= 0) lists[existing] = record; else lists.unshift(record);
     writeSavedLists(lists);
     finish(true);
-    showSaveToast(name);
     setTimeout(() => {
       const menu = document.getElementById("familyMenu");
       if (menu) { menu.style.display = "block"; menu.classList.add("menu-open"); }
