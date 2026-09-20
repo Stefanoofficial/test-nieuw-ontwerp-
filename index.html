@@ -2816,8 +2816,8 @@ body.dark-theme .aboutInfoCard p,body.dark-theme .helpSection p{color:#AAB4AD;}
   </div>
 
   <div id="sharedListsMenuSub" class="familyMenuPage sharedListsMenuPage" style="display:none;">
-    <button type="button" class="settingsMenuBack familyListBackButton" onclick="returnToFamilyListFromSharedMenu(event)">
-      <span class="familyListBackCircle"><i class="fa-solid fa-chevron-left"></i></span>
+    <button type="button" class="settingsMenuBack" onclick="closeSharedListsSubmenu(event)">
+      <i class="fa-solid fa-chevron-left"></i>
       <span>Familielijst</span>
     </button>
     <div class="familyMenuSubTitle">Deellijst</div>
@@ -2825,16 +2825,6 @@ body.dark-theme .aboutInfoCard p,body.dark-theme .helpSection p{color:#AAB4AD;}
       <i class="fa-solid fa-plus"></i>
       <span>Nieuwe lijst</span>
     </button>
-    <div class="familyMenuItem" onclick="showSharedListCodeFromMenu()">
-      <i class="fa-solid fa-link"></i>
-      <span>Deelcode</span>
-    </div>
-
-    <div class="familyMenuItem" onclick="joinSharedListByCode()">
-      <i class="fa-solid fa-keyboard"></i>
-      <span>Code invoeren</span>
-    </div>
-
     <div class="familyMenuSubTitle">Mijn deellijsten</div>
     <div id="sharedListsContainer" class="savedListsContainer"></div>
     <div class="settingsMenuHint">Maak een lijst voor vrienden, familie of een feestje. Iedereen met toegang kan samen producten toevoegen en afvinken.</div>
@@ -2858,6 +2848,10 @@ body.dark-theme .aboutInfoCard p,body.dark-theme .helpSection p{color:#AAB4AD;}
       <i class="fa-solid fa-list"></i>
       <span>Familielijst</span>
       <i class="fa-solid fa-chevron-right familyMenuArrow"></i>
+    </button>
+    <button type="button" class="familyMenuItem familyMenuDanger" onclick="deleteCurrentSharedList()">
+      <i class="fa-solid fa-trash"></i>
+      <span>Deellijst verwijderen</span>
     </button>
   </div>
 
