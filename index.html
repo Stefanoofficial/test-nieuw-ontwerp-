@@ -4235,11 +4235,12 @@ function initProductSuggestions() {
   const input = document.getElementById("product");
   if (!input) return;
 
-  // Enable the current productsuggesties system once for older app versions.
-  // This prevents an old localStorage setting from accidentally hiding the new suggestions.
-  if (localStorage.getItem("boodschappenSuggestionsVersion") !== "2") {
+  // Migrate older versions once. Version 3 explicitly turns suggestions back on,
+  // because earlier builds could have stored the old "false" setting.
+  // After this migration the normal Suggesties-toggle can be used again.
+  if (localStorage.getItem("boodschappenSuggestionsVersion") !== "3") {
     localStorage.setItem("boodschappenSuggestionsEnabled", "true");
-    localStorage.setItem("boodschappenSuggestionsVersion", "2");
+    localStorage.setItem("boodschappenSuggestionsVersion", "3");
   }
 
   input.addEventListener("input", updateProductSuggestions);
