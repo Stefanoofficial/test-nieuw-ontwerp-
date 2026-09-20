@@ -5192,61 +5192,93 @@ async function deleteCurrentSharedList(){
   const id=currentSharedListId;
   if(!user || !id) return;
 
+  let list;
   try{
     const snap=await database.ref("sharedLists/" + id).once("value");
-    const list=snap.val();
-    if(!list){
-      await familyAlert("Deellijst","Deze lijst bestaat niet meer.","fa-circle-info");
-      returnToFamilyList();
-      return;
-    }
-    if(list.owner !== user.uid){
-      await familyAlert("Deellijst","Alleen de eigenaar kan deze deellijst verwijderen.","fa-lock");
-      return;
-    }
-
-    const ok=await familyConfirm(
-      "Deellijst verwijderen",
-      "Weet je zeker dat je “" + (list.name || "Deellijst") + "” wilt verwijderen? Deze actie kan niet ongedaan worden."
-    );
-    if(!ok) return;
-
-    if(currentSharedListUnsubscribe){
-      currentSharedListUnsubscribe();
-      currentSharedListUnsubscribe=null;
-    }
-
-    // Verwijder eerst de Deellijst zelf. Dit gebeurt bewust als een losse
-    // Firebase-bewerking: sommige Firebase-regels staan een multi-location
-    // update naar meerdere paden niet toe, ook al mag de eigenaar de lijst
-    // zelf verwijderen. De gewone familielijst wordt hierbij niet geraakt.
-    await database.ref("sharedLists/" + id).remove();
-
-    // De indexverwijzingen zijn alleen opruimwerk. Als een oude Firebase-regel
-    // het verwijderen van één van deze indexen blokkeert, mag dat de verwijdering
-    // van de Deellijst zelf niet ongedaan maken.
-    try { await database.ref("userSharedLists/" + user.uid + "/" + id).remove(); }
-    catch (cleanupError) { console.warn("Eigen Deellijst-index kon niet worden opgeruimd:", cleanupError); }
-    if(list.inviteCode){
-      try { await database.ref("sharedListCodes/" + list.inviteCode).remove(); }
-      catch (cleanupError) { console.warn("Deellijst-uitnodigingscode kon niet worden opgeruimd:", cleanupError); }
-    }
-
-    activeListType="family";
-    currentSharedListId=null;
-    currentSharedListInviteCode=null;
-    const delBtn=document.getElementById("deleteSharedListBtn");
-    if(delBtn) delBtn.remove();
-    await loadList();
-    await familyAlert("Deellijst verwijderd","De deellijst is verwijderd.","fa-trash");
+    list=snap.val();
   }catch(error){
-    console.error("Deellijst verwijderen mislukt:",error);
+    console.error("Deellijst lezen voor verwijderen mislukt:", error);
+    const detail = error && error.code ? "\n\nFoutcode: " + error.code : "";
+    await familyAlert("Deellijst", "De lijst kon niet worden gecontroleerd." + detail, "fa-triangle-exclamation");
+    return;
+  }
+
+  if(!list){
+    await familyAlert("Deellijst","Deze lijst bestaat niet meer.","fa-circle-info");
+    returnToFamilyList();
+    return;
+  }
+
+  if(String(list.owner || "") !== String(user.uid || "")){
+    await familyAlert("Deellijst","Alleen de eigenaar kan deze deellijst verwijderen.","fa-lock");
+    return;
+  }
+
+  const ok=await familyConfirm(
+    "Deellijst verwijderen",
+    "Weet je zeker dat je “" + (list.name || "Deellijst") + "” wilt verwijderen? Deze actie kan niet ongedaan worden."
+  );
+  if(!ok) return;
+
+  // Bewaar deze gegevens vóórdat de hoofdnode wordt verwijderd.
+  const inviteCode = list.inviteCode ? String(list.inviteCode) : null;
+  const ref = database.ref("sharedLists/" + id);
+
+  try{
+    // Verwijder de hoofdnode. Dit is de enige bewerking die noodzakelijk is
+    // om de Deellijst voor alle gebruikers te laten verdwijnen.
+    await ref.remove();
+  }catch(error){
+    console.error("Deellijst hoofdnode verwijderen mislukt:", error);
+    const detail = error && error.code ? "\n\nFoutcode: " + error.code : "";
     await familyAlert(
       "Deellijst",
-      "De deellijst kon niet volledig worden verwijderd. Er is niets uit je gewone familielijst verwijderd.",
+      "De deellijst kon niet worden verwijderd." + detail,
       "fa-triangle-exclamation"
     );
+    return;
   }
+
+  // Vanaf hier is de hoofdverwijdering geslaagd. Zet de lokale app-status
+  // meteen goed, zodat een fout in een opruimactie nooit meer een onjuiste
+  // melding geeft dat de Deellijst niet verwijderd is.
+  if(currentSharedListUnsubscribe){
+    currentSharedListUnsubscribe();
+    currentSharedListUnsubscribe=null;
+  }
+  activeListType="family";
+  currentSharedListId=null;
+  currentSharedListInviteCode=null;
+  const delBtn=document.getElementById("deleteSharedListBtn");
+  if(delBtn) delBtn.remove();
+
+  try { localStorage.removeItem("sharedListInviteCode:" + id); } catch(_) {}
+
+  // Opruimen van index/code is best-effort. De regels voor sharedListCodes
+  // kunnen het verwijderen van de code weigeren nadat sharedLists/$id al weg is;
+  // dat is niet fataal voor het verwijderen van de lijst.
+  try{
+    await database.ref("userSharedLists/" + user.uid + "/" + id).remove();
+  }catch(cleanupError){
+    console.warn("Eigen Deellijst-index kon niet worden opgeruimd:", cleanupError);
+  }
+
+  if(inviteCode){
+    try{
+      await database.ref("sharedListCodes/" + inviteCode).remove();
+    }catch(cleanupError){
+      console.warn("Deellijst-uitnodigingscode kon niet worden opgeruimd:", cleanupError);
+    }
+  }
+
+  // De gewone familielijst blijft volledig intact.
+  try{
+    await loadList();
+  }catch(loadError){
+    console.warn("Familielijst opnieuw laden na verwijderen mislukt:", loadError);
+  }
+
+  await familyAlert("Deellijst verwijderd","De deellijst is verwijderd.","fa-trash");
 }
 
 async function returnToFamilyListFromSharedMenu(event){
