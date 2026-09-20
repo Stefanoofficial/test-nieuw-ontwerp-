@@ -4187,7 +4187,27 @@ function updateProductSuggestions() {
     return;
   }
 
-  const matches = getProductSuggestions(query).slice(0, 5).map(({name}) => [name, getProductIcon(name)]);
+  let suggestionResults = getProductSuggestions(query);
+
+  // Extra useful choices for ambiguous product names.
+  if (query === "aardbei" || query === "aardbeien") {
+    suggestionResults = [
+      {name: "aardbei", icon: "apple"},
+      {name: "aardbeienjam", icon: "jam-jar"},
+      ...suggestionResults.filter(x => !["aardbei", "aardbeienjam"].includes(normalizeProductLookup(x.name)))
+    ];
+  }
+  if (query === "pinda") {
+    suggestionResults = [
+      {name: "pinda's", icon: "🥜"},
+      {name: "pindakaas", icon: "peanut-butter-jar"},
+      ...suggestionResults
+    ];
+  }
+
+  const matches = suggestionResults
+    .slice(0, 5)
+    .map(({name, icon}) => [name, icon || getProductIcon(name)]);
 
   if (!matches.length) {
     box.classList.remove("open");
@@ -4199,7 +4219,6 @@ function updateProductSuggestions() {
     button.type = "button";
     button.className = "productSuggestion";
     button.innerHTML = `<span>${name.charAt(0).toUpperCase() + name.slice(1)}</span><span class="productSuggestionIcon">${productIconMarkup(icon)}</span>`;
-    hydrateOpenFoodFactsImages(button);
     button.addEventListener("click", () => {
       input.value = name.charAt(0).toUpperCase() + name.slice(1);
       box.classList.remove("open");
