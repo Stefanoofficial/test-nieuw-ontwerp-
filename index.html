@@ -2977,40 +2977,91 @@ body.logged-in {
 #themePicker { display:none !important; visibility:hidden !important; }
 </style>
 
+<style id="menu-slide-stability-final">
+/* === Laatste fix: stabiele horizontale submenu-slides in Meer ===
+   In Meer mogen de pagina's tijdens een overgang nooit onder elkaar komen te staan.
+   Ze delen daarom bewust dezelfde grid-cel. */
+.app.more-active #familyMenu,
+.app.more-active #familyMenu.menu-open {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  grid-template-rows: auto !important;
+  align-items: start !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.app.more-active #familyMenu .familyMenuPage {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  transition: none !important;
+  will-change: transform, opacity !important;
+  backface-visibility: hidden !important;
+  -webkit-backface-visibility: hidden !important;
+  transform: translate3d(0,0,0);
+  -webkit-transform: translate3d(0,0,0);
+}
+
+/* Tijdens een slide zijn beide pagina's bovenop elkaar gelegd. */
+.app.more-active #familyMenu .familyMenuPage.menuSlideOutLeft,
+.app.more-active #familyMenu .familyMenuPage.menuSlideInRight,
+.app.more-active #familyMenu .familyMenuPage.menuSlideOutRight,
+.app.more-active #familyMenu .familyMenuPage.menuSlideInLeft {
+  pointer-events: none !important;
+}
+
+@keyframes familyMenuSlideLeft {
+  from { opacity: 1; transform: translate3d(0,0,0); }
+  to   { opacity: 0; transform: translate3d(-100%,0,0); }
+}
+@keyframes familyMenuSlideInRight {
+  from { opacity: 0; transform: translate3d(100%,0,0); }
+  to   { opacity: 1; transform: translate3d(0,0,0); }
+}
+@keyframes familyMenuSlideInLeft {
+  from { opacity: 0; transform: translate3d(-100%,0,0); }
+  to   { opacity: 1; transform: translate3d(0,0,0); }
+}
+@keyframes familyMenuSlideRight {
+  from { opacity: 1; transform: translate3d(0,0,0); }
+  to   { opacity: 0; transform: translate3d(100%,0,0); }
+}
+</style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#eef8f1">
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
 
-<style id="menu-slide-clean-final">
-/* Schone, cross-platform Meer-slide. Tijdens de overgang liggen beide pagina's
-   absoluut op elkaar. Na de overgang wordt alleen de nieuwe pagina weer normaal
-   in de flow gezet, zodat de kaart exact zijn eigen natuurlijke hoogte krijgt. */
-.app.more-active #familyMenu,
-.app.more-active #familyMenu.menu-open {
+<style id="cross-platform-navigation-final">
+/* Cross-platform navigation hardening: one page, one grid cell, one direction. */
+html, body { -webkit-tap-highlight-color: transparent; }
+.familyMenu { overflow: hidden !important; overflow-anchor: none !important; }
+.app.more-active #familyMenu {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  grid-template-rows: auto !important;
+  align-items: start !important;
   position: relative !important;
-  display: block !important;
   overflow: hidden !important;
-  overflow-anchor: none !important;
-  box-sizing: border-box !important;
 }
 .app.more-active #familyMenu .familyMenuPage {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
   width: 100% !important;
   min-width: 0 !important;
   box-sizing: border-box !important;
-  transform: translate3d(0,0,0);
-  -webkit-transform: translate3d(0,0,0);
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-  will-change: transform, opacity;
+  align-self: start !important;
+  transition: none !important;
+  will-change: transform, opacity !important;
+  backface-visibility: hidden !important;
+  -webkit-backface-visibility: hidden !important;
 }
-/* Alleen tijdens een overgang worden de twee pagina's uit de normale flow gehaald. */
-.app.more-active #familyMenu .familyMenuPage.menu-slide-absolute {
-  position: absolute !important;
-  left: 0 !important;
-  top: 0 !important;
-  margin: 0 !important;
+.app.more-active #familyMenu .familyMenuPage[style*="display:none"] {
+  pointer-events: none !important;
 }
 .app.more-active #familyMenu .familyMenuPage.menuSlideOutLeft,
 .app.more-active #familyMenu .familyMenuPage.menuSlideInRight,
@@ -3018,31 +3069,27 @@ body.logged-in {
 .app.more-active #familyMenu .familyMenuPage.menuSlideInLeft {
   pointer-events: none !important;
 }
-@keyframes familyMenuSlideLeft {
-  from { opacity: 1; transform: translate3d(0,0,0); }
-  to { opacity: 0; transform: translate3d(-100%,0,0); }
-}
-@keyframes familyMenuSlideInRight {
-  from { opacity: 0; transform: translate3d(100%,0,0); }
-  to { opacity: 1; transform: translate3d(0,0,0); }
-}
-@keyframes familyMenuSlideInLeft {
-  from { opacity: 0; transform: translate3d(-100%,0,0); }
-  to { opacity: 1; transform: translate3d(0,0,0); }
-}
-@keyframes familyMenuSlideRight {
-  from { opacity: 1; transform: translate3d(0,0,0); }
-  to { opacity: 0; transform: translate3d(100%,0,0); }
-}
-.app.more-active #familyMenu .menuSlideOutLeft { animation: familyMenuSlideLeft .28s cubic-bezier(.22,.8,.3,1) forwards !important; }
-.app.more-active #familyMenu .menuSlideInRight { animation: familyMenuSlideInRight .28s cubic-bezier(.22,.8,.3,1) forwards !important; }
-.app.more-active #familyMenu .menuSlideOutRight { animation: familyMenuSlideRight .28s cubic-bezier(.22,.8,.3,1) forwards !important; }
-.app.more-active #familyMenu .menuSlideInLeft { animation: familyMenuSlideInLeft .28s cubic-bezier(.22,.8,.3,1) forwards !important; }
 @media (prefers-reduced-motion: reduce) {
-  .app.more-active #familyMenu .menuSlideOutLeft,
-  .app.more-active #familyMenu .menuSlideInRight,
-  .app.more-active #familyMenu .menuSlideOutRight,
-  .app.more-active #familyMenu .menuSlideInLeft { animation-duration: .01ms !important; }
+  .app.more-active #familyMenu .familyMenuPage.menuSlideOutLeft,
+  .app.more-active #familyMenu .familyMenuPage.menuSlideInRight,
+  .app.more-active #familyMenu .familyMenuPage.menuSlideOutRight,
+  .app.more-active #familyMenu .familyMenuPage.menuSlideInLeft {
+    animation-duration: .01ms !important;
+  }
+}
+/* Do not let a submenu create its own vertical scroll area. */
+.app.more-active #moreView,
+.app.more-active #familyMenu,
+.app.more-active #familyMenu .familyMenuPage {
+  overscroll-behavior: contain;
+}
+</style>
+<style id="more-menu-height-transition-v2">
+/* The card keeps the larger height during the horizontal slide. After the
+   slide has finished, JS changes this height to the new page height so the
+   card grows/shrinks smoothly from the bottom instead of clipping content. */
+.app.more-active #familyMenu {
+  transition: height .28s cubic-bezier(.22,.8,.3,1) !important;
 }
 </style>
 </head>
@@ -3594,224 +3641,361 @@ let __menuTransitionTimer = null;
 let __menuTransitionToken = 0;
 let __menuCurrentPage = "familyMenuMain";
 const __menuPageIds = [
-  "familyMenuMain","familyMenuSub","sharedListsMenuSub","sharedListActiveMenuSub",
-  "settingsMenuSub","savedListsMenuSub","accountMenuSub","aboutMenuSub","appInfoMenuSub","helpMenuSub"
+  "familyMenuMain",
+  "familyMenuSub",
+  "sharedListsMenuSub",
+  "sharedListActiveMenuSub",
+  "settingsMenuSub",
+  "savedListsMenuSub",
+  "accountMenuSub",
+  "aboutMenuSub",
+  "appInfoMenuSub",
+  "helpMenuSub"
 ];
 
 function __resetMenuPageClasses(el){
   if(!el) return;
-  el.classList.remove("familyMenuMainEnter","familyMenuSubEnter","familyMenuMainExit","familyMenuSubExit",
-    "menuSlideOutLeft","menuSlideInRight","menuSlideOutRight","menuSlideInLeft","menu-slide-absolute");
+  el.classList.remove(
+    "familyMenuMainEnter","familyMenuSubEnter",
+    "familyMenuMainExit","familyMenuSubExit",
+    "menuSlideOutLeft","menuSlideInRight",
+    "menuSlideOutRight","menuSlideInLeft"
+  );
   el.style.pointerEvents = "";
-  el.style.position = "";
-  el.style.left = "";
-  el.style.top = "";
-  el.style.width = "";
-  el.style.height = "";
-  el.style.margin = "";
-  el.style.animation = "";
 }
-function __getMenuPage(id){ return id ? document.getElementById(id) : null; }
+
+function __getMenuPage(id){
+  return id ? document.getElementById(id) : null;
+}
+
 function __hideAllMenuPages(exceptId){
-  __menuPageIds.forEach(id=>{
-    if(id===exceptId) return;
-    const p=__getMenuPage(id);
-    if(p){ __resetMenuPageClasses(p); p.style.display="none"; }
+  __menuPageIds.forEach(id => {
+    if(id === exceptId) return;
+    const page = __getMenuPage(id);
+    if(page){
+      __resetMenuPageClasses(page);
+      page.style.display = "none";
+    }
   });
 }
+
 function __showOnlyMenuPage(pageId){
-  __menuPageIds.forEach(id=>{
-    const p=__getMenuPage(id);
-    if(!p) return;
-    __resetMenuPageClasses(p);
-    p.style.display=(id===pageId)?"block":"none";
-    p.style.pointerEvents=(id===pageId)?"":"none";
+  __menuPageIds.forEach(id => {
+    const page = __getMenuPage(id);
+    if(!page) return;
+    __resetMenuPageClasses(page);
+    page.style.display = (id === pageId) ? "block" : "none";
+    page.style.pointerEvents = (id === pageId) ? "" : "none";
   });
-  __menuCurrentPage=pageId;
+  __menuCurrentPage = pageId;
 }
+
 function __cancelMenuTransition(){
-  if(__menuTransitionTimer){ clearTimeout(__menuTransitionTimer); __menuTransitionTimer=null; }
+  if(__menuTransitionTimer){
+    clearTimeout(__menuTransitionTimer);
+    __menuTransitionTimer = null;
+  }
   __menuTransitionToken++;
 }
+
 function __resetMoreNavigation(){
   __cancelMenuTransition();
-  const menu=document.getElementById("familyMenu");
-  if(menu){
-    menu.style.height="";
-    menu.style.minHeight="";
-    menu.style.maxHeight="";
-    menu.style.overflow="hidden";
+  __showOnlyMenuPage("familyMenuMain");
+  const menu = document.getElementById("familyMenu");
+  if (menu) {
+    menu.classList.remove("menu-open");
+    menu.style.display = "block";
   }
-  __showOnlyMenuPage("familyMenuMain");
-  if(menu){ menu.classList.remove("menu-open"); menu.style.display="block"; }
 }
-function closeFamilyMenu(){
+
+function closeFamilyMenu() {
   __cancelMenuTransition();
-  const menu=document.getElementById("familyMenu");
-  if(!menu) return;
+  const menu = document.getElementById("familyMenu");
+  if (!menu) return;
+
   menu.classList.remove("menu-open");
-  menu.style.display="none";
-  menu.style.height="";
-  menu.style.minHeight="";
-  menu.style.maxHeight="";
-  menu.style.overflow="hidden";
+  menu.style.display = "none";
+
+  // Reset onmiddellijk. Zo kan een oude submenu-frame nooit achter
+  // een nieuwe Meer-pagina blijven hangen.
   __showOnlyMenuPage("familyMenuMain");
 }
-function closeOpenMenusOnOutsideClick(event){
-  const target=event.target;
-  const themePicker=document.getElementById("themePicker");
-  const themeButton=document.getElementById("themeButton");
-  const familyMenu=document.getElementById("familyMenu");
-  const familyButton=document.querySelector(".familyButton");
-  if(themePicker&&themePicker.contains(target)) return;
-  if(themeButton&&themeButton.contains(target)) return;
-  if(familyMenu&&familyMenu.contains(target)) return;
-  if(familyButton&&familyButton.contains(target)) return;
-  closeThemePicker(); closeFamilyMenu();
+
+function closeOpenMenusOnOutsideClick(event) {
+  const target = event.target;
+  const themePicker = document.getElementById("themePicker");
+  const themeButton = document.getElementById("themeButton");
+  const familyMenu = document.getElementById("familyMenu");
+  const familyButton = document.querySelector(".familyButton");
+
+  if (themePicker && themePicker.contains(target)) return;
+  if (themeButton && themeButton.contains(target)) return;
+  if (familyMenu && familyMenu.contains(target)) return;
+  if (familyButton && familyButton.contains(target)) return;
+
+  closeThemePicker();
+  closeFamilyMenu();
 }
+
 document.addEventListener("click", closeOpenMenusOnOutsideClick);
-function openFamilySubmenu(event){
-  if(event) event.stopPropagation();
-  const mainCount=document.getElementById("memberCount"), subCount=document.getElementById("memberCountSub");
-  if(mainCount&&subCount) subCount.innerText=mainCount.innerText;
-  switchMenuPage("familyMenuSub",event);
+
+function openFamilySubmenu(event) {
+  if (event) event.stopPropagation();
+  const mainCount = document.getElementById("memberCount");
+  const subCount = document.getElementById("memberCountSub");
+  if (mainCount && subCount) subCount.innerText = mainCount.innerText;
+  switchMenuPage("familyMenuSub", event);
 }
-function closeFamilySubmenu(event){ returnMenuToMain("familyMenuSub",event); }
-function openSettingsSubmenu(event){ if(event) event.stopPropagation(); switchMenuPage("settingsMenuSub",event); }
-function closeSettingsSubmenu(event){ returnMenuToMain("settingsMenuSub",event); }
-function openSavedListsSubmenu(event){
-  if(event) event.stopPropagation();
-  switchMenuPage("savedListsMenuSub",event);
+function closeFamilySubmenu(event) { returnMenuToMain("familyMenuSub", event); }
+function openSettingsSubmenu(event) {
+  if (event) event.stopPropagation();
+  switchMenuPage("settingsMenuSub", event);
+}
+function closeSettingsSubmenu(event) { returnMenuToMain("settingsMenuSub", event); }
+
+function openSavedListsSubmenu(event) {
+  if (event) event.stopPropagation();
+  switchMenuPage("savedListsMenuSub", event);
   renderSavedLists();
 }
-function closeSavedListsSubmenu(event){ returnMenuToMain("savedListsMenuSub",event); }
+function closeSavedListsSubmenu(event) { returnMenuToMain("savedListsMenuSub", event); }
 
-/* Meet een pagina volledig onafhankelijk. De pagina wordt tijdelijk absoluut
-   gezet, zodat de hoogte van een andere grid/flow-pagina nooit wordt overgenomen. */
-function __measureMorePageHeight(menu,page){
-  if(!menu||!page) return 0;
-  const old={
-    menuHeight:menu.style.height, menuMin:menu.style.minHeight, menuMax:menu.style.maxHeight,
-    menuOverflow:menu.style.overflow, display:page.style.display, position:page.style.position,
-    left:page.style.left, top:page.style.top, width:page.style.width, height:page.style.height,
-    visibility:page.style.visibility, transform:page.style.transform, animation:page.style.animation,
-    margin:page.style.margin, cls:page.className
+function __measureMorePageHeight(menu, page) {
+  if (!menu || !page) return 0;
+
+  // Meet een Meer-pagina in zijn normale layout. We zetten de pagina dus NIET
+  // tijdelijk op absolute positionering; dat veroorzaakte op Safari/WebView
+  // juist verkeerde hoogtes wanneer een lange pagina naar een korte pagina ging.
+  const states = __menuPageIds.map(id => {
+    const el = __getMenuPage(id);
+    if (!el) return null;
+    return {
+      el,
+      display: el.style.display,
+      position: el.style.position,
+      visibility: el.style.visibility,
+      transform: el.style.transform,
+      animation: el.style.animation,
+      height: el.style.height,
+      left: el.style.left,
+      top: el.style.top,
+      width: el.style.width
+    };
+  }).filter(Boolean);
+
+  const savedMenu = {
+    height: menu.style.height,
+    minHeight: menu.style.minHeight,
+    maxHeight: menu.style.maxHeight,
+    overflow: menu.style.overflow
   };
-  menu.style.height="auto"; menu.style.minHeight="0"; menu.style.maxHeight="none"; menu.style.overflow="visible";
-  page.style.display="block";
-  page.style.position="absolute"; page.style.left="0"; page.style.top="0"; page.style.width="100%";
-  page.style.height="auto"; page.style.margin="0"; page.style.visibility="hidden";
-  page.style.transform="none"; page.style.animation="none";
-  page.classList.remove("menu-slide-absolute","menuSlideOutLeft","menuSlideInRight","menuSlideOutRight","menuSlideInLeft");
-  void menu.offsetWidth;
-  const rect=page.getBoundingClientRect();
-  const h=Math.ceil(Math.max(page.scrollHeight,rect.height));
-  menu.style.height=old.menuHeight; menu.style.minHeight=old.menuMin; menu.style.maxHeight=old.menuMax; menu.style.overflow=old.menuOverflow;
-  page.style.display=old.display; page.style.position=old.position; page.style.left=old.left; page.style.top=old.top;
-  page.style.width=old.width; page.style.height=old.height; page.style.visibility=old.visibility; page.style.transform=old.transform;
-  page.style.animation=old.animation; page.style.margin=old.margin; page.className=old.cls;
-  return h;
-}
-function __setMenuHeight(menu,h){
-  menu.style.height=Math.max(0,Math.ceil(h))+"px";
-  menu.style.minHeight="0";
-  menu.style.maxHeight="none";
-}
-function __prepareMoreMenuTransition(menu,current,target){
-  const currentHeight=__measureMorePageHeight(menu,current);
-  const targetHeight=__measureMorePageHeight(menu,target);
-  const travelHeight=Math.max(currentHeight,targetHeight);
-  __setMenuHeight(menu,travelHeight);
-  menu.style.overflow="hidden";
-  return {currentHeight,targetHeight,travelHeight};
-}
-function __finishMoreMenuTransition(menu,page,targetHeight){
-  if(!menu||!page) return;
-  /* Houd de kaart tijdens de laatste frames op de oude/transitionhoogte. Daarna
-     wordt de nieuwe pagina de enige normale flow-child. */
-  __setMenuHeight(menu,targetHeight);
-  menu.style.overflow="hidden";
+
+  menu.style.height = "auto";
+  menu.style.minHeight = "0";
+  menu.style.maxHeight = "none";
+  menu.style.overflow = "visible";
+
+  // Alleen de te meten pagina bepaalt tijdelijk de grid-hoogte.
+  states.forEach(state => {
+    const el = state.el;
+    el.style.display = (el === page) ? "block" : "none";
+    el.style.position = "static";
+    el.style.visibility = (el === page) ? "hidden" : "hidden";
+    el.style.transform = "none";
+    el.style.animation = "none";
+    el.style.height = "auto";
+    el.style.left = "auto";
+    el.style.top = "auto";
+    el.style.width = "100%";
+  });
+
   void menu.offsetHeight;
-  window.setTimeout(()=>{
-    if(menu){
-      menu.style.height="";
-      menu.style.minHeight="";
-      menu.style.maxHeight="";
-      menu.style.overflow="hidden";
-    }
-  },30);
-}
-function __beginAbsoluteSlide(current,target,outClass,inClass){
-  [current,target].forEach(p=>{
-    __resetMenuPageClasses(p);
-    p.style.display="block";
-    p.classList.add("menu-slide-absolute");
-    p.style.pointerEvents="none";
-    p.style.position="absolute";
-    p.style.left="0"; p.style.top="0"; p.style.width="100%"; p.style.margin="0";
+  const rect = page.getBoundingClientRect();
+  const pageHeight = Math.ceil(Math.max(page.scrollHeight, rect.height));
+  const cs = getComputedStyle(menu);
+  const frameExtra = parseFloat(cs.paddingTop || "0") +
+    parseFloat(cs.paddingBottom || "0") +
+    parseFloat(cs.borderTopWidth || "0") +
+    parseFloat(cs.borderBottomWidth || "0");
+  const height = pageHeight + frameExtra;
+
+  menu.style.height = savedMenu.height;
+  menu.style.minHeight = savedMenu.minHeight;
+  menu.style.maxHeight = savedMenu.maxHeight;
+  menu.style.overflow = savedMenu.overflow;
+
+  states.forEach(state => {
+    const el = state.el;
+    el.style.display = state.display;
+    el.style.position = state.position;
+    el.style.visibility = state.visibility;
+    el.style.transform = state.transform;
+    el.style.animation = state.animation;
+    el.style.height = state.height;
+    el.style.left = state.left;
+    el.style.top = state.top;
+    el.style.width = state.width;
   });
-  void current.offsetWidth;
-  current.classList.add(outClass);
-  target.classList.add(inClass);
+
+  return height;
 }
-function __completeMenuSlide(targetId,target){
-  __showOnlyMenuPage(targetId);
-  const menu=document.getElementById("familyMenu");
-  if(menu){
-    menu.style.height="";
-    menu.style.minHeight="";
-    menu.style.maxHeight="none";
-    menu.style.overflow="hidden";
+
+function __prepareMoreMenuTransition(menu, current, target) {
+  const currentHeight = __measureMorePageHeight(menu, current);
+  const targetHeight = __measureMorePageHeight(menu, target);
+  const travelHeight = Math.max(currentHeight, targetHeight);
+
+  menu.style.height = travelHeight + "px";
+  menu.style.minHeight = "0";
+  menu.style.maxHeight = "none";
+  menu.style.overflow = "hidden";
+  void menu.offsetHeight;
+
+  return { currentHeight, targetHeight, travelHeight };
+}
+
+function __finishMoreMenuTransition(menu, page, targetHeight) {
+  if (!menu) return;
+  const finalHeight = Number(targetHeight) || __measureMorePageHeight(menu, page);
+  if (!finalHeight) {
+    menu.style.height = "auto";
+    menu.style.overflow = "visible";
+    return;
   }
-  if(target) void target.offsetHeight;
+
+  // The horizontal slide is already finished here. Now the card smoothly
+  // shrinks/grows from the bottom to the selected page's natural height.
+  // Forceer eerst de huidige vaste hoogte en start pas in de volgende frame
+  // de overgang naar de nieuwe natuurlijke hoogte. Zo kan de browser de
+  // horizontale slide niet verwarren met de verticale hoogte-overgang.
+  void menu.offsetHeight;
+  requestAnimationFrame(() => {
+    menu.style.height = finalHeight + "px";
+  });
+
+  window.setTimeout(() => {
+    menu.style.height = "auto";
+    menu.style.overflow = "visible";
+  }, 300);
 }
-function switchMenuPage(pageId,event){
-  if(event) event.stopPropagation();
-  const page=__getMenuPage(pageId), menu=document.getElementById("familyMenu");
-  if(!page||!menu) return;
+
+function switchMenuPage(pageId, event) {
+  if (event) event.stopPropagation();
+
+  const page = __getMenuPage(pageId);
+  const menu = document.getElementById("familyMenu");
+  if (!page || !menu) return;
+
   __cancelMenuTransition();
-  let current=__getMenuPage(__menuCurrentPage);
-  if(!current||current===page||current.style.display==="none"){
-    current=__menuPageIds.map(__getMenuPage).find(el=>el&&el!==page&&el.style.display!=="none")||null;
+
+  let current = __getMenuPage(__menuCurrentPage);
+  if (!current || current === page || current.style.display === "none") {
+    current = __menuPageIds
+      .map(__getMenuPage)
+      .find(el => el && el !== page && el.style.display !== "none") || null;
   }
-  if(current===page) return;
-  menu.style.display="block";
-  if(!current){ __showOnlyMenuPage(pageId); return; }
-  const token=__menuTransitionToken;
-  const heights=__prepareMoreMenuTransition(menu,current,page);
-  __menuCurrentPage=pageId;
-  requestAnimationFrame(()=>{
-    if(token!==__menuTransitionToken) return;
-    __beginAbsoluteSlide(current,page,"menuSlideOutLeft","menuSlideInRight");
-    __menuTransitionTimer=setTimeout(()=>{
-      if(token!==__menuTransitionToken) return;
-      __completeMenuSlide(pageId,page);
-      __finishMoreMenuTransition(menu,page,heights.targetHeight);
-      __menuTransitionTimer=null;
-    },300);
+
+  if (current === page) return;
+
+  // Ensure the More container is visible before both pages are composed.
+  menu.style.display = "block";
+
+  if (!current) {
+    __showOnlyMenuPage(pageId);
+    return;
+  }
+
+  const token = __menuTransitionToken;
+  const menuHeights = __prepareMoreMenuTransition(menu, current, page);
+  __resetMenuPageClasses(current);
+  __resetMenuPageClasses(page);
+
+  // Both pages occupy the exact same grid cell. This prevents a page from
+  // dropping below the other one on Android/iOS during a fast transition.
+  current.style.display = "block";
+  page.style.display = "block";
+  current.style.pointerEvents = "none";
+  page.style.pointerEvents = "none";
+
+  // Two animation frames are more reliable than a single forced reflow on
+  // Safari/WebKit and Chromium WebView when the page was just made visible.
+  requestAnimationFrame(() => {
+    if(token !== __menuTransitionToken) return;
+    requestAnimationFrame(() => {
+      if(token !== __menuTransitionToken) return;
+      __resetMenuPageClasses(current);
+      __resetMenuPageClasses(page);
+      current.style.display = "block";
+      page.style.display = "block";
+      current.style.pointerEvents = "none";
+      page.style.pointerEvents = "none";
+      current.classList.add("menuSlideOutLeft");
+      page.classList.add("menuSlideInRight");
+    });
   });
+
+  __menuCurrentPage = pageId;
+
+  __menuTransitionTimer = setTimeout(() => {
+    if(token !== __menuTransitionToken) return;
+    __showOnlyMenuPage(pageId);
+    __finishMoreMenuTransition(menu, page, menuHeights.targetHeight);
+    __menuTransitionTimer = null;
+  }, 320);
 }
-function returnMenuToMain(pageId,event){ returnMenuToPage(pageId,"familyMenuMain",event); }
-function returnMenuToPage(pageId,targetId,event){
-  if(event) event.stopPropagation();
-  const page=__getMenuPage(pageId), target=__getMenuPage(targetId), menu=document.getElementById("familyMenu");
-  if(!page||!target||!menu) return;
+
+function returnMenuToMain(pageId, event) {
+  returnMenuToPage(pageId, "familyMenuMain", event);
+}
+
+function returnMenuToPage(pageId, targetId, event) {
+  if (event) event.stopPropagation();
+
+  const page = __getMenuPage(pageId);
+  const target = __getMenuPage(targetId);
+  const menu = document.getElementById("familyMenu");
+  if (!page || !target || !menu) return;
+
   __cancelMenuTransition();
-  if(page===target){ __showOnlyMenuPage(targetId); return; }
-  const token=__menuTransitionToken;
-  const heights=__prepareMoreMenuTransition(menu,page,target);
-  menu.style.display="block";
-  __menuCurrentPage=targetId;
-  requestAnimationFrame(()=>{
-    if(token!==__menuTransitionToken) return;
-    __beginAbsoluteSlide(page,target,"menuSlideOutRight","menuSlideInLeft");
-    __menuTransitionTimer=setTimeout(()=>{
-      if(token!==__menuTransitionToken) return;
-      __completeMenuSlide(targetId,target);
-      __finishMoreMenuTransition(menu,target,heights.targetHeight);
-      __menuTransitionTimer=null;
-    },300);
+
+  if (page === target) {
+    __showOnlyMenuPage(targetId);
+    return;
+  }
+
+  const token = __menuTransitionToken;
+  const menuHeights = __prepareMoreMenuTransition(menu, page, target);
+  menu.style.display = "block";
+  __resetMenuPageClasses(page);
+  __resetMenuPageClasses(target);
+  page.style.display = "block";
+  target.style.display = "block";
+  page.style.pointerEvents = "none";
+  target.style.pointerEvents = "none";
+
+  requestAnimationFrame(() => {
+    if (token !== __menuTransitionToken) return;
+    requestAnimationFrame(() => {
+      if (token !== __menuTransitionToken) return;
+      __resetMenuPageClasses(page);
+      __resetMenuPageClasses(target);
+      page.style.display = "block";
+      target.style.display = "block";
+      page.style.pointerEvents = "none";
+      target.style.pointerEvents = "none";
+      page.classList.add("menuSlideOutRight");
+      target.classList.add("menuSlideInLeft");
+    });
   });
+
+  __menuCurrentPage = targetId;
+
+  __menuTransitionTimer = setTimeout(() => {
+    if (token !== __menuTransitionToken) return;
+    __showOnlyMenuPage(targetId);
+    __finishMoreMenuTransition(menu, target, menuHeights.targetHeight);
+    __menuTransitionTimer = null;
+  }, 320);
 }
 
 function openAccountSubmenu(event) {
