@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Boodschappenlijst</title>
+<title>Boodschappen lijst</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style>
 * {
@@ -7572,4 +7572,58 @@ body.logged-in {
 <style id="direct-moon-toggle-final">
 /* De maan is een directe licht/donker-schakelaar; geen popup nodig. */
 #themePicker { display:none !important; visibility:hidden !important; }
+</style>
+
+<style id="menu-slide-stability-final">
+/* === Laatste fix: stabiele horizontale submenu-slides in Meer ===
+   In Meer mogen de pagina's tijdens een overgang nooit onder elkaar komen te staan.
+   Ze delen daarom bewust dezelfde grid-cel. */
+.app.more-active #familyMenu,
+.app.more-active #familyMenu.menu-open {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  grid-template-rows: auto !important;
+  align-items: start !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.app.more-active #familyMenu .familyMenuPage {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  transition: none !important;
+  will-change: transform, opacity !important;
+  backface-visibility: hidden !important;
+  -webkit-backface-visibility: hidden !important;
+  transform: translate3d(0,0,0);
+  -webkit-transform: translate3d(0,0,0);
+}
+
+/* Tijdens een slide zijn beide pagina's bovenop elkaar gelegd. */
+.app.more-active #familyMenu .familyMenuPage.menuSlideOutLeft,
+.app.more-active #familyMenu .familyMenuPage.menuSlideInRight,
+.app.more-active #familyMenu .familyMenuPage.menuSlideOutRight,
+.app.more-active #familyMenu .familyMenuPage.menuSlideInLeft {
+  pointer-events: none !important;
+}
+
+@keyframes familyMenuSlideLeft {
+  from { opacity: 1; transform: translate3d(0,0,0); }
+  to   { opacity: 0; transform: translate3d(-100%,0,0); }
+}
+@keyframes familyMenuSlideInRight {
+  from { opacity: 0; transform: translate3d(100%,0,0); }
+  to   { opacity: 1; transform: translate3d(0,0,0); }
+}
+@keyframes familyMenuSlideInLeft {
+  from { opacity: 0; transform: translate3d(-100%,0,0); }
+  to   { opacity: 1; transform: translate3d(0,0,0); }
+}
+@keyframes familyMenuSlideRight {
+  from { opacity: 1; transform: translate3d(0,0,0); }
+  to   { opacity: 0; transform: translate3d(100%,0,0); }
+}
 </style>
