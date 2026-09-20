@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Boodschappenlijst</title>
+<title>Boodschappen lijst</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style>
 * {
@@ -5216,13 +5216,21 @@ async function deleteCurrentSharedList(){
       currentSharedListUnsubscribe=null;
     }
 
-    // Verwijder de gedeelde lijst, de uitnodigingscode en de eigen indexverwijzing
-    // in één Firebase-update. De gewone familielijst wordt hierbij niet geraakt.
-    const updates={};
-    updates["sharedLists/" + id]=null;
-    if(list.inviteCode) updates["sharedListCodes/" + list.inviteCode]=null;
-    updates["userSharedLists/" + user.uid + "/" + id]=null;
-    await database.ref().update(updates);
+    // Verwijder eerst de Deellijst zelf. Dit gebeurt bewust als een losse
+    // Firebase-bewerking: sommige Firebase-regels staan een multi-location
+    // update naar meerdere paden niet toe, ook al mag de eigenaar de lijst
+    // zelf verwijderen. De gewone familielijst wordt hierbij niet geraakt.
+    await database.ref("sharedLists/" + id).remove();
+
+    // De indexverwijzingen zijn alleen opruimwerk. Als een oude Firebase-regel
+    // het verwijderen van één van deze indexen blokkeert, mag dat de verwijdering
+    // van de Deellijst zelf niet ongedaan maken.
+    try { await database.ref("userSharedLists/" + user.uid + "/" + id).remove(); }
+    catch (cleanupError) { console.warn("Eigen Deellijst-index kon niet worden opgeruimd:", cleanupError); }
+    if(list.inviteCode){
+      try { await database.ref("sharedListCodes/" + list.inviteCode).remove(); }
+      catch (cleanupError) { console.warn("Deellijst-uitnodigingscode kon niet worden opgeruimd:", cleanupError); }
+    }
 
     activeListType="family";
     currentSharedListId=null;
