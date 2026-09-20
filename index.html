@@ -3084,12 +3084,17 @@ html, body { -webkit-tap-highlight-color: transparent; }
   overscroll-behavior: contain;
 }
 </style>
-<style id="more-menu-height-transition-v2">
-/* The card keeps the larger height during the horizontal slide. After the
-   slide has finished, JS changes this height to the new page height so the
-   card grows/shrinks smoothly from the bottom instead of clipping content. */
+<style id="more-menu-height-transition-v3">
+/* Tijdens een Meer-slide heeft de kaart meteen de natuurlijke hoogte van de
+   pagina die binnenkomt. Er is dus geen aparte verticale beweging achteraf. */
 .app.more-active #familyMenu {
-  transition: height .28s cubic-bezier(.22,.8,.3,1) !important;
+  transition: none !important;
+}
+.app.more-active #familyMenu .familyMenuPage {
+  min-height: 0 !important;
+}
+.app.more-active #familyMenu {
+  grid-template-rows: minmax(0, 1fr) !important;
 }
 </style>
 </head>
@@ -3857,26 +3862,16 @@ function __prepareMoreMenuTransition(menu, current, target) {
 function __finishMoreMenuTransition(menu, page, targetHeight) {
   if (!menu) return;
   const finalHeight = Number(targetHeight) || __measureMorePageHeight(menu, page);
-  if (!finalHeight) {
-    menu.style.height = "auto";
-    menu.style.overflow = "visible";
-    return;
-  }
 
-  // The horizontal slide is already finished here. Now the card smoothly
-  // shrinks/grows from the bottom to the selected page's natural height.
-  // Forceer eerst de huidige vaste hoogte en start pas in de volgende frame
-  // de overgang naar de nieuwe natuurlijke hoogte. Zo kan de browser de
-  // horizontale slide niet verwarren met de verticale hoogte-overgang.
-  void menu.offsetHeight;
+  // De kaart heeft tijdens de horizontale animatie al exact de hoogte van
+  // de nieuwe pagina. Na afloop hoeft alleen de inline hoogte te worden
+  // losgelaten; er mag geen tweede verticale animatie ontstaan.
+  if (finalHeight) menu.style.height = finalHeight + "px";
+
   requestAnimationFrame(() => {
-    menu.style.height = finalHeight + "px";
-  });
-
-  window.setTimeout(() => {
     menu.style.height = "auto";
     menu.style.overflow = "visible";
-  }, 300);
+  });
 }
 
 function switchMenuPage(pageId, event) {
@@ -3907,6 +3902,11 @@ function switchMenuPage(pageId, event) {
 
   const token = __menuTransitionToken;
   const menuHeights = __prepareMoreMenuTransition(menu, current, page);
+  // Meteen de hoogte van de nieuwe pagina gebruiken. Daardoor ontstaat na
+  // de horizontale slide geen extra omhoog/omlaag-beweging.
+  menu.style.height = menuHeights.targetHeight + "px";
+  menu.style.overflow = "hidden";
+  void menu.offsetHeight;
   __resetMenuPageClasses(current);
   __resetMenuPageClasses(page);
 
@@ -3965,6 +3965,11 @@ function returnMenuToPage(pageId, targetId, event) {
 
   const token = __menuTransitionToken;
   const menuHeights = __prepareMoreMenuTransition(menu, page, target);
+  // Meteen de hoogte van de nieuwe pagina gebruiken. Geen aparte verticale
+  // slide nadat de horizontale overgang klaar is.
+  menu.style.height = menuHeights.targetHeight + "px";
+  menu.style.overflow = "hidden";
+  void menu.offsetHeight;
   menu.style.display = "block";
   __resetMenuPageClasses(page);
   __resetMenuPageClasses(target);
