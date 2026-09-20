@@ -2637,6 +2637,71 @@ body.dark-theme .aboutInfoTitle,body.dark-theme .helpQuestion,body.dark-theme .a
 body.dark-theme .aboutInfoCard p,body.dark-theme .helpSection p{color:#AAB4AD;}
 </style>
 
+
+<style id="shared-list-section-divider-final">
+.shared-list-section-divider{
+  height:1px;
+  background:rgba(63,91,69,.16);
+  margin:10px 14px 9px;
+  border:0;
+}
+</style>
+
+
+<style id="shared-delete-header-final">
+.headerBar > .sharedDeleteIconButton,
+.headerBar > #deleteSharedListBtn{
+  display:inline-flex !important;
+  visibility:visible !important;
+  position:relative;
+  z-index:20;
+  width:42px;
+  height:42px;
+  min-width:42px;
+  padding:0;
+  margin:0 4px 0 auto;
+  border:0;
+  border-radius:13px;
+  align-items:center;
+  justify-content:center;
+  background:rgba(255,255,255,.16);
+  color:#fff;
+  cursor:pointer;
+  flex:0 0 auto;
+}
+.headerBar > .sharedDeleteIconButton i,
+.headerBar > #deleteSharedListBtn i{
+  font-size:17px;
+  line-height:1;
+}
+.headerBar > .sharedDeleteIconButton:active,
+.headerBar > #deleteSharedListBtn:active{
+  transform:scale(.96);
+}
+@media (max-width:430px){
+  .headerBar > .sharedDeleteIconButton,
+  .headerBar > #deleteSharedListBtn{
+    width:40px;
+    height:40px;
+    min-width:40px;
+    margin-right:2px;
+  }
+}
+</style>
+
+
+<style id="shared-delete-header-layout-final">
+.headerBar > .sharedDeleteIconButton,
+.headerBar > #deleteSharedListBtn{
+  display:inline-flex !important;
+}
+.headerBar:has(> .sharedDeleteIconButton) h1,
+.headerBar:has(> #deleteSharedListBtn) h1{
+  flex:1 1 auto;
+  min-width:0;
+}
+</style>
+
 </head>
 
 <body>
@@ -2820,6 +2885,8 @@ body.dark-theme .aboutInfoCard p,body.dark-theme .helpSection p{color:#AAB4AD;}
       <i class="fa-solid fa-keyboard"></i>
       <span>Code invoeren</span>
     </div>
+    <div class="shared-list-section-divider"></div>
+
 
 
     
