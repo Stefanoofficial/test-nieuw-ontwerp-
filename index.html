@@ -2821,12 +2821,13 @@ body.dark-theme .aboutInfoCard p,body.dark-theme .helpSection p{color:#AAB4AD;}
       <span>Familielijst</span>
     </button>
     <div class="familyMenuSubTitle">Deellijst</div>
-    <button type="button" class="familyMenuItem savedListSaveBtn" onclick="createSharedList()">
-      <i class="fa-solid fa-plus"></i>
-      <span>Nieuwe lijst</span>
-    </button>
+    <div class="familyMenuItem" onclick="showSharedListMembersFromMenu()">
+      <i class="fa-solid fa-user-group"></i>
+      <span>Leden</span>
+    </div>
+
     <div class="familyMenuItem" onclick="showSharedListCodeFromMenu()">
-      <i class="fa-solid fa-link"></i>
+      <i class="fa-solid fa-key"></i>
       <span>Deelcode</span>
     </div>
 
@@ -2835,11 +2836,14 @@ body.dark-theme .aboutInfoCard p,body.dark-theme .helpSection p{color:#AAB4AD;}
       <span>Code invoeren</span>
     </div>
 
+    <div class="familyMenuItem" onclick="createSharedList()">
+      <i class="fa-solid fa-plus"></i>
+      <span>Nieuwe lijst</span>
+    </div>
+
     <div class="familyMenuSubTitle">Mijn deellijsten</div>
     <div id="sharedListsContainer" class="savedListsContainer"></div>
-    <div class="settingsMenuHint">Maak een lijst voor vrienden, familie of een feestje. Iedereen met toegang kan samen producten toevoegen en afvinken.</div>
   </div>
-
   <div id="sharedListActiveMenuSub" class="familyMenuPage sharedListsMenuPage" style="display:none;">
     <div class="familyMenuSubTitle" id="sharedListActiveMenuTitle">Deellijst</div>
     <button type="button" class="familyMenuItem" onclick="showSharedListMembers()">
@@ -4797,7 +4801,16 @@ function makeSharedListLink(code){
   return base + "?code=" + encodeURIComponent(code);
 }
 
-async function showSharedListCodeFromMenu(){
+async 
+async function showSharedListMembersFromMenu(){
+  if(activeListType !== "shared" || !currentSharedListId){
+    await familyAlert("Leden","Open eerst een deellijst om de leden te bekijken.","fa-user-group");
+    return;
+  }
+  await showSharedListMembers();
+}
+
+function showSharedListCodeFromMenu(){
   if(activeListType!=="shared" || !currentSharedListId){
     await familyAlert(
       "Deelcode",
@@ -5213,68 +5226,25 @@ async function openSharedList(id, showInvite){
 function updateSharedDeleteButton(isOwner){
   const header=document.querySelector(".headerBar");
   if(!header) return;
-  const old=document.getElementById("deleteSharedListBtn");
-  if(old) old.remove();
+  let btn=document.getElementById("deleteSharedListBtn");
+  if(btn) btn.remove();
   if(!isOwner || activeListType!=="shared" || !currentSharedListId) return;
-  const btn=document.createElement("button");
+
+  btn=document.createElement("button");
   btn.type="button";
   btn.id="deleteSharedListBtn";
   btn.className="familyButton sharedDeleteIconButton";
   btn.setAttribute("aria-label","Deellijst verwijderen");
-   btn.setAttribute("title","Deellijst verwijderen");
+  btn.setAttribute("title","Deellijst verwijderen");
   btn.innerHTML='<i class="fa-solid fa-trash"></i>';
   btn.onclick=deleteCurrentSharedList;
+
   const optionsBtn=document.getElementById("listOptionsButton");
   if(optionsBtn && optionsBtn.parentElement===header){
     header.insertBefore(btn, optionsBtn);
   }else{
     header.appendChild(btn);
   }
-}
-
-
-function renderSharedListHeaderActions(){
-  const header = document.querySelector(".headerBar");
-  if(!header) return;
-
-  // Remove stale controls first.
-  header.querySelectorAll(".sharedHeaderAction").forEach(el=>el.remove());
-
-  if(activeListType !== "shared" || !currentSharedListId) return;
-
-  const isOwner = !!window.currentUser && window.currentUser.uid === window.currentSharedListOwner;
-  const actions = [];
-
-  const membersBtn = document.createElement("button");
-  membersBtn.className = "sharedHeaderAction";
-  membersBtn.title = "Leden";
-  membersBtn.innerHTML = '<i class="fa-solid fa-users"></i>';
-  membersBtn.onclick = () => {
-    if(typeof showSharedListMembers === "function") showSharedListMembers();
-    else if(typeof showSharedMembers === "function") showSharedMembers();
-    else if(typeof showMembersModal === "function") showMembersModal();
-  };
-  actions.push(membersBtn);
-
-  if(isOwner){
-    const deleteBtn = document.createElement("button");
-    deleteBtn.className = "sharedHeaderAction sharedDeleteIconButton";
-    deleteBtn.title = "Deellijst verwijderen";
-    deleteBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
-    deleteBtn.onclick = () => {
-      if(typeof deleteCurrentSharedList === "function") deleteCurrentSharedList();
-    };
-    actions.push(deleteBtn);
-  }
-
-  const optionsBtn = document.getElementById("listOptionsButton");
-  actions.forEach(btn => {
-    if(optionsBtn && optionsBtn.parentElement === header){
-      header.insertBefore(btn, optionsBtn);
-    }else{
-      header.appendChild(btn);
-    }
-  });
 }
 
 async function deleteCurrentSharedList(){
