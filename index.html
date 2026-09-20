@@ -3630,87 +3630,7 @@ function toggleTheme() {
 // Herstel het opgeslagen thema bij openen/verversen.
 document.addEventListener("DOMContentLoaded", applyTheme);
 
-function closeFamilyMenu() {
-  if (__menuTransitionTimer) { clearTimeout(__menuTransitionTimer); __menuTransitionTimer = null; }
-  const menu = document.getElementById("familyMenu");
-  if (!menu) return;
-
-  menu.classList.remove("menu-open");
-
-  setTimeout(() => {
-    if (menu.classList.contains("menu-open")) return;
-
-    menu.style.display = "none";
-
-    // Always reset the menu to the main page when it closes.
-    // This prevents a submenu (for example Deellijst) from
-    // remaining visible as a long bar the next time the menu is opened.
-    const pageIds = [
-      "familyMenuSub",
-      "sharedListsMenuSub",
-      "sharedListActiveMenuSub",
-      "settingsMenuSub",
-      "savedListsMenuSub",
-      "accountMenuSub",
-      "aboutMenuSub"
-    ];
-
-    pageIds.forEach(id => {
-      const page = document.getElementById(id);
-      if (page) {
-        page.style.display = "none";
-        page.classList.remove("familyMenuSubEnter", "familyMenuSubExit");
-      }
-    });
-
-    const main = document.getElementById("familyMenuMain");
-    if (main) {
-      main.style.display = "block";
-      main.classList.remove("familyMenuMainEnter", "familyMenuMainExit");
-    }
-  }, 290);
-}
-
-
-function closeOpenMenusOnOutsideClick(event) {
-  const target = event.target;
-  const themePicker = document.getElementById("themePicker");
-  const themeButton = document.getElementById("themeButton");
-  const familyMenu = document.getElementById("familyMenu");
-  const familyButton = document.querySelector(".familyButton");
-
-  if (themePicker && themePicker.contains(target)) return;
-  if (themeButton && themeButton.contains(target)) return;
-  if (familyMenu && familyMenu.contains(target)) return;
-  if (familyButton && familyButton.contains(target)) return;
-
-  closeThemePicker();
-  closeFamilyMenu();
-}
-
-document.addEventListener("click", closeOpenMenusOnOutsideClick);
-
-
-function openFamilySubmenu(event) {
-  if (event) event.stopPropagation();
-  const mainCount = document.getElementById("memberCount");
-  const subCount = document.getElementById("memberCountSub");
-  if (mainCount && subCount) subCount.innerText = mainCount.innerText;
-  switchMenuPage("familyMenuSub", event);
-}
-function closeFamilySubmenu(event) { returnMenuToMain("familyMenuSub", event); }
-function openSettingsSubmenu(event) {
-  if (event) event.stopPropagation();
-  switchMenuPage("settingsMenuSub", event);
-}
-function closeSettingsSubmenu(event) { returnMenuToMain("settingsMenuSub", event); }
-
-function openSavedListsSubmenu(event) {
-  if (event) event.stopPropagation();
-  switchMenuPage("savedListsMenuSub", event);
-  renderSavedLists();
-}
-function closeSavedListsSubmenu(event) { returnMenuToMain("savedListsMenuSub", event); }
+/* Centrale Meer-navigatie staat hieronder; dubbele oudere handlers zijn verwijderd. */
 
 let __menuTransitionTimer = null;
 let __menuTransitionToken = 0;
@@ -3760,6 +3680,7 @@ function __showOnlyMenuPage(pageId){
     if(!page) return;
     __resetMenuPageClasses(page);
     page.style.display = (id === pageId) ? "block" : "none";
+    page.style.pointerEvents = (id === pageId) ? "" : "none";
   });
   __menuCurrentPage = pageId;
 }
@@ -3770,6 +3691,16 @@ function __cancelMenuTransition(){
     __menuTransitionTimer = null;
   }
   __menuTransitionToken++;
+}
+
+function __resetMoreNavigation(){
+  __cancelMenuTransition();
+  __showOnlyMenuPage("familyMenuMain");
+  const menu = document.getElementById("familyMenu");
+  if (menu) {
+    menu.classList.remove("menu-open");
+    menu.style.display = "block";
+  }
 }
 
 function closeFamilyMenu() {
@@ -3916,9 +3847,9 @@ function returnMenuToPage(pageId, targetId, event) {
   target.style.pointerEvents = "none";
 
   requestAnimationFrame(() => {
-    if(token !== __menuTransitionToken) return;
+    if (token !== __menuTransitionToken) return;
     requestAnimationFrame(() => {
-      if(token !== __menuTransitionToken) return;
+      if (token !== __menuTransitionToken) return;
       __resetMenuPageClasses(page);
       __resetMenuPageClasses(target);
       page.style.display = "block";
@@ -3933,7 +3864,7 @@ function returnMenuToPage(pageId, targetId, event) {
   __menuCurrentPage = targetId;
 
   __menuTransitionTimer = setTimeout(() => {
-    if(token !== __menuTransitionToken) return;
+    if (token !== __menuTransitionToken) return;
     __showOnlyMenuPage(targetId);
     __menuTransitionTimer = null;
   }, 320);
@@ -3999,6 +3930,8 @@ async function logoutFromMenu() {
     activeListType = "family";
     boodschappen = [];
     selectedIndex = -1;
+    __activeMainTab = 0;
+    if (typeof __resetMoreNavigation === "function") __resetMoreNavigation();
 
     const status = document.getElementById("status");
     if (status) status.innerText = "";
@@ -4017,26 +3950,7 @@ function showAboutHelp(event) {
   switchMenuPage("helpMenuSub", event);
 }
 function closeHelpSubmenu(event) { returnMenuToPage("helpMenuSub", "aboutMenuSub", event); }
-function returnMenuToPage(pageId, targetId, event) {
-  if (event) event.stopPropagation();
-  const page = document.getElementById(pageId);
-  const target = document.getElementById(targetId);
-  if (!page || !target) return;
-  if (__menuTransitionTimer) { clearTimeout(__menuTransitionTimer); __menuTransitionTimer=null; }
-  __resetMenuPageClasses(page);
-  __resetMenuPageClasses(target);
-  page.style.display="block";
-  target.style.display="block";
-  page.classList.add("menuSlideOutRight");
-  target.classList.add("menuSlideInLeft");
-  __menuCurrentPage=targetId;
-  __menuTransitionTimer=setTimeout(()=>{
-    page.style.display="none";
-    __resetMenuPageClasses(page);
-    __resetMenuPageClasses(target);
-    __menuTransitionTimer=null;
-  },290);
-}
+/* De algemene returnMenuToPage hierboven wordt ook gebruikt voor Over de app/Help. */
 
 function getSavedListsKey() {
   const user = auth && auth.currentUser;
@@ -6449,8 +6363,9 @@ async function login(){
     btn.dataset.loginBusy="1";
   }
 
-  // Do not wait for auth persistence. Firebase can sign in immediately;
-  // the existing onAuthStateChanged handler will finish the normal flow.
+  // Mark this as a fresh login. The auth-state handler will finish the flow
+  // and explicitly route to the normal Boodschappenlijst screen.
+  loginFlowActive = true;
   auth.signInWithEmailAndPassword(email,password)
     .then(()=>{
       if(btn){
@@ -6459,6 +6374,7 @@ async function login(){
       }
     })
     .catch(err=>{
+      loginFlowActive = false;
       if(btn){
         btn.disabled=false;
         delete btn.dataset.loginBusy;
@@ -6845,8 +6761,17 @@ function toggleRegisterPassword(fieldId, button) {
     // Negeer die tijdelijke auth-state: pas na een echte login mag de normale flow starten.
     if (registrationInProgress) return;
 
-    // Tijdens een normale login doet login() zelf de overgang en het laden.
-    if (loginFlowActive) return;
+    const freshLogin = loginFlowActive;
+    loginFlowActive = false;
+
+    // Een echte nieuwe login start altijd op de gewone Boodschappenlijst.
+    // Alleen een gedeelde-lijst uitnodiging mag hiervan afwijken.
+    if (freshLogin) {
+      __activeMainTab = 0;
+      if (typeof __resetMoreNavigation === "function") __resetMoreNavigation();
+      if (typeof showMainListView === "function") showMainListView();
+      document.body.classList.remove("more-active", "overview-active");
+    }
 
     // Dit is een herstelde sessie na opnieuw openen van de webapp.
     document.body.classList.add("logged-in");
@@ -6867,6 +6792,7 @@ function toggleRegisterPassword(fieldId, button) {
       if (householdId) {
         activeListType = "family";
         await loadList();
+        if (freshLogin && typeof showMainListView === "function") showMainListView();
       } else {
         const savedMode = localStorage.getItem("boodschappenUseMode_" + user.uid);
         if (savedMode === "private") {
@@ -7065,21 +6991,21 @@ function slideToTab(tabIndex){
   },380);
 }
 function showMainListView(){
+  __resetMoreNavigation();
   slideToTab(0);
   var app=document.querySelector('.app');
   if(app) app.classList.remove('overview-active','more-active');
   setBottomNav('navList');
-  var menu=document.getElementById('familyMenu'); if(menu && menu.classList.contains('menu-open')) closeFamilyMenu();
   var moreView=document.getElementById('moreView');
   if(moreView) moreView.scrollTop=0;
 }
 function showOverviewView(){
+  __resetMoreNavigation();
   slideToTab(1);
   var app=document.querySelector('.app');
   if(app) app.classList.remove('more-active'), app.classList.add('overview-active');
   setBottomNav('navOverview');
   updateOverviewView();
-  var menu=document.getElementById('familyMenu'); if(menu && menu.classList.contains('menu-open')) closeFamilyMenu();
   window.scrollTo({top:0,behavior:'smooth'});
 }
 function showMoreView(){
@@ -7087,10 +7013,8 @@ function showMoreView(){
   var app=document.querySelector('.app');
   if(app) app.classList.remove('overview-active'), app.classList.add('more-active');
   setBottomNav('navMore');
+  __resetMoreNavigation();
   var menu=document.getElementById('familyMenu');
-  var main=document.getElementById('familyMenuMain');
-  __cancelMenuTransition();
-  __showOnlyMenuPage("familyMenuMain");
   /* In Meer the family menu is the screen content, never a dropdown. */
   if(menu){ menu.style.display='block'; menu.classList.remove('menu-open'); }
   var moreView=document.getElementById('moreView');
