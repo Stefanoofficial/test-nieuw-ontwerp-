@@ -1484,11 +1484,11 @@ body.dark-theme .productSuggestion {
   margin: 8px 0 7px;
 }
 .saveToast {
-  position: absolute;
+  position: fixed;
   left: 0;
-  top: 8px;
-  width: 100%;
-  height: 38px;
+  top: 0;
+  width: 0;
+  height: 0;
   z-index: 100000;
   box-sizing: border-box;
   display: flex;
@@ -1765,7 +1765,20 @@ body.dark-theme .saveListMainBtn {
   border-radius:12px;
   background:rgba(255,255,255,.42);
   color:#333;
-  padding:7px 8px;
+  padding:4px 6px 4px 8px;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font:inherit;
+}
+.savedListOpenBtn {
+  min-width:0;
+  flex:1;
+  min-height:40px;
+  border:0;
+  background:transparent;
+  color:inherit;
+  padding:3px 2px;
   display:flex;
   align-items:center;
   gap:8px;
@@ -1774,7 +1787,7 @@ body.dark-theme .saveListMainBtn {
   text-align:left;
   cursor:pointer;
 }
-.savedListRow i:first-child {
+.savedListOpenBtn i:first-child {
   color:#3F5B45;
   width:34px;
   height:34px;
@@ -1785,6 +1798,25 @@ body.dark-theme .saveListMainBtn {
   align-items:center;
   justify-content:center;
   text-align:center;
+}
+.savedListDeleteBtn {
+  width:34px;
+  height:34px;
+  flex:0 0 34px;
+  border:0;
+  border-radius:11px;
+  background:#f8e7e5;
+  color:#b45f56;
+  display:grid;
+  place-items:center;
+  font-size:14px;
+  cursor:pointer;
+  transition:transform .16s ease, background .16s ease;
+}
+.savedListDeleteBtn:active { transform:scale(.94); }
+@media (hover:hover) {
+  .savedListDeleteBtn:hover { background:#f3d8d5; }
+  .savedListOpenBtn:hover { opacity:.82; }
 }
 .sharedListsMenuPage .familyMenuItem > i:first-child:not(.familyMenuArrow) {
   width:34px;
@@ -1802,8 +1834,9 @@ body.dark-theme .sharedListsMenuPage .familyMenuItem > i:first-child:not(.family
   background:#304b39;
   color:#bfe3c7;
 }
-.savedListRow span { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.savedListOpenBtn span { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .savedListCount { color:#8b928d; font-size:10px; white-space:nowrap; }
+.savedListArrow { flex:0 0 auto; font-size:12px; color:#68736c; margin-left:2px; }
 .savedListsEmpty { padding:10px 7px; color:#8b928d; font-size:11px; line-height:1.35; }
 .settingsMenuToggleRow { justify-content:space-between; }
 .settingsToggle {
@@ -1814,8 +1847,10 @@ body.dark-theme .sharedListsMenuPage .familyMenuItem > i:first-child:not(.family
 .settingsToggle.on { background:#3F5B45; justify-content:flex-end; }
 .settingsToggle.on::after { transform:translateX(0); }
 body.dark-theme .savedListRow { background:rgba(255,255,255,.06); color:#f1f4f1; }
-body.dark-theme .savedListRow i:first-child { color:#dff1e2; }
+body.dark-theme .savedListOpenBtn i:first-child { color:#dff1e2; }
+body.dark-theme .savedListDeleteBtn { background:rgba(210,90,80,.16); color:#f0aaa3; }
 body.dark-theme .savedListCount { color:#aab4ad; }
+body.dark-theme .savedListArrow { color:#b7c0b9; }
 body.dark-theme .savedListsEmpty { color:#aab4ad; }
 body.dark-theme .settingsToggle { background:#59635c; }
 
@@ -3517,13 +3552,36 @@ function renderSavedLists() {
     return;
   }
   lists.forEach((saved, index) => {
-    const row = document.createElement("button");
-    row.type = "button";
+    const row = document.createElement("div");
     row.className = "savedListRow";
-    row.innerHTML = '<i class="fa-solid fa-list"></i><span></span><small class="savedListCount"></small><i class="fa-solid fa-chevron-right"></i>';
-    row.querySelector("span").textContent = saved.name || "Naamloze lijst";
-    row.querySelector(".savedListCount").textContent = String((saved.items || []).length);
-    row.addEventListener("click", () => loadSavedList(index));
+
+    const openBtn = document.createElement("button");
+    openBtn.type = "button";
+    openBtn.className = "savedListOpenBtn";
+    openBtn.setAttribute("aria-label", "Open " + (saved.name || "opgeslagen lijst"));
+    openBtn.innerHTML = '<i class="fa-solid fa-list"></i><span></span><small class="savedListCount"></small><i class="fa-solid fa-chevron-right savedListArrow"></i>';
+    openBtn.querySelector("span").textContent = saved.name || "Naamloze lijst";
+    openBtn.querySelector(".savedListCount").textContent = String((saved.items || []).length);
+    openBtn.addEventListener("click", () => loadSavedList(index));
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.type = "button";
+    deleteBtn.className = "savedListDeleteBtn";
+    deleteBtn.setAttribute("aria-label", "Verwijder " + (saved.name || "opgeslagen lijst"));
+    deleteBtn.title = "Lijst verwijderen";
+    deleteBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
+    deleteBtn.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const current = readSavedLists();
+      if (!current[index]) return;
+      current.splice(index, 1);
+      writeSavedLists(current);
+      renderSavedLists();
+    });
+
+    row.appendChild(openBtn);
+    row.appendChild(deleteBtn);
     box.appendChild(row);
   });
 }
@@ -3536,13 +3594,25 @@ function showSaveToast(name) {
   toast.setAttribute('role', 'status');
   toast.setAttribute('aria-live', 'polite');
   toast.innerHTML = `<div class="saveToastIcon"><i class="fa-solid fa-check"></i></div><div><div class="saveToastText">Lijst opgeslagen!</div><div class="saveToastSub">${name ? '“' + String(name).replace(/[<>]/g, '') + '” is opgeslagen.' : 'Je lijst is succesvol opgeslagen.'}</div></div>`;
-  // De melding hoort fysiek bij de knop: hij wordt in de knop-wrapper geplaatst.
-  // Daardoor kan hij nooit midden in de boodschappenlijst terechtkomen.
+  // Plaats de melding exact bovenop de knop "Lijst opslaan".
+  // We gebruiken de echte schermpositie van de knop, zodat hij nooit
+  // midden in de boodschappenlijst kan verschijnen.
   const saveWrap = document.querySelector('.saveListMainWrap');
-  if (saveWrap) {
-    saveWrap.appendChild(toast);
-  } else {
-    document.body.appendChild(toast);
+  const saveBtn = document.querySelector('.saveListMainBtn');
+  document.body.appendChild(toast);
+  if (saveBtn) {
+    const rect = saveBtn.getBoundingClientRect();
+    toast.style.left = rect.left + 'px';
+    toast.style.top = rect.top + 'px';
+    toast.style.width = rect.width + 'px';
+    toast.style.height = rect.height + 'px';
+    toast.style.borderRadius = getComputedStyle(saveBtn).borderRadius;
+  } else if (saveWrap) {
+    const rect = saveWrap.getBoundingClientRect();
+    toast.style.left = rect.left + 'px';
+    toast.style.top = rect.top + 'px';
+    toast.style.width = rect.width + 'px';
+    toast.style.height = rect.height + 'px';
   }
   requestAnimationFrame(() => toast.classList.add('show'));
   clearTimeout(window.__saveToastTimer);
