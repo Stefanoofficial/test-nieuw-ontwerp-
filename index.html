@@ -166,6 +166,8 @@ h2 {
   left: 0;
   right: 40%;
   top: calc(100% + 5px);
+  max-height: 280px;
+  overflow-y: auto;
   background: #ffffff;
   border-radius: 14px;
   border: 1px solid #e1ece4;
@@ -200,7 +202,7 @@ h2 {
 
 .productSuggestion:last-child { border-bottom: 0; }
 .productSuggestion:active, .productSuggestion:hover { background: #f1f7f3; }
-.productSuggestionIcon { font-size: 20px; line-height: 1; }
+.productSuggestionIcon { font-size: 20px; line-height: 1; flex: 0 0 30px; }
 
 body.dark-theme .productSuggestions {
   background: rgba(32,38,32,.98);
@@ -4232,6 +4234,14 @@ function updateProductSuggestions() {
 function initProductSuggestions() {
   const input = document.getElementById("product");
   if (!input) return;
+
+  // Enable the current productsuggesties system once for older app versions.
+  // This prevents an old localStorage setting from accidentally hiding the new suggestions.
+  if (localStorage.getItem("boodschappenSuggestionsVersion") !== "2") {
+    localStorage.setItem("boodschappenSuggestionsEnabled", "true");
+    localStorage.setItem("boodschappenSuggestionsVersion", "2");
+  }
+
   input.addEventListener("input", updateProductSuggestions);
   input.addEventListener("focus", updateProductSuggestions);
   input.addEventListener("keydown", (e) => {
