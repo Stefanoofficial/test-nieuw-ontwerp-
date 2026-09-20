@@ -2821,11 +2821,22 @@ body.dark-theme .aboutInfoCard p,body.dark-theme .helpSection p{color:#AAB4AD;}
       <span>Familielijst</span>
     </button>
     <div class="familyMenuSubTitle">Deellijst</div>
-    <button type="button" class="familyMenuItem savedListSaveBtn" onclick="createSharedList()">
-      <i class="fa-solid fa-plus"></i>
-      <span>Nieuwe lijst</span>
-    </button>
-    <div class="familyMenuSubTitle">Mijn deellijsten</div>
+
+    <div class="familyMenuItem" onclick="showSharedListMembersFromMenu()">
+      <i class="fa-solid fa-user-group"></i>
+      <span>Leden</span>
+    </div>
+
+    <div class="familyMenuItem" onclick="showSharedListCodeFromMenu()">
+      <i class="fa-solid fa-key"></i>
+      <span>Ledencode</span>
+    </div>
+
+    <div class="familyMenuItem" onclick="joinSharedListByCode()">
+      <i class="fa-solid fa-keyboard"></i>
+      <span>Code invoeren</span>
+    </div>
+
     <div id="sharedListsContainer" class="savedListsContainer"></div>
     <div class="settingsMenuHint">Maak een lijst voor vrienden, familie of een feestje. Iedereen met toegang kan samen producten toevoegen en afvinken.</div>
   </div>
@@ -4814,6 +4825,19 @@ async function showSharedListCodeFromMenu(){
   await showSharedListCode();
 }
 
+
+async function showSharedListMembersFromMenu(){
+  if(typeof showSharedListMembers === "function"){
+    return showSharedListMembers();
+  }
+  if(typeof showSharedMembers === "function"){
+    return showSharedMembers();
+  }
+  if(typeof showMembersModal === "function"){
+    return showMembersModal();
+  }
+  await familyAlert("Leden","Open eerst een deellijst om de leden te bekijken.","fa-user-group");
+}
 async function createSharedList(){
   const user=auth.currentUser;
   if(!user){ await familyAlert("Inloggen vereist","Je bent niet ingelogd.","fa-user"); return; }
