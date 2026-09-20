@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Boodschappenlijst</title>
+<title>Boodschappen lijst</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style>
 * {
@@ -2113,6 +2113,7 @@ body.dark-theme .familyMenuPage .familyMenuItem:not(.familyMenuDanger) > i:first
 /* De inhoud van Mijn familie schuift horizontaal als een echt tweede scherm. */
 .familyMenu {
   overflow: hidden !important;
+  overflow-anchor: none !important;
 }
 .familyMenu.menu-open {
   display: grid !important;
@@ -3338,43 +3339,14 @@ function openSettingsSubmenu(event) {
   if (event) event.stopPropagation();
   switchMenuPage("settingsMenuSub", event);
 }
-function closeSettingsSubmenu(event) {
-  if (event) event.stopPropagation();
-  const main = document.getElementById("familyMenuMain");
-  const settings = document.getElementById("settingsMenuSub");
-  if (!main || !settings) return;
-
-  settings.classList.remove("familyMenuSubEnter");
-  settings.classList.add("familyMenuSubExit");
-  setTimeout(() => {
-    settings.style.display = "none";
-    settings.classList.remove("familyMenuSubExit");
-    main.style.display = "block";
-    void main.offsetWidth;
-    main.classList.add("familyMenuMainEnter");
-  }, 170);
-}
+function closeSettingsSubmenu(event) { returnMenuToMain("settingsMenuSub", event); }
 
 function openSavedListsSubmenu(event) {
   if (event) event.stopPropagation();
   switchMenuPage("savedListsMenuSub", event);
   renderSavedLists();
 }
-function closeSavedListsSubmenu(event) {
-  if (event) event.stopPropagation();
-  const main = document.getElementById("familyMenuMain");
-  const saved = document.getElementById("savedListsMenuSub");
-  if (!main || !saved) return;
-  saved.classList.remove("familyMenuSubEnter");
-  saved.classList.add("familyMenuSubExit");
-  setTimeout(() => {
-    saved.style.display = "none";
-    saved.classList.remove("familyMenuSubExit");
-    main.style.display = "block";
-    void main.offsetWidth;
-    main.classList.add("familyMenuMainEnter");
-  }, 170);
-}
+function closeSavedListsSubmenu(event) { returnMenuToMain("savedListsMenuSub", event); }
 
 let __menuTransitionTimer = null;
 let __menuCurrentPage = "familyMenuMain";
@@ -3400,13 +3372,17 @@ function switchMenuPage(pageId, event) {
   }
   if (current === page) return;
 
-  const forward = true;
+  // Altijd dezelfde horizontale overgang: huidige pagina naar links, nieuwe pagina vanaf rechts.
   if (current) {
     __resetMenuPageClasses(current);
+    current.style.display = "block";
     current.classList.add("menuSlideOutLeft");
   }
   __resetMenuPageClasses(page);
   page.style.display = "block";
+  // Forceer een nieuwe compositie voordat de animatie start. Dit voorkomt dat
+  // Safari/iOS soms de vorige transform/scrollpositie hergebruikt.
+  void page.offsetWidth;
   page.classList.add("menuSlideInRight");
   __menuCurrentPage = pageId;
 
@@ -3414,7 +3390,7 @@ function switchMenuPage(pageId, event) {
     if(current && current !== page){ current.style.display="none"; __resetMenuPageClasses(current); }
     __resetMenuPageClasses(page);
     __menuTransitionTimer=null;
-  },290);
+  },300);
 }
 
 function returnMenuToMain(pageId, event) {
@@ -3428,6 +3404,9 @@ function returnMenuToMain(pageId, event) {
   __resetMenuPageClasses(main);
   page.style.display="block";
   main.style.display="block";
+  __resetMenuPageClasses(page);
+  __resetMenuPageClasses(main);
+  void main.offsetWidth;
   page.classList.add("menuSlideOutRight");
   main.classList.add("menuSlideInLeft");
   __menuCurrentPage="familyMenuMain";
@@ -3437,7 +3416,7 @@ function returnMenuToMain(pageId, event) {
     __resetMenuPageClasses(page);
     __resetMenuPageClasses(main);
     __menuTransitionTimer=null;
-  },290);
+  },300);
 }
 function openAccountSubmenu(event) {
 
@@ -6629,7 +6608,8 @@ function showMainListView(){
   if(app) app.classList.remove('overview-active','more-active');
   setBottomNav('navList');
   var menu=document.getElementById('familyMenu'); if(menu && menu.classList.contains('menu-open')) closeFamilyMenu();
-  window.scrollTo({top:0,behavior:'smooth'});
+  var moreView=document.getElementById('moreView');
+  if(moreView) moreView.scrollTop=0;
 }
 function showOverviewView(){
   slideToTab(1);
@@ -6653,7 +6633,8 @@ function showMoreView(){
   __menuCurrentPage='familyMenuMain';
   /* In Meer the family menu is the screen content, never a dropdown. */
   if(menu){ menu.style.display='block'; menu.classList.remove('menu-open'); }
-  window.scrollTo({top:0,behavior:'smooth'});
+  var moreView=document.getElementById('moreView');
+  if(moreView) moreView.scrollTop=0;
 }
 
 /* Verplaats het bestaande menu naar de Meer-weergave zodra de DOM klaar is.
@@ -7473,6 +7454,7 @@ body.logged-in {
 
 /* More is the ONLY scrolling container. */
 .app.more-active #moreView {
+  overflow-anchor: none !important;
   display: block !important;
   position: absolute !important;
   left: 20px !important;
