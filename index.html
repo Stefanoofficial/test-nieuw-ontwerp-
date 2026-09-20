@@ -3084,6 +3084,14 @@ html, body { -webkit-tap-highlight-color: transparent; }
   overscroll-behavior: contain;
 }
 </style>
+<style id="more-menu-height-transition-v2">
+/* The card keeps the larger height during the horizontal slide. After the
+   slide has finished, JS changes this height to the new page height so the
+   card grows/shrinks smoothly from the bottom instead of clipping content. */
+.app.more-active #familyMenu {
+  transition: height .28s cubic-bezier(.22,.8,.3,1) !important;
+}
+</style>
 </head>
 
 <body>
@@ -3752,6 +3760,104 @@ function openSavedListsSubmenu(event) {
 }
 function closeSavedListsSubmenu(event) { returnMenuToMain("savedListsMenuSub", event); }
 
+function __measureMorePageHeight(menu, page) {
+  if (!menu || !page) return 0;
+
+  const saved = {
+    menuHeight: menu.style.height,
+    menuMinHeight: menu.style.minHeight,
+    menuMaxHeight: menu.style.maxHeight,
+    menuOverflow: menu.style.overflow,
+    pagePosition: page.style.position,
+    pageVisibility: page.style.visibility,
+    pageDisplay: page.style.display,
+    pageTransform: page.style.transform,
+    pageAnimation: page.style.animation,
+    pageWidth: page.style.width,
+    pageHeight: page.style.height,
+    pageLeft: page.style.left,
+    pageTop: page.style.top
+  };
+
+  // Measure the selected page independently. When two pages share the same
+  // CSS-grid row, WebKit/Android WebView can otherwise report the current
+  // (shorter) row height instead of the page's real content height.
+  menu.style.height = "auto";
+  menu.style.minHeight = "0";
+  menu.style.maxHeight = "none";
+  menu.style.overflow = "visible";
+  page.style.display = "block";
+  page.style.position = "absolute";
+  page.style.left = "0";
+  page.style.top = "0";
+  page.style.width = "100%";
+  page.style.height = "auto";
+  page.style.visibility = "hidden";
+  page.style.transform = "none";
+  page.style.animation = "none";
+
+  void menu.offsetWidth;
+  const pageHeight = Math.ceil(Math.max(page.scrollHeight, page.getBoundingClientRect().height));
+  const cs = getComputedStyle(menu);
+  const frameExtra = parseFloat(cs.paddingTop || "0") + parseFloat(cs.paddingBottom || "0") +
+    parseFloat(cs.borderTopWidth || "0") + parseFloat(cs.borderBottomWidth || "0");
+  const height = pageHeight + frameExtra;
+
+  menu.style.height = saved.menuHeight;
+  menu.style.minHeight = saved.menuMinHeight;
+  menu.style.maxHeight = saved.menuMaxHeight;
+  menu.style.overflow = saved.menuOverflow;
+  page.style.position = saved.pagePosition;
+  page.style.visibility = saved.pageVisibility;
+  page.style.display = saved.pageDisplay;
+  page.style.transform = saved.pageTransform;
+  page.style.animation = saved.pageAnimation;
+  page.style.width = saved.pageWidth;
+  page.style.height = saved.pageHeight;
+  page.style.left = saved.pageLeft;
+  page.style.top = saved.pageTop;
+
+  return height;
+}
+
+function __prepareMoreMenuTransition(menu, current, target) {
+  const currentHeight = __measureMorePageHeight(menu, current);
+  const targetHeight = __measureMorePageHeight(menu, target);
+  const travelHeight = Math.max(currentHeight, targetHeight);
+
+  menu.style.height = travelHeight + "px";
+  menu.style.minHeight = "0";
+  menu.style.maxHeight = "none";
+  menu.style.overflow = "hidden";
+  void menu.offsetHeight;
+
+  return { currentHeight, targetHeight, travelHeight };
+}
+
+function __finishMoreMenuTransition(menu, page, targetHeight) {
+  if (!menu) return;
+  const finalHeight = Number(targetHeight) || __measureMorePageHeight(menu, page);
+  if (!finalHeight) {
+    menu.style.height = "auto";
+    menu.style.overflow = "visible";
+    return;
+  }
+
+  // The horizontal slide is already finished here. Now the card smoothly
+  // shrinks/grows from the bottom to the selected page's natural height.
+  menu.style.height = finalHeight + "px";
+  menu.style.minHeight = "0";
+  menu.style.maxHeight = "none";
+  menu.style.overflow = "hidden";
+  void menu.offsetHeight;
+  menu.style.height = finalHeight + "px";
+
+  window.setTimeout(() => {
+    menu.style.height = "auto";
+    menu.style.overflow = "visible";
+  }, 300);
+}
+
 function switchMenuPage(pageId, event) {
   if (event) event.stopPropagation();
 
@@ -3779,6 +3885,7 @@ function switchMenuPage(pageId, event) {
   }
 
   const token = __menuTransitionToken;
+  const menuHeights = __prepareMoreMenuTransition(menu, current, page);
   __resetMenuPageClasses(current);
   __resetMenuPageClasses(page);
 
@@ -3811,6 +3918,7 @@ function switchMenuPage(pageId, event) {
   __menuTransitionTimer = setTimeout(() => {
     if(token !== __menuTransitionToken) return;
     __showOnlyMenuPage(pageId);
+    __finishMoreMenuTransition(menu, page, menuHeights.targetHeight);
     __menuTransitionTimer = null;
   }, 320);
 }
@@ -3835,6 +3943,7 @@ function returnMenuToPage(pageId, targetId, event) {
   }
 
   const token = __menuTransitionToken;
+  const menuHeights = __prepareMoreMenuTransition(menu, page, target);
   menu.style.display = "block";
   __resetMenuPageClasses(page);
   __resetMenuPageClasses(target);
@@ -3863,6 +3972,7 @@ function returnMenuToPage(pageId, targetId, event) {
   __menuTransitionTimer = setTimeout(() => {
     if (token !== __menuTransitionToken) return;
     __showOnlyMenuPage(targetId);
+    __finishMoreMenuTransition(menu, target, menuHeights.targetHeight);
     __menuTransitionTimer = null;
   }, 320);
 }
