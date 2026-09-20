@@ -5355,24 +5355,26 @@ function renderSharedListHeaderActions(){
 }
 
 async function deleteCurrentSharedList(){
-  const user=auth.currentUser;
-  const id=currentSharedListId;
+  const user = auth.currentUser;
+  const id = currentSharedListId;
   if(!user || !id) return;
 
   try{
-    const snap=await database.ref("sharedLists/" + id).once("value");
-    const list=snap.val();
+    const snap = await database.ref("sharedLists/" + id).once("value");
+    const list = snap.val();
+
     if(!list){
       await familyAlert("Deellijst","Deze lijst bestaat niet meer.","fa-circle-info");
-      returnToFamilyList();
+      await returnToFamilyList();
       return;
     }
-    if(list.owner !== user.uid){
+
+    if(String(list.owner || "") !== String(user.uid)){
       await familyAlert("Deellijst","Alleen de eigenaar kan deze deellijst verwijderen.","fa-lock");
       return;
     }
 
-    const ok=await familyConfirm(
+    const ok = await familyConfirm(
       "Deellijst verwijderen",
       "Weet je zeker dat je “" + (list.name || "Deellijst") + "” wilt verwijderen? Deze actie kan niet ongedaan worden."
     );
@@ -5380,32 +5382,53 @@ async function deleteCurrentSharedList(){
 
     if(currentSharedListUnsubscribe){
       currentSharedListUnsubscribe();
-      currentSharedListUnsubscribe=null;
+      currentSharedListUnsubscribe = null;
     }
 
-    // Verwijder de gedeelde lijst, de uitnodigingscode en de eigen indexverwijzing
-    // in één Firebase-update. De gewone familielijst wordt hierbij niet geraakt.
-    const updates={};
-    updates["sharedLists/" + id]=null;
-    if(list.inviteCode) updates["sharedListCodes/" + list.inviteCode]=null;
-    updates["userSharedLists/" + user.uid + "/" + id]=null;
-    await database.ref().update(updates);
+    /*
+      Verwijder eerst de daadwerkelijke Deellijst zelf.
+      We doen dit bewust als losse Firebase-operatie in plaats van één
+      root-update. Daardoor wordt de verwijdering niet geblokkeerd doordat
+      één van de opruim-indexen andere Firebase-regels heeft.
+    */
+    await database.ref("sharedLists/" + id).remove();
 
-    activeListType="family";
-    currentSharedListId=null;
-    currentSharedListInviteCode=null;
-    const delBtn=document.getElementById("deleteSharedListBtn");
-    if(delBtn) delBtn.remove();
-    const headerTitle=document.querySelector(".headerBar h1");
-    if(headerTitle) headerTitle.textContent="Boodschappenlijst";
-    showMainListView();
-    await loadList();
+    // De lijst is nu daadwerkelijk weg. De twee indexen ruimen we apart op.
+    // Als een index door Firebase-regels niet verwijderd mag worden, mag dat
+    // het succesvol verwijderen van de Deellijst niet ongedaan maken.
+    try{
+      if(list.inviteCode){
+        await database.ref("sharedListCodes/" + list.inviteCode).remove();
+      }
+    }catch(codeError){
+      console.warn("Uitnodigingscode kon niet worden opgeruimd:", codeError);
+    }
+
+    try{
+      await database.ref("userSharedLists/" + user.uid + "/" + id).remove();
+    }catch(indexError){
+      console.warn("Eigen Deellijst-index kon niet worden opgeruimd:", indexError);
+    }
+
+    activeListType = "family";
+    currentSharedListId = null;
+    currentSharedListInviteCode = null;
+    window.currentSharedListOwner = null;
+
+    document.querySelectorAll("#deleteSharedListBtn,.sharedDeleteIconButton,.sharedHeaderAction")
+      .forEach(el => el.remove());
+
+    const headerTitle = document.querySelector(".headerBar h1");
+    if(headerTitle) headerTitle.textContent = "Boodschappenlijst";
+
+    await returnToFamilyList();
     await familyAlert("Deellijst verwijderd","De deellijst is verwijderd.","fa-trash");
+
   }catch(error){
-    console.error("Deellijst verwijderen mislukt:",error);
+    console.error("Deellijst verwijderen mislukt:", error);
     await familyAlert(
       "Deellijst",
-      "De deellijst kon niet volledig worden verwijderd. Er is niets uit je gewone familielijst verwijderd.",
+      "De deellijst kon niet worden verwijderd. Controleer je verbinding en probeer het opnieuw.",
       "fa-triangle-exclamation"
     );
   }
