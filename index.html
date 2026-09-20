@@ -2615,6 +2615,26 @@ body.dark-theme .aboutInfoTitle,body.dark-theme .helpQuestion,body.dark-theme .a
 body.dark-theme .aboutInfoCard p,body.dark-theme .helpSection p{color:#AAB4AD;}
 </style>
 
+
+<style id="shared-list-trash-addition">
+.shared-list-trash-addition {
+  display:inline-flex !important;
+  align-items:center;
+  justify-content:center;
+  width:42px;
+  height:42px;
+  min-width:42px;
+  border:0;
+  border-radius:13px;
+  margin-left:6px;
+  background:rgba(255,255,255,.16);
+  color:#fff;
+  cursor:pointer;
+}
+.shared-list-trash-addition:active { transform:scale(.96); }
+.shared-list-trash-addition i { font-size:17px; }
+</style>
+
 </head>
 
 <body>
@@ -6894,6 +6914,66 @@ function openWeekCompleted(){
   },100);
 }
 </script>
+
+<script id="shared-list-trash-addition-js">
+function deleteOpenedSharedListFromHeader(){
+  if (typeof deleteCurrentSharedList === "function") {
+    return deleteCurrentSharedList();
+  }
+  if (typeof deleteSharedList === "function") {
+    return deleteSharedList();
+  }
+  if (typeof removeSharedList === "function") {
+    return removeSharedList();
+  }
+  console.warn("Bestaande Deellijst-verwijderfunctie niet gevonden.");
+}
+</script>
+
+
+<script id="shared-list-trash-header-observer">
+(function(){
+  function addSharedListTrash(){
+    const active =
+      document.body.classList.contains("shared-list-open") ||
+      window.currentSharedListId ||
+      window.activeSharedListId ||
+      window.currentSharedList;
+
+    if(!active) return;
+
+    if(document.querySelector(".shared-list-trash-addition")) return;
+
+    const candidates = Array.from(document.querySelectorAll("button, a, [role='button']"));
+    const dots = candidates.find(el => {
+      const t = (el.innerHTML || "") + " " + (el.getAttribute("aria-label") || "");
+      return /fa-ellipsis|fa-ellipsis-vertical|meer|three.?dots|⋮/i.test(t);
+    });
+
+    if(!dots) return;
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "shared-list-trash-addition";
+    btn.setAttribute("aria-label","Deellijst verwijderen");
+    btn.title = "Deellijst verwijderen";
+    btn.innerHTML = '<i class="fa-solid fa-trash"></i>';
+    btn.onclick = deleteOpenedSharedListFromHeader;
+
+    dots.parentElement.insertBefore(btn, dots.nextSibling);
+  }
+
+  const observer = new MutationObserver(addSharedListTrash);
+  function start(){
+    if(document.body) observer.observe(document.body,{childList:true,subtree:true});
+    addSharedListTrash();
+  }
+  if(document.readyState === "loading") document.addEventListener("DOMContentLoaded",start);
+  else start();
+  window.addEventListener("hashchange",addSharedListTrash);
+})();
+</script>
+
 </body>
 
 <style id="overview-dashboard-final">
