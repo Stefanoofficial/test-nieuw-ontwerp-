@@ -1474,6 +1474,54 @@ body.dark-theme .productSuggestion {
 #status > i.fa-circle-exclamation { margin-right: 5px; }
 
 
+
+/* ===== Opslaan: elegante slide-in bevestiging ===== */
+.saveToast {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 100000;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 250px;
+  max-width: min(360px, calc(100vw - 36px));
+  padding: 13px 16px;
+  border: 1px solid rgba(63,91,69,.14);
+  border-radius: 16px;
+  background: rgba(255,255,255,.97);
+  color: #26352a;
+  box-shadow: 0 12px 30px rgba(0,0,0,.16);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transform: translateX(calc(100% + 28px));
+  opacity: 0;
+  transition: transform .38s cubic-bezier(.22,.8,.25,1), opacity .28s ease;
+  pointer-events: none;
+}
+.saveToast.show { transform: translateX(0); opacity: 1; }
+.saveToast.hide { transform: translateX(calc(100% + 28px)); opacity: 0; }
+.saveToastIcon {
+  width: 34px; height: 34px; flex: 0 0 34px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: #e7f5ea; color: #3f6b48;
+  font-size: 15px;
+}
+.saveToastText { font-size: 14px; font-weight: 700; line-height: 1.2; }
+.saveToastSub { margin-top: 3px; font-size: 11px; font-weight: 500; color: #7a847d; }
+body.dark-theme .saveToast { background: rgba(31,37,32,.97); color: #f1f4f1; border-color: rgba(255,255,255,.10); box-shadow: 0 14px 32px rgba(0,0,0,.42); }
+body.dark-theme .saveToastIcon { background: rgba(111,180,125,.16); color: #bfe8c7; }
+body.dark-theme .saveToastSub { color: #aab4ad; }
+@media (max-width: 480px) {
+  .saveToast { top: 12px; right: 12px; min-width: 0; width: calc(100vw - 24px); max-width: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .saveToast { transition: opacity .15s ease; transform: none; }
+  .saveToast.show { opacity: 1; }
+  .saveToast.hide { opacity: 0; }
+}
+
 /* ===== Stap 9: moderne, consistente Menu-stijl ===== */
 .familyMenu {
   border-radius: 18px !important;
@@ -3467,6 +3515,25 @@ function renderSavedLists() {
     box.appendChild(row);
   });
 }
+
+function showSaveToast(name) {
+  const old = document.querySelector('.saveToast');
+  if (old) old.remove();
+  const toast = document.createElement('div');
+  toast.className = 'saveToast';
+  toast.setAttribute('role', 'status');
+  toast.setAttribute('aria-live', 'polite');
+  toast.innerHTML = `<div class="saveToastIcon"><i class="fa-solid fa-check"></i></div><div><div class="saveToastText">Lijst opgeslagen!</div><div class="saveToastSub">${name ? '“' + String(name).replace(/[<>]/g, '') + '” is opgeslagen.' : 'Je lijst is succesvol opgeslagen.'}</div></div>`;
+  document.body.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add('show'));
+  clearTimeout(window.__saveToastTimer);
+  window.__saveToastTimer = setTimeout(() => {
+    toast.classList.remove('show');
+    toast.classList.add('hide');
+    setTimeout(() => toast.remove(), 420);
+  }, 2600);
+}
+
 function saveCurrentListAs() {
   if (!boodschappen.length) {
     familyAlert("Lijst opslaan", "Je lijst is nog leeg. Voeg eerst één of meer producten toe.", "fa-floppy-disk");
@@ -3490,6 +3557,7 @@ function saveCurrentListAs() {
     if (existing >= 0) lists[existing] = record; else lists.unshift(record);
     writeSavedLists(lists);
     finish(true);
+    showSaveToast(name);
     setTimeout(() => {
       const menu = document.getElementById("familyMenu");
       if (menu) { menu.style.display = "block"; menu.classList.add("menu-open"); }
