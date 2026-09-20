@@ -2095,15 +2095,15 @@ body.logged-in .app {
   width: 34px;
   height: 34px;
   flex: 0 0 34px;
-  border-radius: 50%;
-  background: #dff5df;
+  border-radius: 0;
+  background: transparent !important;
   color: #3F5B45;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 body.dark-theme .familyMenuPage .familyMenuItem:not(.familyMenuDanger) > i:first-child:not(.familyMenuArrow) {
-  background: #304b39;
+  background: transparent !important;
   color: #bfe3c7;
 }
 .familyMenuBack { padding: 7px 6px 8px; font-size: 13px; }
@@ -2718,6 +2718,32 @@ body.dark-theme .overview-new-card{background:#202923;border-color:#34443a}
 body.dark-theme .aboutInfoCard,body.dark-theme .helpSection{background:#29312B;}
 body.dark-theme .aboutInfoTitle,body.dark-theme .helpQuestion,body.dark-theme .aboutInfoLine{color:#DCE9DF;}
 body.dark-theme .aboutInfoCard p,body.dark-theme .helpSection p{color:#AAB4AD;}
+
+/* Meer: informatie-iconen zijn zelfstandige iconen, zonder groene/witte cirkel. */
+.app.more-active .aboutInfoTitle i,
+.app.more-active .helpQuestion i {
+  width: 29px !important;
+  height: 29px !important;
+  flex: 0 0 29px !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: #3F5B45 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+body.dark-theme .app.more-active .aboutInfoTitle i,
+body.dark-theme .app.more-active .helpQuestion i {
+  background: transparent !important;
+  color: #bfe3c7 !important;
+}
+
+/* Bij Meer-subpagina's blijven de iconen eveneens vrij van cirkelachtergronden. */
+.app.more-active .familyMenuPage .familyMenuItem:not(.familyMenuDanger) > i:first-child:not(.familyMenuArrow),
+body.dark-theme .app.more-active .familyMenuPage .familyMenuItem:not(.familyMenuDanger) > i:first-child:not(.familyMenuArrow) {
+  background: transparent !important;
+  border-radius: 0 !important;
+}
 </style>
 
 
@@ -3089,12 +3115,18 @@ html, body { -webkit-tap-highlight-color: transparent; }
    pagina die binnenkomt. Er is dus geen aparte verticale beweging achteraf. */
 .app.more-active #familyMenu {
   transition: none !important;
+  align-content: start !important;
 }
 .app.more-active #familyMenu .familyMenuPage {
   min-height: 0 !important;
 }
 .app.more-active #familyMenu {
   grid-template-rows: minmax(0, 1fr) !important;
+}
+.app.more-active #familyMenu.menu-no-vertical-shift {
+  grid-template-rows: auto !important;
+  align-content: start !important;
+  transform: translateZ(0) !important;
 }
 </style>
 </head>
@@ -3850,27 +3882,41 @@ function __prepareMoreMenuTransition(menu, current, target) {
   const targetHeight = __measureMorePageHeight(menu, target);
   const travelHeight = Math.max(currentHeight, targetHeight);
 
-  menu.style.height = travelHeight + "px";
+  // Op deze drie Meer-pagina's willen we uitsluitend een horizontale overgang.
+  // Door de grid-rij expliciet op auto te zetten blijft de bovenkant van de kaart
+  // volledig stabiel terwijl de nieuwe pagina binnenkomt.
+  const noVerticalShiftPages = new Set([
+    "savedListsMenuSub",
+    "accountMenuSub",
+    "settingsMenuSub"
+  ]);
+  const noVerticalShift = noVerticalShiftPages.has(target.id);
+  menu.classList.toggle("menu-no-vertical-shift", noVerticalShift);
+  menu.style.gridTemplateRows = noVerticalShift ? "auto" : "minmax(0, 1fr)";
+  menu.style.alignContent = "start";
+  menu.style.height = targetHeight + "px";
   menu.style.minHeight = "0";
   menu.style.maxHeight = "none";
   menu.style.overflow = "hidden";
   void menu.offsetHeight;
 
-  return { currentHeight, targetHeight, travelHeight };
+  return { currentHeight, targetHeight, travelHeight, noVerticalShift };
 }
 
 function __finishMoreMenuTransition(menu, page, targetHeight) {
   if (!menu) return;
   const finalHeight = Number(targetHeight) || __measureMorePageHeight(menu, page);
 
-  // De kaart heeft tijdens de horizontale animatie al exact de hoogte van
-  // de nieuwe pagina. Na afloop hoeft alleen de inline hoogte te worden
-  // losgelaten; er mag geen tweede verticale animatie ontstaan.
+  // De kaart staat tijdens de horizontale animatie al op de eindhoogte.
+  // Laat die hoogte zonder overgang staan; zo ontstaat geen tweede verticale beweging.
   if (finalHeight) menu.style.height = finalHeight + "px";
 
   requestAnimationFrame(() => {
     menu.style.height = "auto";
     menu.style.overflow = "visible";
+    menu.style.gridTemplateRows = "minmax(0, 1fr)";
+    menu.style.alignContent = "start";
+    menu.classList.remove("menu-no-vertical-shift");
   });
 }
 
