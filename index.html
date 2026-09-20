@@ -2090,7 +2090,7 @@ body.logged-in .app {
   flex-basis: 34px;
 }
 
-/* Submenu-iconen behouden hun normale groene ronde achtergrond. */
+/* Alle menu-iconen in submenu's krijgen dezelfde ronde achtergrond als de hoofdmenu-iconen. */
 .familyMenuPage .familyMenuItem:not(.familyMenuDanger) > i:first-child:not(.familyMenuArrow) {
   width: 34px;
   height: 34px;
@@ -2718,23 +2718,6 @@ body.dark-theme .overview-new-card{background:#202923;border-color:#34443a}
 body.dark-theme .aboutInfoCard,body.dark-theme .helpSection{background:#29312B;}
 body.dark-theme .aboutInfoTitle,body.dark-theme .helpQuestion,body.dark-theme .aboutInfoLine{color:#DCE9DF;}
 body.dark-theme .aboutInfoCard p,body.dark-theme .helpSection p{color:#AAB4AD;}
-
-/* Alleen de iconen binnen Help & uitleg zijn zelfstandige iconen, zonder cirkelachtergrond. */
-.app.more-active #helpMenuSub .helpQuestion i {
-  width: 29px !important;
-  height: 29px !important;
-  flex: 0 0 29px !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  color: #3F5B45 !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-}
-body.dark-theme .app.more-active #helpMenuSub .helpQuestion i {
-  background: transparent !important;
-  color: #bfe3c7 !important;
-}
 </style>
 
 
@@ -3046,30 +3029,6 @@ body.logged-in {
   from { opacity: 1; transform: translate3d(0,0,0); }
   to   { opacity: 0; transform: translate3d(100%,0,0); }
 }
-
-/* Final Meer slide model: pages are temporarily absolute during the horizontal
-   transition, so their different heights can never create a vertical slide. */
-<style id="more-menu-horizontal-only-final">
-.app.more-active #familyMenu.menu-transitioning {
-  overflow: hidden !important;
-  transition: none !important;
-  align-content: start !important;
-}
-.app.more-active #familyMenu.menu-transitioning .familyMenuPage {
-  position: absolute !important;
-  top: 0 !important;
-  left: 0 !important;
-  width: 100% !important;
-  grid-column: 1 !important;
-  grid-row: 1 !important;
-  align-self: start !important;
-  min-height: 0 !important;
-  margin: 0 !important;
-  transition: none !important;
-  backface-visibility: hidden !important;
-  -webkit-backface-visibility: hidden !important;
-}
-</style>
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#eef8f1">
@@ -3130,18 +3089,12 @@ html, body { -webkit-tap-highlight-color: transparent; }
    pagina die binnenkomt. Er is dus geen aparte verticale beweging achteraf. */
 .app.more-active #familyMenu {
   transition: none !important;
-  align-content: start !important;
 }
 .app.more-active #familyMenu .familyMenuPage {
   min-height: 0 !important;
 }
 .app.more-active #familyMenu {
   grid-template-rows: minmax(0, 1fr) !important;
-}
-.app.more-active #familyMenu.menu-no-vertical-shift {
-  grid-template-rows: auto !important;
-  align-content: start !important;
-  transform: translateZ(0) !important;
 }
 </style>
 </head>
@@ -3815,14 +3768,9 @@ function closeSavedListsSubmenu(event) { returnMenuToMain("savedListsMenuSub", e
 function __measureMorePageHeight(menu, page) {
   if (!menu || !page) return 0;
 
-  const savedMenu = {
-    height: menu.style.height,
-    minHeight: menu.style.minHeight,
-    maxHeight: menu.style.maxHeight,
-    overflow: menu.style.overflow,
-    display: menu.style.display
-  };
-
+  // Meet een Meer-pagina in zijn normale layout. We zetten de pagina dus NIET
+  // tijdelijk op absolute positionering; dat veroorzaakte op Safari/WebView
+  // juist verkeerde hoogtes wanneer een lange pagina naar een korte pagina ging.
   const states = __menuPageIds.map(id => {
     const el = __getMenuPage(id);
     if (!el) return null;
@@ -3836,43 +3784,50 @@ function __measureMorePageHeight(menu, page) {
       height: el.style.height,
       left: el.style.left,
       top: el.style.top,
-      width: el.style.width,
-      zIndex: el.style.zIndex
+      width: el.style.width
     };
   }).filter(Boolean);
 
-  // Meet precies één pagina in de normale layout. Geen grid-overlap en geen
-  // absolute positioning tijdens het meten; daardoor krijgen Safari/WebView
-  // en Chromium dezelfde natuurlijke hoogte.
-  menu.style.display = "grid";
+  const savedMenu = {
+    height: menu.style.height,
+    minHeight: menu.style.minHeight,
+    maxHeight: menu.style.maxHeight,
+    overflow: menu.style.overflow
+  };
+
   menu.style.height = "auto";
   menu.style.minHeight = "0";
   menu.style.maxHeight = "none";
   menu.style.overflow = "visible";
 
+  // Alleen de te meten pagina bepaalt tijdelijk de grid-hoogte.
   states.forEach(state => {
     const el = state.el;
-    el.classList.remove("menuSlideOutLeft","menuSlideInRight","menuSlideOutRight","menuSlideInLeft");
     el.style.display = (el === page) ? "block" : "none";
     el.style.position = "static";
-    el.style.visibility = "visible";
+    el.style.visibility = (el === page) ? "hidden" : "hidden";
     el.style.transform = "none";
     el.style.animation = "none";
     el.style.height = "auto";
     el.style.left = "auto";
     el.style.top = "auto";
     el.style.width = "100%";
-    el.style.zIndex = "";
   });
 
   void menu.offsetHeight;
-  const height = Math.ceil(Math.max(page.scrollHeight, page.getBoundingClientRect().height));
+  const rect = page.getBoundingClientRect();
+  const pageHeight = Math.ceil(Math.max(page.scrollHeight, rect.height));
+  const cs = getComputedStyle(menu);
+  const frameExtra = parseFloat(cs.paddingTop || "0") +
+    parseFloat(cs.paddingBottom || "0") +
+    parseFloat(cs.borderTopWidth || "0") +
+    parseFloat(cs.borderBottomWidth || "0");
+  const height = pageHeight + frameExtra;
 
   menu.style.height = savedMenu.height;
   menu.style.minHeight = savedMenu.minHeight;
   menu.style.maxHeight = savedMenu.maxHeight;
   menu.style.overflow = savedMenu.overflow;
-  menu.style.display = savedMenu.display;
 
   states.forEach(state => {
     const el = state.el;
@@ -3885,109 +3840,38 @@ function __measureMorePageHeight(menu, page) {
     el.style.left = state.left;
     el.style.top = state.top;
     el.style.width = state.width;
-    el.style.zIndex = state.zIndex;
   });
 
   return height;
 }
 
-function __finishMoreMenuTransition(menu, page, targetHeight) {
-  if (!menu) return;
-
-  // Eerst de animatiepagina's uit de absolute overgang halen. De doelpagina
-  // wordt weer normaal in de layout gezet, waardoor er geen verticale sprong
-  // ontstaat nadat de horizontale animatie klaar is.
-  __menuPageIds.forEach(id => {
-    const el = __getMenuPage(id);
-    if (!el) return;
-    el.classList.remove("menuSlideOutLeft","menuSlideInRight","menuSlideOutRight","menuSlideInLeft");
-    if (el === page) {
-      el.style.display = "block";
-      el.style.position = "static";
-      el.style.left = "auto";
-      el.style.top = "auto";
-      el.style.width = "100%";
-      el.style.zIndex = "";
-      el.style.transform = "none";
-      el.style.animation = "none";
-      el.style.pointerEvents = "";
-    } else {
-      el.style.display = "none";
-      el.style.position = "static";
-      el.style.left = "auto";
-      el.style.top = "auto";
-      el.style.width = "100%";
-      el.style.zIndex = "";
-      el.style.transform = "none";
-      el.style.animation = "none";
-      el.style.pointerEvents = "none";
-    }
-  });
-
-  menu.classList.remove("menu-transitioning","menu-no-vertical-shift");
-  menu.style.overflow = "hidden";
-  menu.style.height = Number(targetHeight) ? Number(targetHeight) + "px" : "auto";
-
-  // Geen height-transition: de eindhoogte is al gezet vóór de horizontale
-  // slide begon. Daarna kan de natuurlijke hoogte zonder animatie terugkeren.
-  requestAnimationFrame(() => {
-    menu.style.height = "auto";
-    menu.style.overflow = "visible";
-    menu.style.gridTemplateRows = "auto";
-    menu.style.alignContent = "start";
-  });
-}
-
 function __prepareMoreMenuTransition(menu, current, target) {
   const currentHeight = __measureMorePageHeight(menu, current);
   const targetHeight = __measureMorePageHeight(menu, target);
+  const travelHeight = Math.max(currentHeight, targetHeight);
 
-  menu.classList.add("menu-transitioning");
-  menu.classList.remove("menu-no-vertical-shift");
-  menu.style.gridTemplateRows = "auto";
-  menu.style.alignContent = "start";
+  menu.style.height = travelHeight + "px";
   menu.style.minHeight = "0";
   menu.style.maxHeight = "none";
   menu.style.overflow = "hidden";
-  // De nieuwe hoogte staat meteen vast; alleen de X-as animeert.
-  menu.style.height = targetHeight + "px";
   void menu.offsetHeight;
 
-  return { currentHeight, targetHeight };
+  return { currentHeight, targetHeight, travelHeight };
 }
 
-function __setMenuPagesForHorizontalTransition(current, target, outgoingClass, incomingClass) {
-  [current, target].forEach((el) => {
-    el.style.display = "block";
-    el.style.position = "absolute";
-    el.style.top = "0";
-    el.style.left = "0";
-    el.style.width = "100%";
-    el.style.zIndex = el === target ? "2" : "1";
-    el.style.pointerEvents = "none";
-    el.style.visibility = "visible";
-    el.style.animation = "none";
-    el.style.transform = "translate3d(0,0,0)";
-  });
+function __finishMoreMenuTransition(menu, page, targetHeight) {
+  if (!menu) return;
+  const finalHeight = Number(targetHeight) || __measureMorePageHeight(menu, page);
 
-  __resetMenuPageClasses(current);
-  __resetMenuPageClasses(target);
-  current.style.display = "block";
-  target.style.display = "block";
-  current.style.position = "absolute";
-  target.style.position = "absolute";
-  current.style.top = "0";
-  target.style.top = "0";
-  current.style.left = "0";
-  target.style.left = "0";
-  current.style.width = "100%";
-  target.style.width = "100%";
-  current.style.zIndex = "1";
-  target.style.zIndex = "2";
-  current.style.pointerEvents = "none";
-  target.style.pointerEvents = "none";
-  current.classList.add(outgoingClass);
-  target.classList.add(incomingClass);
+  // De kaart heeft tijdens de horizontale animatie al exact de hoogte van
+  // de nieuwe pagina. Na afloop hoeft alleen de inline hoogte te worden
+  // losgelaten; er mag geen tweede verticale animatie ontstaan.
+  if (finalHeight) menu.style.height = finalHeight + "px";
+
+  requestAnimationFrame(() => {
+    menu.style.height = "auto";
+    menu.style.overflow = "visible";
+  });
 }
 
 function switchMenuPage(pageId, event) {
@@ -4007,7 +3891,9 @@ function switchMenuPage(pageId, event) {
   }
 
   if (current === page) return;
-  menu.style.display = "grid";
+
+  // Ensure the More container is visible before both pages are composed.
+  menu.style.display = "block";
 
   if (!current) {
     __showOnlyMenuPage(pageId);
@@ -4016,18 +3902,50 @@ function switchMenuPage(pageId, event) {
 
   const token = __menuTransitionToken;
   const menuHeights = __prepareMoreMenuTransition(menu, current, page);
-  __menuCurrentPage = pageId;
+  // Meteen de hoogte van de nieuwe pagina gebruiken. Daardoor ontstaat na
+  // de horizontale slide geen extra omhoog/omlaag-beweging.
+  menu.style.height = menuHeights.targetHeight + "px";
+  menu.style.overflow = "hidden";
+  void menu.offsetHeight;
+  __resetMenuPageClasses(current);
+  __resetMenuPageClasses(page);
 
+  // Both pages occupy the exact same grid cell. This prevents a page from
+  // dropping below the other one on Android/iOS during a fast transition.
+  current.style.display = "block";
+  page.style.display = "block";
+  current.style.pointerEvents = "none";
+  page.style.pointerEvents = "none";
+
+  // Two animation frames are more reliable than a single forced reflow on
+  // Safari/WebKit and Chromium WebView when the page was just made visible.
   requestAnimationFrame(() => {
-    if (token !== __menuTransitionToken) return;
-    __setMenuPagesForHorizontalTransition(current, page, "menuSlideOutLeft", "menuSlideInRight");
+    if(token !== __menuTransitionToken) return;
+    requestAnimationFrame(() => {
+      if(token !== __menuTransitionToken) return;
+      __resetMenuPageClasses(current);
+      __resetMenuPageClasses(page);
+      current.style.display = "block";
+      page.style.display = "block";
+      current.style.pointerEvents = "none";
+      page.style.pointerEvents = "none";
+      current.classList.add("menuSlideOutLeft");
+      page.classList.add("menuSlideInRight");
+    });
   });
 
+  __menuCurrentPage = pageId;
+
   __menuTransitionTimer = setTimeout(() => {
-    if (token !== __menuTransitionToken) return;
+    if(token !== __menuTransitionToken) return;
+    __showOnlyMenuPage(pageId);
     __finishMoreMenuTransition(menu, page, menuHeights.targetHeight);
     __menuTransitionTimer = null;
-  }, 300);
+  }, 320);
+}
+
+function returnMenuToMain(pageId, event) {
+  returnMenuToPage(pageId, "familyMenuMain", event);
 }
 
 function returnMenuToPage(pageId, targetId, event) {
@@ -4039,6 +3957,7 @@ function returnMenuToPage(pageId, targetId, event) {
   if (!page || !target || !menu) return;
 
   __cancelMenuTransition();
+
   if (page === target) {
     __showOnlyMenuPage(targetId);
     return;
@@ -4046,18 +3965,42 @@ function returnMenuToPage(pageId, targetId, event) {
 
   const token = __menuTransitionToken;
   const menuHeights = __prepareMoreMenuTransition(menu, page, target);
-  __menuCurrentPage = targetId;
+  // Meteen de hoogte van de nieuwe pagina gebruiken. Geen aparte verticale
+  // slide nadat de horizontale overgang klaar is.
+  menu.style.height = menuHeights.targetHeight + "px";
+  menu.style.overflow = "hidden";
+  void menu.offsetHeight;
+  menu.style.display = "block";
+  __resetMenuPageClasses(page);
+  __resetMenuPageClasses(target);
+  page.style.display = "block";
+  target.style.display = "block";
+  page.style.pointerEvents = "none";
+  target.style.pointerEvents = "none";
 
   requestAnimationFrame(() => {
     if (token !== __menuTransitionToken) return;
-    __setMenuPagesForHorizontalTransition(page, target, "menuSlideOutRight", "menuSlideInLeft");
+    requestAnimationFrame(() => {
+      if (token !== __menuTransitionToken) return;
+      __resetMenuPageClasses(page);
+      __resetMenuPageClasses(target);
+      page.style.display = "block";
+      target.style.display = "block";
+      page.style.pointerEvents = "none";
+      target.style.pointerEvents = "none";
+      page.classList.add("menuSlideOutRight");
+      target.classList.add("menuSlideInLeft");
+    });
   });
+
+  __menuCurrentPage = targetId;
 
   __menuTransitionTimer = setTimeout(() => {
     if (token !== __menuTransitionToken) return;
+    __showOnlyMenuPage(targetId);
     __finishMoreMenuTransition(menu, target, menuHeights.targetHeight);
     __menuTransitionTimer = null;
-  }, 300);
+  }, 320);
 }
 
 function openAccountSubmenu(event) {
