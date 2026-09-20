@@ -1151,6 +1151,26 @@ body.dark-theme .moreActionDelete{background:#442b2b;color:#f1b4b0;}
 body.dark-theme .overviewCard{background:#202620;border-color:rgba(255,255,255,.08)}body.dark-theme .overviewTitle{color:#bfe3c7}body.dark-theme .overviewStat{background:#28332b}body.dark-theme .overviewStat strong{color:#bfe3c7}body.dark-theme .overviewStat span,.overviewEmpty{color:#b8c0ba}body.dark-theme .overviewProgress{background:#303a32}
 @media(max-width:600px){.bottomNav{height:76px;padding-left:8px;padding-right:8px}.bottomNavBtn{border-radius:20px;font-size:12px}.bottomNavBtn i{font-size:23px}.app{padding-bottom:92px!important}.themeButton{bottom:92px!important}.themePicker{bottom:144px!important}}
 
+
+.sharedHeaderAction{
+  border:0;
+  background:transparent;
+  color:inherit;
+  width:40px;
+  height:40px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:12px;
+  cursor:pointer;
+  flex:0 0 auto;
+}
+.sharedHeaderAction:hover,
+.sharedHeaderAction:active{
+  background:rgba(255,255,255,.16);
+}
+.sharedHeaderAction i{font-size:17px;}
+
 </style>
 <style>
 /* Zoekbalk: kruisje alleen zichtbaar wanneer er tekst is */
@@ -5212,6 +5232,51 @@ function updateSharedDeleteButton(isOwner){
   }
 }
 
+
+function renderSharedListHeaderActions(){
+  const header = document.querySelector(".headerBar");
+  if(!header) return;
+
+  // Remove stale controls first.
+  header.querySelectorAll(".sharedHeaderAction").forEach(el=>el.remove());
+
+  if(activeListType !== "shared" || !currentSharedListId) return;
+
+  const isOwner = !!window.currentUser && window.currentUser.uid === window.currentSharedListOwner;
+  const actions = [];
+
+  const membersBtn = document.createElement("button");
+  membersBtn.className = "sharedHeaderAction";
+  membersBtn.title = "Leden";
+  membersBtn.innerHTML = '<i class="fa-solid fa-users"></i>';
+  membersBtn.onclick = () => {
+    if(typeof showSharedListMembers === "function") showSharedListMembers();
+    else if(typeof showSharedMembers === "function") showSharedMembers();
+    else if(typeof showMembersModal === "function") showMembersModal();
+  };
+  actions.push(membersBtn);
+
+  if(isOwner){
+    const deleteBtn = document.createElement("button");
+    deleteBtn.className = "sharedHeaderAction sharedDeleteIconButton";
+    deleteBtn.title = "Deellijst verwijderen";
+    deleteBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
+    deleteBtn.onclick = () => {
+      if(typeof deleteCurrentSharedList === "function") deleteCurrentSharedList();
+    };
+    actions.push(deleteBtn);
+  }
+
+  const optionsBtn = document.getElementById("listOptionsButton");
+  actions.forEach(btn => {
+    if(optionsBtn && optionsBtn.parentElement === header){
+      header.insertBefore(btn, optionsBtn);
+    }else{
+      header.appendChild(btn);
+    }
+  });
+}
+
 async function deleteCurrentSharedList(){
   const user=auth.currentUser;
   const id=currentSharedListId;
@@ -6935,6 +7000,15 @@ function openWeekCompleted(){
   },100);
 }
 </script>
+
+(function(){
+  setInterval(function(){
+    if(typeof renderSharedListHeaderActions==="function"){
+      renderSharedListHeaderActions();
+    }
+  }, 300);
+})();
+
 </body>
 
 <style id="overview-dashboard-final">
