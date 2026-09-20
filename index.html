@@ -5271,8 +5271,13 @@ async function deleteCurrentSharedList(){
     }
   }
 
-  // De gewone familielijst blijft volledig intact.
+  // Ga DIRECT terug naar de gewone boodschappenlijst. Dit gebeurt bewust
+  // vóór de bevestigingsmelding, zodat de gebruiker na het verwijderen niet
+  // op de oude Deellijst blijft staan.
   try{
+    const header=document.querySelector(".headerBar h1");
+    if(header) header.textContent="Boodschappenlijst";
+    showMainListView();
     await loadList();
   }catch(loadError){
     console.warn("Familielijst opnieuw laden na verwijderen mislukt:", loadError);
