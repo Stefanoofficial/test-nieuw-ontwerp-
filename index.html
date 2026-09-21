@@ -4097,7 +4097,7 @@ async function deleteAccountFromMenu() {
     // The client never receives or handles privileged Admin SDK credentials.
     const functions = firebase.app().functions("europe-west1");
     const deleteAccount = functions.httpsCallable("deleteAccount");
-    await deleteAccount({});
+    await deleteAccount();
 
     explicitLogoutInProgress = true;
     loginFlowActive = false;
@@ -5367,7 +5367,7 @@ if (document.readyState === "loading") {
 <script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-functions-compat.js"></script>
+
 <script>
   // Import the functions you need from the SDKs you need
   
