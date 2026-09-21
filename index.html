@@ -3359,6 +3359,10 @@ html, body { -webkit-tap-highlight-color: transparent; }
       <i class="fa-solid fa-right-from-bracket"></i>
       <span>Uitloggen</span>
     </button>
+    <button type="button" class="familyMenuItem familyMenuDanger" onclick="deleteAccountFromMenu()">
+      <i class="fa-solid fa-trash"></i>
+      <span>Account verwijderen</span>
+    </button>
   </div>
 
   <div id="aboutMenuSub" class="familyMenuPage aboutMenuPage" style="display:none;">
@@ -4043,6 +4047,175 @@ async function changeAccountPassword() {
     await familyAlert("Wachtwoord wijzigen", "De e-mail kon niet worden verstuurd. Probeer het later opnieuw.", "fa-triangle-exclamation");
   }
 }
+
+async function deleteAccountFromMenu() {
+  const user = auth && auth.currentUser;
+  if (!user) return;
+
+  const ok = await familyConfirm(
+    "Account verwijderen",
+    "Weet je zeker dat je je account wilt verwijderen? Je account en je persoonlijke gegevens worden verwijderd. Deze actie kan niet ongedaan worden.",
+    true
+  );
+  if (!ok) return;
+
+  closeFamilyMenuForDialog();
+
+  // Firebase Authentication kan het verwijderen blokkeren wanneer de login
+  // te lang geleden is. Omdat deze app met e-mail/wachtwoord werkt, vragen
+  // we in dat geval vooraf om het wachtwoord en re-authenticeren we de gebruiker.
+  try {
+    const providerIds = (user.providerData || []).map(p => p && p.providerId).filter(Boolean);
+    if (providerIds.includes("password")) {
+      const overlay = familyDialogBase(
+        "fa-lock",
+        "Bevestig verwijderen",
+        `<div class="familyDialogText">Voer je wachtwoord in om je account definitief te verwijderen.</div>
+         <input id="deleteAccountPassword" class="familyDialogInput" type="password" autocomplete="current-password" placeholder="Wachtwoord">`,
+        `<button type="button" class="familyDialogBtn familyDialogCancel">Annuleren</button>
+         <button type="button" class="familyDialogBtn familyDialogDanger">Account verwijderen</button>`
+      );
+      const input = overlay.querySelector("#deleteAccountPassword");
+      const cancel = overlay.querySelector(".familyDialogCancel");
+      const confirm = overlay.querySelector(".familyDialogDanger");
+
+      const password = await new Promise(resolve => {
+        cancel.addEventListener("click", () => { closeFamilyDialog(overlay); resolve(null); });
+        confirm.addEventListener("click", () => {
+          const value = (input.value || "");
+          if (!value) { input.focus(); return; }
+          closeFamilyDialog(overlay);
+          resolve(value);
+        });
+        setTimeout(() => input.focus(), 30);
+      });
+      if (!password) return;
+
+      const credential = firebase.auth.EmailAuthProvider.credential(user.email, password);
+      await user.reauthenticateWithCredential(credential);
+    }
+
+    const uid = user.uid;
+    const updates = {};
+
+    // Verwijder de persoonlijke gebruikersgegevens.
+    updates["users/" + uid] = null;
+    updates["userSharedLists/" + uid] = null;
+
+    // Haal de gebruiker uit de huidige huishouding. Als hij/zij eigenaar is,
+    // draag het eigenaarschap over aan een ander lid. Een huishouden met
+    // alleen deze gebruiker wordt volledig verwijderd.
+    const householdId = currentHouseholdId || (await database.ref("users/" + uid + "/householdId").once("value")).val();
+    if (householdId) {
+      const householdSnap = await database.ref("households/" + householdId).once("value");
+      const household = householdSnap.val();
+      if (household) {
+        const members = household.members || {};
+        const otherMembers = Object.keys(members).filter(id => id !== uid && members[id] === true);
+        if (household.owner === uid) {
+          if (otherMembers.length) {
+            updates["households/" + householdId + "/owner"] = otherMembers[0];
+            updates["households/" + householdId + "/members/" + uid] = null;
+          } else {
+            updates["households/" + householdId] = null;
+          }
+        } else {
+          updates["households/" + householdId + "/members/" + uid] = null;
+        }
+      }
+    }
+
+    // Verwijder deze gebruiker uit gedeelde lijsten die in userSharedLists staan.
+    // Als de gebruiker eigenaar is, wordt het eigenaarschap overgedragen als
+    // er nog leden zijn; anders wordt de persoonlijke gedeelde lijst verwijderd.
+    const sharedIndexSnap = await database.ref("userSharedLists/" + uid).once("value");
+    const sharedIndex = sharedIndexSnap.val() || {};
+    const sharedIds = Object.keys(sharedIndex).filter(Boolean);
+
+    for (const listId of sharedIds) {
+      const listSnap = await database.ref("sharedLists/" + listId).once("value");
+      const list = listSnap.val();
+      if (!list) continue;
+
+      const members = list.members || {};
+      const otherMembers = Object.keys(members).filter(id => id !== uid && members[id] === true);
+
+      if (list.owner === uid) {
+        if (otherMembers.length) {
+          updates["sharedLists/" + listId + "/owner"] = otherMembers[0];
+          updates["sharedLists/" + listId + "/members/" + uid] = null;
+          updates["sharedLists/" + listId + "/memberNames/" + uid] = null;
+        } else {
+          updates["sharedLists/" + listId] = null;
+        }
+      } else {
+        updates["sharedLists/" + listId + "/memberNames/" + uid] = null;
+        updates["sharedLists/" + listId + "/members/" + uid] = null;
+      }
+    }
+
+    // Verwijder eventuele deelcodes die naar gedeelde lijsten van deze eigenaar wijzen.
+    const codesSnap = await database.ref("sharedListCodes").once("value");
+    const codes = codesSnap.val() || {};
+    for (const [code, listId] of Object.entries(codes)) {
+      if (sharedIds.includes(String(listId))) {
+        const listSnap = await database.ref("sharedLists/" + listId).once("value");
+        const list = listSnap.val();
+        if (!list || list.owner === uid || list.owner === undefined) {
+          updates["sharedListCodes/" + code] = null;
+        }
+      }
+    }
+
+    await database.ref().update(updates);
+
+    // Pas nadat de database succesvol is opgeschoond, verwijderen we het
+    // Firebase Authentication-account.
+    await user.delete();
+
+    explicitLogoutInProgress = true;
+    loginFlowActive = false;
+    currentHouseholdId = null;
+    currentSharedListId = null;
+    currentSharedListInviteCode = null;
+    activeListType = "family";
+    boodschappen = [];
+    selectedIndex = -1;
+    __activeMainTab = 0;
+    if (typeof __resetMoreNavigation === "function") __resetMoreNavigation();
+
+    const status = document.getElementById("status");
+    if (status) status.innerText = "";
+
+    closeUseModeModal();
+    closeFamilyMenuForDialog();
+    await familyAlert("Account verwijderd", "Je account en je persoonlijke gegevens zijn verwijderd.", "fa-check");
+    // De auth-state listener brengt de app terug naar het login-scherm.
+  } catch (error) {
+    console.error("Account verwijderen mislukt:", error);
+
+    if (error && (error.code === "auth/requires-recent-login" || error.code === "auth/user-token-expired")) {
+      await familyAlert(
+        "Opnieuw inloggen nodig",
+        "Voor het verwijderen van je account moet je opnieuw inloggen. Log uit, log opnieuw in en probeer daarna Account verwijderen opnieuw.",
+        "fa-lock"
+      );
+      return;
+    }
+
+    if (error && error.code === "auth/wrong-password") {
+      await familyAlert("Verkeerd wachtwoord", "Het ingevoerde wachtwoord klopt niet.", "fa-triangle-exclamation");
+      return;
+    }
+
+    await familyAlert(
+      "Account verwijderen mislukt",
+      "Je account kon niet volledig worden verwijderd. Probeer het opnieuw.",
+      "fa-triangle-exclamation"
+    );
+  }
+}
+
 async function logoutFromMenu() {
   const ok = await familyConfirm("Uitloggen", "Wil je uitloggen?", true);
   if (!ok) return;
