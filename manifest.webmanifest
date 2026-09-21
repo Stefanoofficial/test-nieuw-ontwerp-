@@ -1,23 +1,9 @@
 {
-  "name": "Boodschappenlijst",
-  "short_name": "Boodschappenlijst",
-  "lang": "nl",
-  "start_url": "./",
+  "name": "Mijn Geheugen",
+  "short_name": "Mijn Geheugen",
+  "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#eef8f1",
-  "theme_color": "#eef8f1",
-  "icons": [
-    {
-      "src": "icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
-  ]
+  "background_color": "#f4f7f4",
+  "theme_color": "#2f8f62",
+  "icons": []
 }
