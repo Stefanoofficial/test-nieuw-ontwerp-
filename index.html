@@ -4062,7 +4062,7 @@ async function deleteAccountFromMenu() {
   closeFamilyMenuForDialog();
 
   try {
-    // Re-authenticate email/password users so the account deletion request is recent.
+    // Firebase vereist bij het verwijderen van een account een recente login.
     const providerIds = (user.providerData || []).map(p => p && p.providerId).filter(Boolean);
     if (providerIds.includes("password")) {
       const overlay = familyDialogBase(
@@ -4093,11 +4093,83 @@ async function deleteAccountFromMenu() {
       await user.reauthenticateWithCredential(credential);
     }
 
-    // The server performs the complete cleanup and then deletes Authentication.
-    // The client never receives or handles privileged Admin SDK credentials.
-    const functions = firebase.app().functions("europe-west1");
-    const deleteAccount = functions.httpsCallable("deleteAccount");
-    await deleteAccount();
+    const uid = user.uid;
+    const rootRef = database.ref();
+    const userSnap = await database.ref("users/" + uid).once("value");
+    const userData = userSnap.val() || {};
+    const householdId = userData.householdId ? String(userData.householdId) : null;
+    const updates = {};
+    const listsToDelete = [];
+
+    // 1. Verwijder de privégegevens van deze gebruiker.
+    updates["users/" + uid] = null;
+    updates["userSharedLists/" + uid] = null;
+
+    // 2. Haal de gebruiker uit het huishouden. Als hij/zij eigenaar is,
+    //    gaat het eigenaarschap naar een overblijvend lid.
+    if (householdId) {
+      const householdSnap = await database.ref("households/" + householdId).once("value");
+      const household = householdSnap.val();
+      if (household) {
+        const members = household.members || {};
+        const otherMembers = Object.keys(members).filter(id => id !== uid && members[id] === true);
+
+        if (String(household.owner || "") === uid) {
+          if (otherMembers.length > 0) {
+            updates["households/" + householdId + "/owner"] = otherMembers[0];
+            updates["households/" + householdId + "/members/" + uid] = null;
+          } else {
+            updates["households/" + householdId] = null;
+          }
+        } else if (members[uid] === true) {
+          updates["households/" + householdId + "/members/" + uid] = null;
+        }
+      }
+    }
+
+    // 3. Ruim alle deellijsten op die in de persoonlijke index van de gebruiker staan.
+    //    Deze index kunnen we als ingelogde gebruiker wel lezen.
+    const indexSnap = await database.ref("userSharedLists/" + uid).once("value");
+    const index = indexSnap.val() || {};
+    const listIds = Object.keys(index).filter(id => index[id] === true);
+
+    for (const listId of listIds) {
+      const listSnap = await database.ref("sharedLists/" + listId).once("value");
+      const list = listSnap.val();
+      if (!list) continue;
+
+      const members = list.members || {};
+      const otherMembers = Object.keys(members).filter(id => id !== uid && members[id] === true);
+      const isOwner = String(list.owner || "") === uid;
+      const isMember = members[uid] === true;
+
+      if (isOwner) {
+        if (otherMembers.length > 0) {
+          // Behoud de lijst voor de andere leden.
+          updates["sharedLists/" + listId + "/owner"] = otherMembers[0];
+          updates["sharedLists/" + listId + "/memberNames/" + uid] = null;
+          updates["sharedLists/" + listId + "/members/" + uid] = null;
+        } else {
+          // Niemand anders gebruikt de lijst: verwijder ook de lijst zelf.
+          if (list.inviteCode) {
+            updates["sharedListCodes/" + String(list.inviteCode)] = null;
+          }
+          updates["sharedLists/" + listId] = null;
+          listsToDelete.push(listId);
+        }
+      } else if (isMember) {
+        // Eerst memberNames, daarna members. Dit voorkomt dat de rules de tweede
+        // bewerking blokkeren zodra het lid al verwijderd is.
+        updates["sharedLists/" + listId + "/memberNames/" + uid] = null;
+        updates["sharedLists/" + listId + "/members/" + uid] = null;
+      }
+    }
+
+    // Alles wat hierboven staat wordt in één database-update uitgevoerd.
+    await rootRef.update(updates);
+
+    // 4. Verwijder ten slotte het Firebase Authentication-account.
+    await user.delete();
 
     explicitLogoutInProgress = true;
     loginFlowActive = false;
@@ -4133,13 +4205,14 @@ async function deleteAccountFromMenu() {
       return;
     }
 
-    await familyAlert(
-      "Account verwijderen mislukt",
-      (error && error.message && error.message.includes("Cloud Function"))
-        ? "Account verwijderen is nog niet beschikbaar op deze Firebase-versie. De Cloud Function moet eerst worden uitgerold."
-        : "Je account kon niet volledig worden verwijderd. Probeer het opnieuw.",
-      "fa-triangle-exclamation"
-    );
+    let message = "Je account kon niet volledig worden verwijderd. Probeer het opnieuw.";
+    if (error && error.code === "PERMISSION_DENIED") {
+      message = "Firebase blokkeert één van de verwijderacties. Controleer de Database Rules voor het verwijderen van een lid uit een Deellijst.";
+    } else if (error && error.message) {
+      message = "Account verwijderen mislukt: " + error.message;
+    }
+
+    await familyAlert("Account verwijderen mislukt", message, "fa-triangle-exclamation");
   }
 }
 
