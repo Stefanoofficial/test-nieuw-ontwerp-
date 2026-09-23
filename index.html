@@ -4349,6 +4349,7 @@ async function deleteAccountFromMenu() {
     explicitLogoutInProgress = true;
     loginFlowActive = false;
     currentHouseholdId = null;
+    if (auth.currentUser) { try { localStorage.removeItem("activeSharedList:" + auth.currentUser.uid); } catch (_) {} }
     currentSharedListId = null;
     currentSharedListInviteCode = null;
     activeListType = "family";
@@ -5819,24 +5820,16 @@ async function getOrCreateHousehold() {
   }
 }
 
-async function openSharedListsSubmenu(event) {
+function openSharedListsSubmenu(event) {
   if (event) event.stopPropagation();
+  // Toon het scherm onmiddellijk. Firebase mag de inhoud daarna vullen;
+  // de navigatie zelf wacht nergens meer op.
   switchMenuPage("sharedListsMenuSub", event);
   const countEl=document.getElementById("sharedMemberCount");
   if(countEl){
-    if(activeListType==="shared" && currentSharedListId){
-      try{
-        const snap=await database.ref("sharedLists/" + currentSharedListId + "/members").once("value");
-        const members=snap.val()||{};
-        countEl.textContent=String(Object.keys(members).filter(uid=>members[uid]===true).length);
-      }catch(_){
-        countEl.textContent="0";
-      }
-    }else{
-      countEl.textContent="—";
-    }
+    countEl.textContent = (activeListType==="shared" && currentSharedListId) ? "…" : "—";
   }
-  await renderSharedLists();
+  renderSharedLists().catch(error => console.error("Gedeelde lijsten laden mislukt:", error));
 }
 function closeSharedListsSubmenu(event) {
   if (event) event.stopPropagation();
@@ -5854,6 +5847,7 @@ function closeSharedListsSubmenu(event) {
   }
 
   activeListType = "family";
+  if (auth && auth.currentUser) { try { localStorage.removeItem("activeSharedList:" + auth.currentUser.uid); } catch (_) {} }
   if (currentSharedListUnsubscribe) {
     currentSharedListUnsubscribe();
     currentSharedListUnsubscribe = null;
@@ -6205,6 +6199,7 @@ async function openSharedList(id, showInvite){
   activeListType = "shared";
   currentSharedListId = id;
   currentSharedListInviteCode = null;
+  try { localStorage.setItem("activeSharedList:" + user.uid, String(id)); } catch (_) {}
 
   if(currentSharedListUnsubscribe){
     currentSharedListUnsubscribe();
@@ -6285,14 +6280,18 @@ async function openSharedList(id, showInvite){
 
 function updateSharedDeleteButton(isOwner){
   const header=document.querySelector(".headerBar");
+  const normalTrash=document.getElementById("mainListTrashButton");
   if(!header) return;
 
   const old=document.getElementById("deleteSharedListBtn");
   if(old) old.remove();
 
-  // Alleen tonen wanneer er daadwerkelijk een Deellijst geopend is.
-  // De knop gebruikt bewust dezelfde prullenbakknop als de rest van de app.
-  if(activeListType!=="shared" || !currentSharedListId) return;
+  const sharedActive = activeListType==="shared" && !!currentSharedListId;
+  // In een Deellijst mag er nooit ook nog een tweede, normale lijst-prullenbak
+  // zichtbaar zijn. De Deellijst gebruikt dezelfde trash-can als de gewone lijst.
+  if(normalTrash) normalTrash.style.display = sharedActive ? "none" : "inline-flex";
+
+  if(!sharedActive || !isOwner) return;
 
   const btn=document.createElement("button");
   btn.type="button";
@@ -6300,10 +6299,9 @@ function updateSharedDeleteButton(isOwner){
   btn.className="familyButton sharedDeleteIconButton";
   btn.setAttribute("aria-label","Deellijst verwijderen");
   btn.setAttribute("title","Deellijst verwijderen");
-  btn.innerHTML='<i class="fa-solid fa-trash"></i>';
+  btn.innerHTML='<i class="fa-solid fa-trash-can"></i>';
   btn.onclick=deleteCurrentSharedList;
 
-  // Plaats de knop direct vóór de bestaande drie-puntjesknop.
   const options=document.getElementById("listOptionsButton");
   if(options && options.parentElement===header){
     header.insertBefore(btn, options);
@@ -6374,6 +6372,7 @@ async function deleteCurrentSharedList(){
   activeListType="family";
   currentSharedListId=null;
   currentSharedListInviteCode=null;
+  try { localStorage.removeItem("activeSharedList:" + user.uid); } catch (_) {}
   const delBtn=document.getElementById("deleteSharedListBtn");
   if(delBtn) delBtn.remove();
 
@@ -6419,6 +6418,7 @@ async function returnToFamilyListFromSharedMenu(event){
   // de gewone boodschappenlijst gaan, niet één niveau terug in het menu.
   activeListType="family";
   if(currentSharedListId){ try{ localStorage.removeItem("sharedListInviteCode:"+currentSharedListId); }catch(_){} }
+  try { localStorage.removeItem("activeSharedList:" + auth.currentUser.uid); } catch (_) {}
   currentSharedListId=null;
   currentSharedListInviteCode=null;
   if(currentSharedListUnsubscribe){ currentSharedListUnsubscribe(); currentSharedListUnsubscribe=null; }
@@ -6454,6 +6454,7 @@ async function returnToFamilyList(event){
 
   activeListType="family";
   if(currentSharedListId){ try{ localStorage.removeItem("sharedListInviteCode:"+currentSharedListId); }catch(_){} }
+  try { localStorage.removeItem("activeSharedList:" + auth.currentUser.uid); } catch (_) {}
   currentSharedListId=null;
   currentSharedListInviteCode=null;
   if(currentSharedListUnsubscribe){ currentSharedListUnsubscribe(); currentSharedListUnsubscribe=null; }
@@ -7396,6 +7397,23 @@ function toggleRegisterPassword(fieldId, button) {
         return;
       }
 
+      // Herstel een Deellijst die actief was toen de webapp werd vernieuwd.
+      // Zo springt de kop niet tijdelijk terug naar “Boodschappenlijst”.
+      const savedActiveSharedId = localStorage.getItem("activeSharedList:" + user.uid);
+      if (savedActiveSharedId && !freshLogin) {
+        try {
+          await openSharedList(savedActiveSharedId, false);
+          if (activeListType === "shared" && currentSharedListId === savedActiveSharedId) {
+            await updateMemberCount();
+            watchMemberCount();
+            return;
+          }
+        } catch (restoreError) {
+          console.warn("Actieve Deellijst herstellen mislukt:", restoreError);
+        }
+        try { localStorage.removeItem("activeSharedList:" + user.uid); } catch (_) {}
+      }
+
       // Toon de persoonlijke lijst direct na een nieuwe login.
       // Zo hoeft de gebruiker niet te wachten op de extra Firebase-controle
       // voor een eventuele familie. Als er wél een familie is, schakelen we
@@ -7971,7 +7989,7 @@ var __overviewNameCache = "";
 
 async function refreshOverviewGreeting(){
   var h = new Date().getHours();
-  var greeting = h>=5 && h<12 ? "Goedemorgen" : (h>=12 && h<18 ? "Goedemiddag" : "Goedenavond");
+  var greeting = h<5 ? "Goedenacht" : (h<12 ? "Goedemorgen" : (h<18 ? "Goedemiddag" : "Goedenavond"));
   var el = document.getElementById("overviewGreetingNew");
   if (!el) return;
 
