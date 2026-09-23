@@ -6808,8 +6808,17 @@ function toggleMoreInsights(button){
   const panel=document.getElementById("overviewMoreInsights");
   if(!panel || !button) return;
   const expanded=button.getAttribute("aria-expanded")==="true";
-  button.setAttribute("aria-expanded", expanded ? "false" : "true");
-  panel.hidden=expanded;
+  const nextExpanded=!expanded;
+  button.setAttribute("aria-expanded", nextExpanded ? "true" : "false");
+  panel.hidden=!nextExpanded;
+
+  const label=button.querySelector("span");
+  const icon=button.querySelector("i");
+  if(label) label.textContent=nextExpanded ? "Minder inzichten" : "Meer inzichten";
+  if(icon){
+    icon.classList.toggle("fa-chevron-down", !nextExpanded);
+    icon.classList.toggle("fa-chevron-up", nextExpanded);
+  }
 }
 
 function openUseModeModal() {
@@ -7471,6 +7480,10 @@ function getFrequentlyUsedProducts(){
     return {name:label,count:counts[key]};
   });
 }
+function formatQuickProductName(name){
+  // Keep quantity + unit together so e.g. "750 g" never becomes "750" / "g".
+  return String(name || '').replace(/(\d+(?:[.,]\d+)?)\s+(g|kg|mg|ml|cl|dl|l|st|stuks|x)\b/gi, '$1\u00a0$2');
+}
 function renderOverviewQuickAdd(){
   var box=document.getElementById('overviewQuickNew');
   if(!box) return;
@@ -7483,7 +7496,7 @@ function renderOverviewQuickAdd(){
   products.forEach(function(product){
     var btn=document.createElement('button');
     btn.type='button'; btn.className='overviewQuickProduct';
-    btn.innerHTML='<span>'+product.name+'</span><i class="fa-solid fa-plus"></i>';
+    btn.innerHTML='<span>'+formatQuickProductName(product.name)+'</span><i class="fa-solid fa-plus"></i>';
     btn.addEventListener('click',function(e){ e.stopPropagation(); addProductFromOverview(product.name); });
     box.appendChild(btn);
   });
@@ -7700,7 +7713,7 @@ function updateOverviewView(){
 .overview-click-card .overview-new-title{margin-bottom:10px}
 .overview-quick-content{display:flex;flex-wrap:wrap;gap:8px}
 .overviewQuickProduct{border:0;border-radius:12px;background:#eef6f0;color:#3F5B45;padding:9px 11px;display:inline-flex;align-items:center;gap:8px;font:inherit;font-size:13px;font-weight:750;cursor:pointer;max-width:100%;text-align:left;vertical-align:top}
-.overviewQuickProduct span{flex:1 1 auto;min-width:0;line-height:1.25;overflow-wrap:anywhere;word-break:normal}
+.overviewQuickProduct span{flex:1 1 auto;min-width:0;line-height:1.25;overflow-wrap:normal;word-break:normal}
 .overviewQuickProduct i{font-size:12px;flex:0 0 auto;margin-left:auto}
 @media (max-width:420px){.overviewQuickProduct{font-size:13px;padding:10px 12px}.overviewQuickProduct span{line-height:1.3}}
 .historyTrip{padding:10px 0;border-bottom:1px solid rgba(63,91,69,.12);color:#405047}
