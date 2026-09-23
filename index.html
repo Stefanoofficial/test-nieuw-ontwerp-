@@ -4573,6 +4573,7 @@ function saveCurrentListAs() {
     await writeSavedLists(lists);
     finish(true);
     showSaveToast(name);
+    if(typeof updateOverviewDashboard==="function") await updateOverviewDashboard();
     setTimeout(() => {
       const menu = document.getElementById("familyMenu");
       if (menu) { menu.style.display = "block"; menu.classList.add("menu-open"); }
@@ -7573,67 +7574,239 @@ document.addEventListener('DOMContentLoaded', function(){
 
 
 
-function updateOverviewDashboard(){
-  // Gebruik altijd dezelfde actuele lijst als het Lijst-scherm. De oude versie
-  // kon nog 0 tonen wanneer het overzicht werd geopend terwijl de lijst net
-  // uit Firebase/localStorage was geladen.
-  var current = Array.isArray(boodschappen) ? boodschappen.filter(function(item){ return item && item.text; }) : [];
 
-  // Fallback: als de lijst net visueel is opgebouwd maar de async state nog
-  // niet beschikbaar is, haal de status uit de zichtbare productregels.
-  if (!current.length) {
-    var rendered = Array.from(document.querySelectorAll('#list .item, #shoppingList .item, .item'));
-    if (rendered.length) {
-      current = rendered.map(function(row){
-        return { text: row.textContent || '', completed: row.classList.contains('completed') };
-      });
+/* ===== Overzicht interacties: snel toevoegen + boodschappenhistorie ===== */
+function __overviewAccountKey(suffix){
+  try{
+    var user=(typeof auth!=="undefined" && auth) ? auth.currentUser : null;
+    return user ? ("boodschappenOverview_"+suffix+"_"+user.uid) : ("boodschappenOverview_"+suffix);
+  }catch(_){ return "boodschappenOverview_"+suffix; }
+}
+
+async function recordShoppingHistory(items){
+  var normalized=normalizeBoodschappen(Array.isArray(items)?items:[]);
+  if(!normalized.length) return;
+  var record={id:Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,7), savedAt:Date.now(), items:normalized};
+  var user=(typeof auth!=="undefined" && auth) ? auth.currentUser : null;
+
+  try{
+    if(user && typeof database!=="undefined"){
+      var ref=database.ref("users/"+user.uid+"/shoppingHistory");
+      var snap=await ref.once("value");
+      var raw=snap.val()||{};
+      var arr=Object.keys(raw).map(function(k){return raw[k];}).filter(Boolean);
+      arr.unshift(record);
+      arr=arr.slice(0,30);
+      var payload={};
+      arr.forEach(function(x){ payload[x.id || makeSavedListId()]=x; });
+      await ref.set(payload);
+    }else{
+      var key=__overviewAccountKey("history");
+      var arr=JSON.parse(localStorage.getItem(key)||"[]");
+      arr.unshift(record);
+      localStorage.setItem(key,JSON.stringify(arr.slice(0,30)));
     }
+  }catch(e){
+    try{
+      var key=__overviewAccountKey("history");
+      var arr=JSON.parse(localStorage.getItem(key)||"[]");
+      arr.unshift(record);
+      localStorage.setItem(key,JSON.stringify(arr.slice(0,30)));
+    }catch(_){}
   }
+}
 
-  var total = current.length;
-  var completed = current.filter(function(item){ return item && item.completed === true; }).length;
-  var remaining = Math.max(0, total - completed);
-  var completionPct = total > 0 ? Math.round((completed / total) * 100) : 0;
+async function readOverviewHistory(){
+  var user=(typeof auth!=="undefined" && auth) ? auth.currentUser : null;
+  try{
+    if(user && typeof database!=="undefined"){
+      var snap=await database.ref("users/"+user.uid+"/shoppingHistory").once("value");
+      var raw=snap.val()||{};
+      return Object.keys(raw).map(function(k){return raw[k];}).filter(function(x){return x && Array.isArray(x.items);})
+        .sort(function(a,b){return Number(b.savedAt||0)-Number(a.savedAt||0);});
+    }
+  }catch(e){}
+  try{
+    var arr=JSON.parse(localStorage.getItem(__overviewAccountKey("history"))||"[]");
+    return Array.isArray(arr)?arr:[];
+  }catch(_){ return []; }
+}
+
+function __overviewOverlay(title){
+  var old=document.getElementById("overviewActionOverlay");
+  if(old) old.remove();
+  var overlay=document.createElement("div");
+  overlay.id="overviewActionOverlay";
+  overlay.className="overviewActionOverlay";
+  overlay.innerHTML='<div class="overviewActionSheet" role="dialog" aria-modal="true"><div class="overviewActionHeader"><h3></h3><button type="button" class="overviewActionClose" aria-label="Sluiten">×</button></div><div class="overviewActionBody"></div></div>';
+  overlay.querySelector("h3").textContent=title;
+  overlay.querySelector(".overviewActionClose").addEventListener("click",function(){overlay.remove();});
+  overlay.addEventListener("click",function(e){if(e.target===overlay) overlay.remove();});
+  document.body.appendChild(overlay);
+  return overlay;
+}
+
+function __overviewAddProduct(product){
+  var text=String(product||"").trim();
+  if(!text) return;
+  var exists=boodschappen.some(function(x){return String(x.text||"").trim().toLowerCase()===text.toLowerCase() && !x.completed;});
+  if(!exists){
+    boodschappen.push({text:text,completed:false,completedBy:"",completedByUid:"",completedAt:null});
+    showList();
+    saveList();
+  }
+}
+
+async function openQuickAddFromOverview(){
+  var overlay=__overviewOverlay("Snel opnieuw toevoegen");
+  var body=overlay.querySelector(".overviewActionBody");
+  body.innerHTML='<div class="overviewActionMuted">Je meest gebruikte producten laden…</div>';
+
+  var sources=[];
+  try{
+    var saved=await readSavedLists();
+    sources=sources.concat(saved.map(function(x){return x.items||[];}));
+  }catch(_){}
+  try{
+    var history=await readOverviewHistory();
+    sources=sources.concat(history.map(function(x){return x.items||[];}));
+  }catch(_){}
+  sources.push(Array.isArray(boodschappen)?boodschappen:[]);
+
+  var counts={};
+  sources.flat().forEach(function(item){
+    var text=typeof item==="string"?item:(item&&item.text);
+    if(!text) return;
+    text=String(text).trim();
+    var key=text.toLowerCase();
+    if(!counts[key]) counts[key]={text:text,count:0};
+    counts[key].count++;
+  });
+  var products=Object.keys(counts).map(function(k){return counts[k];})
+    .sort(function(a,b){return b.count-a.count || a.text.localeCompare(b.text,"nl");}).slice(0,10);
+
+  body.innerHTML="";
+  if(!products.length){
+    body.innerHTML='<div class="overviewActionMuted">Er zijn nog geen producten om opnieuw toe te voegen.</div>';
+    return;
+  }
+  var grid=document.createElement("div");
+  grid.className="overviewActionProductGrid";
+  products.forEach(function(p){
+    var btn=document.createElement("button");
+    btn.type="button"; btn.className="overviewActionProduct";
+    btn.innerHTML='<span></span><i class="fa-solid fa-plus"></i>';
+    btn.querySelector("span").textContent=p.text;
+    btn.addEventListener("click",function(){
+      __overviewAddProduct(p.text);
+      btn.classList.add("added");
+      btn.querySelector("i").className="fa-solid fa-check";
+      setTimeout(function(){btn.classList.remove("added");btn.querySelector("i").className="fa-solid fa-plus";},900);
+    });
+    grid.appendChild(btn);
+  });
+  body.appendChild(grid);
+}
+
+async function openShoppingHistoryFromOverview(){
+  var overlay=__overviewOverlay("Boodschappenhistorie");
+  var body=overlay.querySelector(".overviewActionBody");
+  body.innerHTML='<div class="overviewActionMuted">Je eerdere boodschappen laden…</div>';
+  var history=await readOverviewHistory();
+  var saved=[];
+  try{saved=await readSavedLists();}catch(_){}
+
+  var entries=history.length ? history : saved.map(function(x){return {savedAt:x.savedAt,items:x.items,name:x.name};});
+  body.innerHTML="";
+  if(!entries.length){
+    body.innerHTML='<div class="overviewActionMuted">Je hebt nog geen eerdere boodschappen.</div>';
+    return;
+  }
+  entries.slice(0,20).forEach(function(entry){
+    var card=document.createElement("div");
+    card.className="overviewHistoryCard";
+    var date=entry.savedAt?new Date(entry.savedAt).toLocaleDateString("nl-NL",{day:"numeric",month:"long",year:"numeric"}):"";
+    var items=(entry.items||[]).map(function(x){return typeof x==="string"?x:(x&&x.text)||"";}).filter(Boolean);
+    card.innerHTML='<div class="overviewHistoryCardTop"><strong></strong><small></small></div><div class="overviewHistoryItems"></div><button type="button" class="overviewHistoryUse">Opnieuw gebruiken</button>';
+    card.querySelector("strong").textContent=entry.name || (items.length+" product"+(items.length===1?"":"en"));
+    card.querySelector("small").textContent=date;
+    card.querySelector(".overviewHistoryItems").textContent=items.slice(0,6).join(" · ")+(items.length>6?" · …":"");
+    card.querySelector(".overviewHistoryUse").addEventListener("click",async function(){
+      boodschappen=normalizeBoodschappen(entry.items||[]);
+      currentListName=String(entry.name||"Boodschappenlijst");
+      selectedIndex=-1;
+      overlay.remove();
+      showMainListView();
+      showList();
+      await saveList();
+    });
+    body.appendChild(card);
+  });
+}
+
+/* Klikbare onderdelen in het overzicht gebruiken deze functies direct. */
+function __calendarWeekStartMs(nowMs){
+  var d=new Date(nowMs||Date.now());
+  d.setHours(0,0,0,0);
+  var day=d.getDay(); // zondag=0
+  var diff=(day===0?6:day-1);
+  d.setDate(d.getDate()-diff);
+  return d.getTime();
+}
+
+async function updateOverviewDashboard(){
+  var current=Array.isArray(boodschappen)?boodschappen.filter(function(item){return item&&item.text;}):[];
+  var total=current.length;
+  var completed=current.filter(function(item){return item.completed===true;}).length;
+  var remaining=Math.max(0,total-completed);
+  var completionPct=total>0?Math.round((completed/total)*100):0;
 
   var remainingEl=document.getElementById('smartInsightRemaining');
-  var completedInsightEl=document.getElementById('smartInsightCompleted');
-  var mainInsightEl=document.getElementById('smartInsightMain');
-  var subInsightEl=document.getElementById('smartInsightSub');
-
+  var completedEl=document.getElementById('smartInsightCompleted');
+  var mainEl=document.getElementById('smartInsightMain');
+  var subEl=document.getElementById('smartInsightSub');
   if(remainingEl) remainingEl.textContent=String(remaining);
-  if(completedInsightEl) completedInsightEl.textContent=String(completionPct)+'%';
-  if(mainInsightEl){
-    mainInsightEl.textContent = total===0
-      ? 'Je lijst is klaar voor nieuwe boodschappen.'
-      : (completionPct===100 ? 'Alles op je lijst is voltooid.' : 'Je bent '+completionPct+'% klaar met je lijst.');
+  if(completedEl) completedEl.textContent=String(completionPct)+'%';
+  if(mainEl){
+    mainEl.textContent=total===0
+      ? 'Je boodschappen in één oogopslag.'
+      : 'Je bent '+completionPct+'% klaar met je lijst.';
   }
-  if(subInsightEl){
-    subInsightEl.textContent = total===0
+  if(subEl){
+    subEl.textContent=total===0
       ? 'Voeg producten toe om je voortgang hier te zien.'
-      : (remaining===1 ? 'Nog 1 product te gaan.' : 'Nog '+remaining+' producten te gaan.');
+      : (remaining===1?'Nog 1 product te gaan.':(remaining>1?'Nog '+remaining+' producten te gaan.':'Alles op je lijst is voltooid.'));
   }
 
-  var history = (typeof readOverviewHistory === 'function') ? readOverviewHistory() : [];
-  var now=Date.now(), weekStart=now-7*24*60*60*1000;
-  var weekTrips=Array.isArray(history) ? history.filter(function(trip){ return Number(trip.savedAt||0)>=weekStart; }) : [];
-  var weekInsightEl=document.getElementById('smartInsightWeek');
-  if(weekInsightEl) weekInsightEl.textContent=String(weekTrips.length);
-
-  var weekProducts=weekTrips.reduce(function(sum,trip){ return sum+((trip.items||[]).length); },0);
-  var weekCompleted=weekTrips.reduce(function(sum,trip){
-    return sum+(trip.items||[]).filter(function(item){return item && item.completed;}).length;
+  var weekStart=__calendarWeekStartMs(Date.now());
+  var saved=[];
+  try{saved=await readSavedLists();}catch(_){saved=[];}
+  var weekLists=saved.filter(function(x){return Number(x.savedAt||0)>=weekStart;});
+  var weekProducts=weekLists.reduce(function(sum,x){return sum+((x.items||[]).length);},0);
+  var weekCompleted=weekLists.reduce(function(sum,x){
+    return sum+(x.items||[]).filter(function(item){return item&&item.completed;}).length;
   },0);
-  // Tel ook de huidige lijst mee. Zo zie je direct dat zojuist afgevinkte
-  // producten deze week zijn voltooid, zonder eerst een lijst op te slaan.
-  var currentCompletedThisWeek=current.filter(function(item){
-    return item && item.completed && item.completedAt && Number(item.completedAt)>=weekStart;
+  // Neem actuele voltooide producten mee wanneer ze deze kalenderweek zijn afgevinkt.
+  weekCompleted += current.filter(function(item){
+    return item&&item.completed&&item.completedAt&&Number(item.completedAt)>=weekStart;
   }).length;
-  weekCompleted += currentCompletedThisWeek;
+
+  var history=await readOverviewHistory();
+  // Als er geen expliciet opgeslagen lijsten zijn, kan historie wel activiteit bevatten.
+  if(!weekLists.length && Array.isArray(history)){
+    weekProducts=history.filter(function(x){return Number(x.savedAt||0)>=weekStart;}).reduce(function(sum,x){return sum+((x.items||[]).length);},0);
+    weekCompleted += history.filter(function(x){return Number(x.savedAt||0)>=weekStart;}).reduce(function(sum,x){
+      return sum+(x.items||[]).filter(function(item){return item&&item.completed;}).length;
+    },0);
+  }
+
+  var weekInsightEl=document.getElementById('smartInsightWeek');
+  if(weekInsightEl) weekInsightEl.textContent=String(weekCompleted);
 
   var weekListsEl=document.getElementById('overviewWeekLists');
   var weekProductsEl=document.getElementById('overviewWeekProducts');
   var weekCompletedEl=document.getElementById('overviewWeekCompleted');
-  if(weekListsEl) weekListsEl.textContent=String(weekTrips.length);
+  if(weekListsEl) weekListsEl.textContent=String(weekLists.length);
   if(weekProductsEl) weekProductsEl.textContent=String(weekProducts);
   if(weekCompletedEl) weekCompletedEl.textContent=String(weekCompleted);
 
@@ -7641,12 +7814,10 @@ function updateOverviewDashboard(){
   if(activity){
     activity.innerHTML='';
     var entries=[];
-    if(Array.isArray(history)){
-      history.slice(0,3).forEach(function(trip){
-        var date=new Date(trip.savedAt);
-        entries.push({time:date,name:(trip.items||[]).length+' product'+((trip.items||[]).length===1?'':'en')+' opgeslagen'});
-      });
-    }
+    (Array.isArray(history)?history:[]).slice(0,3).forEach(function(trip){
+      var date=new Date(Number(trip.savedAt||Date.now()));
+      entries.push({time:date,name:(trip.items||[]).length+' product'+((trip.items||[]).length===1?'':'en')+' in historie'});
+    });
     if(!entries.length){
       activity.innerHTML='<div class="overview-dashboard-muted">Je laatste activiteiten verschijnen hier zodra je boodschappen gebruikt.</div>';
     }else{
@@ -7655,13 +7826,12 @@ function updateOverviewDashboard(){
         row.className='overview-activity-row';
         row.innerHTML='<i class="fa-solid fa-check"></i><span><b></b><small></small></span>';
         row.querySelector('b').textContent=entry.name;
-        row.querySelector('small').textContent=entry.time.toLocaleString(localStorage.getItem('appLanguage')==='en'?'en-US':'nl-NL',{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'});
+        row.querySelector('small').textContent=entry.time.toLocaleString('nl-NL',{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'});
         activity.appendChild(row);
       });
     }
   }
 }
-
 
 async function updateOverviewSavedLists(){
   var box=document.getElementById('overviewSavedLists');
@@ -7731,12 +7901,11 @@ async function updateOverviewView(){
       await loadList();
     }
   } catch (_) {}
-  renderOverviewQuickAdd();
-  var history=readOverviewHistory();
+  var history=await readOverviewHistory();
   var hs=document.getElementById("overviewHistorySummary");
   if(hs) hs.textContent=history.length ? history.length+" eerdere boodschappenlijst"+(history.length===1?"":"en")+" beschikbaar." : "Bekijk je vorige boodschappen.";
   if(typeof updateOverviewSavedLists==="function") await updateOverviewSavedLists();
-  updateOverviewDashboard();
+  await updateOverviewDashboard();
 }
 
 </script>
@@ -7819,6 +7988,28 @@ async function updateOverviewView(){
 </style>
 
 
+
+
+<style id="overview-action-fix">
+.overviewActionOverlay{position:fixed;inset:0;z-index:120000;background:rgba(24,37,29,.22);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:flex-end;justify-content:center;padding:18px;box-sizing:border-box}
+.overviewActionSheet{width:min(520px,100%);max-height:min(78vh,720px);overflow:auto;background:#fff;border-radius:26px;padding:18px 16px 22px;box-shadow:0 20px 55px rgba(0,0,0,.2);color:#314338}
+.overviewActionHeader{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.overviewActionHeader h3{margin:0;font-size:22px;font-weight:850}
+.overviewActionClose{width:40px;height:40px;border:0;border-radius:50%;background:#eef5ef;color:#405c48;font-size:28px;line-height:1;cursor:pointer}
+.overviewActionMuted{padding:22px 8px;text-align:center;color:#718078;font-size:15px}
+.overviewActionProductGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.overviewActionProduct{min-height:52px;border:0;border-radius:15px;background:#edf6ef;color:#3f5b45;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;font:inherit;font-weight:750;text-align:left;cursor:pointer}
+.overviewActionProduct span{min-width:0;overflow-wrap:anywhere}
+.overviewActionProduct i{flex:0 0 auto}
+.overviewActionProduct.added{background:#dfeee2}
+.overviewHistoryCard{border:1px solid rgba(63,91,69,.10);border-radius:17px;padding:13px;margin-bottom:10px;background:#f8fbf8}
+.overviewHistoryCardTop{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.overviewHistoryCardTop strong{font-size:15px}
+.overviewHistoryCardTop small{color:#7b887f;white-space:nowrap}
+.overviewHistoryItems{margin:7px 0 10px;color:#66736b;font-size:13px;line-height:1.4}
+.overviewHistoryUse{border:0;border-radius:12px;background:#e7f2e9;color:#3f5b45;padding:9px 12px;font:inherit;font-size:13px;font-weight:800;cursor:pointer}
+@media(max-width:430px){.overviewActionOverlay{padding:10px}.overviewActionSheet{border-radius:24px}.overviewActionProductGrid{grid-template-columns:1fr}}
+</style>
 
 <style id="overview-interactions-final">
 .overview-click-card{width:100%;display:block;text-align:left;font:inherit;cursor:pointer;transition:transform .15s ease,box-shadow .15s ease;background:#fff}
