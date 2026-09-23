@@ -7752,103 +7752,90 @@ function __overviewAddProduct(product){
 async function openQuickAddFromOverview(){
   var overlay=__overviewOverlay("Snel opnieuw toevoegen");
   var body=overlay.querySelector(".overviewActionBody");
-  __overviewOpenSheet(overlay);
 
-  // Toon de sheet direct. Gebruik eerst lokaal beschikbare data zodat de animatie
-  // niet wacht op Firebase; ververs daarna op de achtergrond met de clouddata.
-  function renderQuick(sources){
-    var counts={};
-    sources.flat().forEach(function(item){
-      var text=typeof item==="string"?item:(item&&item.text);
-      if(!text) return;
-      text=String(text).trim();
-      var key=text.toLowerCase();
-      if(!counts[key]) counts[key]={text:text,count:0};
-      counts[key].count++;
-    });
-    var products=Object.keys(counts).map(function(k){return counts[k];})
-      .sort(function(a,b){return b.count-a.count || a.text.localeCompare(b.text,"nl");}).slice(0,10);
-    body.innerHTML="";
-    if(!products.length){
-      body.innerHTML='<div class="overviewActionMuted">Er zijn nog geen producten om opnieuw toe te voegen.</div>';
-      return;
-    }
-    var grid=document.createElement("div");
-    grid.className="overviewActionProductGrid";
-    products.forEach(function(p){
-      var btn=document.createElement("button");
-      btn.type="button"; btn.className="overviewActionProduct";
-      btn.innerHTML='<span></span><i class="fa-solid fa-plus"></i>';
-      btn.querySelector("span").textContent=p.text;
-      btn.addEventListener("click",function(){
-        __overviewAddProduct(p.text);
-        btn.classList.add("added");
-        btn.querySelector("i").className="fa-solid fa-check";
-        setTimeout(function(){btn.classList.remove("added");btn.querySelector("i").className="fa-solid fa-plus";},900);
-      });
-      grid.appendChild(btn);
-    });
-    body.appendChild(grid);
-  }
-
-  var localSaved=readSavedListsLocal();
-  var localHistory=[];
-  try{ localHistory=JSON.parse(localStorage.getItem(__overviewAccountKey("history"))||"[]")||[]; }catch(_){}
-  renderQuick([].concat(localSaved.map(function(x){return x.items||[];}), localHistory.map(function(x){return x.items||[];}), [Array.isArray(boodschappen)?boodschappen:[]]));
-
+  var sources=[];
   try{
     var saved=await readSavedLists();
-    var history=await readOverviewHistory();
-    renderQuick([].concat(saved.map(function(x){return x.items||[];}), history.map(function(x){return x.items||[];}), [Array.isArray(boodschappen)?boodschappen:[]]));
+    sources=sources.concat(saved.map(function(x){return x.items||[];}));
   }catch(_){}
-}
+  try{
+    var history=await readOverviewHistory();
+    sources=sources.concat(history.map(function(x){return x.items||[];}));
+  }catch(_){}
+  sources.push(Array.isArray(boodschappen)?boodschappen:[]);
 
+  var counts={};
+  sources.flat().forEach(function(item){
+    var text=typeof item==="string"?item:(item&&item.text);
+    if(!text) return;
+    text=String(text).trim();
+    var key=text.toLowerCase();
+    if(!counts[key]) counts[key]={text:text,count:0};
+    counts[key].count++;
+  });
+  var products=Object.keys(counts).map(function(k){return counts[k];})
+    .sort(function(a,b){return b.count-a.count || a.text.localeCompare(b.text,"nl");}).slice(0,10);
+
+  body.innerHTML="";
+  if(!products.length){
+    body.innerHTML='<div class="overviewActionMuted">Er zijn nog geen producten om opnieuw toe te voegen.</div>';
+    __overviewOpenSheet(overlay);
+    return;
+  }
+  var grid=document.createElement("div");
+  grid.className="overviewActionProductGrid";
+  products.forEach(function(p){
+    var btn=document.createElement("button");
+    btn.type="button"; btn.className="overviewActionProduct";
+    btn.innerHTML='<span></span><i class="fa-solid fa-plus"></i>';
+    btn.querySelector("span").textContent=p.text;
+    btn.addEventListener("click",function(){
+      __overviewAddProduct(p.text);
+      btn.classList.add("added");
+      btn.querySelector("i").className="fa-solid fa-check";
+      setTimeout(function(){btn.classList.remove("added");btn.querySelector("i").className="fa-solid fa-plus";},900);
+    });
+    grid.appendChild(btn);
+  });
+  body.appendChild(grid);
+  __overviewOpenSheet(overlay);
+}
 
 async function openShoppingHistoryFromOverview(){
   var overlay=__overviewOverlay("Boodschappenhistorie");
   var body=overlay.querySelector(".overviewActionBody");
-  __overviewOpenSheet(overlay);
+  var history=await readOverviewHistory();
+  var saved=[];
+  try{saved=await readSavedLists();}catch(_){}
 
-  function renderHistory(entries){
-    body.innerHTML="";
-    if(!entries.length){
-      body.innerHTML='<div class="overviewActionMuted">Je hebt nog geen eerdere boodschappen.</div>';
-      return;
-    }
-    entries.slice(0,20).forEach(function(entry){
-      var card=document.createElement("div");
-      card.className="overviewHistoryCard";
-      var date=entry.savedAt?new Date(entry.savedAt).toLocaleDateString("nl-NL",{day:"numeric",month:"long",year:"numeric"}):"";
-      var items=(entry.items||[]).map(function(x){return typeof x==="string"?x:(x&&x.text)||"";}).filter(Boolean);
-      card.innerHTML='<div class="overviewHistoryCardTop"><strong></strong><small></small></div><div class="overviewHistoryItems"></div><button type="button" class="overviewHistoryUse">Opnieuw gebruiken</button>';
-      card.querySelector("strong").textContent=entry.name || (items.length+" product"+(items.length===1?"":"en"));
-      card.querySelector("small").textContent=date;
-      card.querySelector(".overviewHistoryItems").textContent=items.slice(0,6).join(" · ")+(items.length>6?" · …":"");
-      card.querySelector(".overviewHistoryUse").addEventListener("click",async function(){
-        boodschappen=normalizeBoodschappen(entry.items||[]);
-        currentListName=String(entry.name||"Boodschappenlijst");
-        selectedIndex=-1;
-        overlay.remove();
-        showMainListView();
-        showList();
-        await saveList();
-      });
-      body.appendChild(card);
-    });
+  var entries=history.length ? history : saved.map(function(x){return {savedAt:x.savedAt,items:x.items,name:x.name};});
+  body.innerHTML="";
+  if(!entries.length){
+    body.innerHTML='<div class="overviewActionMuted">Je hebt nog geen eerdere boodschappen.</div>';
+    __overviewOpenSheet(overlay);
+    return;
   }
-
-  var localHistory=[];
-  try{ localHistory=JSON.parse(localStorage.getItem(__overviewAccountKey("history"))||"[]")||[]; }catch(_){}
-  var localSaved=readSavedListsLocal();
-  var localEntries=localHistory.length ? localHistory : localSaved.map(function(x){return {savedAt:x.savedAt,items:x.items,name:x.name};});
-  renderHistory(localEntries);
-
-  try{
-    var history=await readOverviewHistory();
-    var saved=await readSavedLists();
-    var entries=history.length ? history : saved.map(function(x){return {savedAt:x.savedAt,items:x.items,name:x.name};});
-    renderHistory(entries);
-  }catch(_){}
+  entries.slice(0,20).forEach(function(entry){
+    var card=document.createElement("div");
+    card.className="overviewHistoryCard";
+    var date=entry.savedAt?new Date(entry.savedAt).toLocaleDateString("nl-NL",{day:"numeric",month:"long",year:"numeric"}):"";
+    var items=(entry.items||[]).map(function(x){return typeof x==="string"?x:(x&&x.text)||"";}).filter(Boolean);
+    card.innerHTML='<div class="overviewHistoryCardTop"><strong></strong><small></small></div><div class="overviewHistoryItems"></div><button type="button" class="overviewHistoryUse">Opnieuw gebruiken</button>';
+    card.querySelector("strong").textContent=entry.name || (items.length+" product"+(items.length===1?"":"en"));
+    card.querySelector("small").textContent=date;
+    card.querySelector(".overviewHistoryItems").textContent=items.slice(0,6).join(" · ")+(items.length>6?" · …":"");
+    card.querySelector(".overviewHistoryUse").addEventListener("click",async function(){
+      boodschappen=normalizeBoodschappen(entry.items||[]);
+      currentListName=String(entry.name||"Boodschappenlijst");
+      selectedIndex=-1;
+      overlay.remove();
+      showMainListView();
+      showList();
+      await saveList();
+    });
+    body.appendChild(card);
+  });
+  __overviewOpenSheet(overlay);
 }
 
 /* Klikbare onderdelen in het overzicht gebruiken deze functies direct. */
