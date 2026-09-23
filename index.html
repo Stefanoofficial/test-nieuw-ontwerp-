@@ -3191,19 +3191,17 @@ body.dark-theme .smartInsightsItem strong{color:#dce9df!important}
 body.dark-theme .smartInsightsItem span{color:#aeb8b1!important}
 body.dark-theme .smartInsightsItem .siIcon{color:#9bc8a8!important}
 </style><style id="overview-slide-animation-fix">
-/* De echte sheets van Snel opnieuw toevoegen / Boodschappenhistorie */
 #overviewActionOverlay{
   opacity:0;
   transition:opacity 220ms ease;
 }
-#overviewActionOverlay.is-open{
-  opacity:1;
-}
+#overviewActionOverlay.is-open{opacity:1}
 #overviewActionOverlay .overviewActionSheet{
   transform:translate3d(0,110%,0);
   opacity:1;
-  transition:transform 320ms cubic-bezier(.22,1,.36,1);
+  transition:transform 340ms cubic-bezier(.22,1,.36,1);
   will-change:transform;
+  backface-visibility:hidden;
 }
 #overviewActionOverlay.is-open .overviewActionSheet{
   transform:translate3d(0,0,0);
@@ -3214,74 +3212,20 @@ body.dark-theme .smartInsightsItem .siIcon{color:#9bc8a8!important}
 #overviewActionOverlay.is-closing .overviewActionSheet{
   transform:translate3d(0,110%,0);
 }
-/* X exact gecentreerd in de cirkel */
 #overviewActionOverlay .overviewActionClose{
-  width:40px;
-  height:40px;
-  min-width:40px;
-  min-height:40px;
-  padding:0;
-  margin:0;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  box-sizing:border-box;
-  line-height:1;
-  font-size:26px;
+  width:40px;height:40px;min-width:40px;min-height:40px;
+  padding:0;margin:0;border:0;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  box-sizing:border-box;line-height:1;font-size:26px;
   font-family:Arial,sans-serif;
 }
 @media (prefers-reduced-motion:reduce){
   #overviewActionOverlay,
-  #overviewActionOverlay .overviewActionSheet{
-    transition:none!important;
-  }
+  #overviewActionOverlay .overviewActionSheet{transition:none!important}
 }
 </style>
 
-<style id="one-piece-sheet-fix">
-/* Eén enkele beweging voor de volledige action sheet. */
-#overviewActionOverlay {
-  transition: opacity 220ms ease !important;
-}
-#overviewActionOverlay .overviewActionSheet {
-  transform: translate3d(0, 100%, 0) !important;
-  opacity: 1 !important;
-  transition: transform 320ms cubic-bezier(.22,1,.36,1) !important;
-  will-change: transform;
-  animation: none !important;
-}
-#overviewActionOverlay.show .overviewActionSheet,
-#overviewActionOverlay.open .overviewActionSheet,
-#overviewActionOverlay.active .overviewActionSheet {
-  transform: translate3d(0, 0, 0) !important;
-}
-#overviewActionOverlay .overviewActionSheet > *,
-#overviewActionOverlay .overviewActionSheet .overviewActionSheetHeader,
-#overviewActionOverlay .overviewActionSheet .overviewActionSheetBody,
-#overviewActionOverlay .overviewActionSheet .overviewActionSheetContent {
-  animation: none !important;
-  transition: none !important;
-  transform: none !important;
-}
 
-/* Kruisje exact gecentreerd in de cirkel. */
-#overviewActionOverlay .overviewActionSheet .close,
-#overviewActionOverlay .overviewActionSheet .closeBtn,
-#overviewActionOverlay .overviewActionSheet .overviewActionSheetClose,
-#overviewActionOverlay .overviewActionSheet button[aria-label*="luiten"],
-#overviewActionOverlay .overviewActionSheet button[aria-label*="lose"] {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  width: 40px !important;
-  height: 40px !important;
-  min-width: 40px !important;
-  min-height: 40px !important;
-  padding: 0 !important;
-  box-sizing: border-box !important;
-  line-height: 1 !important;
-}
-</style>
 
 </head>
 
@@ -7746,8 +7690,10 @@ function __overviewOverlay(title){
   var closeSheet=function(){
     if(overlay.dataset.closing==="1") return;
     overlay.dataset.closing="1";
+    overlay.classList.remove("is-open");
+    overlay.classList.add("is-closing");
     overlay.style.opacity="0";
-    sheet.style.transform="translate3d(0,100%,0)";
+    sheet.style.transform="translate3d(0,110%,0)";
     setTimeout(function(){ if(overlay.parentNode) overlay.remove(); },350);
   };
 
@@ -7758,6 +7704,7 @@ function __overviewOverlay(title){
   // Start the overlay and the complete sheet together.
   requestAnimationFrame(function(){
     requestAnimationFrame(function(){
+      overlay.classList.add("is-open");
       overlay.style.opacity="1";
       sheet.style.transform="translate3d(0,0,0)";
     });
