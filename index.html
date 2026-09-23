@@ -3237,6 +3237,52 @@ body.dark-theme .smartInsightsItem .siIcon{color:#9bc8a8!important}
   }
 }
 </style>
+
+<style id="one-piece-sheet-fix">
+/* Eén enkele beweging voor de volledige action sheet. */
+#overviewActionOverlay {
+  transition: opacity 220ms ease !important;
+}
+#overviewActionOverlay .overviewActionSheet {
+  transform: translate3d(0, 100%, 0) !important;
+  opacity: 1 !important;
+  transition: transform 320ms cubic-bezier(.22,1,.36,1) !important;
+  will-change: transform;
+  animation: none !important;
+}
+#overviewActionOverlay.show .overviewActionSheet,
+#overviewActionOverlay.open .overviewActionSheet,
+#overviewActionOverlay.active .overviewActionSheet {
+  transform: translate3d(0, 0, 0) !important;
+}
+#overviewActionOverlay .overviewActionSheet > *,
+#overviewActionOverlay .overviewActionSheet .overviewActionSheetHeader,
+#overviewActionOverlay .overviewActionSheet .overviewActionSheetBody,
+#overviewActionOverlay .overviewActionSheet .overviewActionSheetContent {
+  animation: none !important;
+  transition: none !important;
+  transform: none !important;
+}
+
+/* Kruisje exact gecentreerd in de cirkel. */
+#overviewActionOverlay .overviewActionSheet .close,
+#overviewActionOverlay .overviewActionSheet .closeBtn,
+#overviewActionOverlay .overviewActionSheet .overviewActionSheetClose,
+#overviewActionOverlay .overviewActionSheet button[aria-label*="luiten"],
+#overviewActionOverlay .overviewActionSheet button[aria-label*="lose"] {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+  line-height: 1 !important;
+}
+</style>
+
 </head>
 
 <body>
