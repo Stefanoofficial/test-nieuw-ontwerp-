@@ -7188,13 +7188,23 @@ function toggleRegisterPassword(fieldId, button) {
         return;
       }
 
+      // Toon de persoonlijke lijst direct na een nieuwe login.
+      // Zo hoeft de gebruiker niet te wachten op de extra Firebase-controle
+      // voor een eventuele familie. Als er wél een familie is, schakelen we
+      // daarna automatisch over naar de familielijst.
+      if (freshLogin) {
+        localStorage.setItem("boodschappenUseMode_" + user.uid, "private");
+        activeListType = "private";
+        await loadPrivateList();
+      }
+
       const householdId = await getOrCreateHousehold();
       if (householdId) {
         activeListType = "family";
         await loadList();
         if (freshLogin && typeof showMainListView === "function") showMainListView();
-      } else {
-        // Eerste gebruik: direct een persoonlijke lijst, zonder keuzescherm.
+      } else if (!freshLogin) {
+        // Herstelde sessie zonder familie: persoonlijke lijst laden.
         localStorage.setItem("boodschappenUseMode_" + user.uid, "private");
         await loadPrivateList();
       }
