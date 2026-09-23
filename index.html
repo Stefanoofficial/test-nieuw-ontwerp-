@@ -7455,6 +7455,143 @@ function toggleRegisterPassword(fieldId, button) {
 })();
 
 
+function setBottomNav(active){
+  document.querySelectorAll('.bottomNavBtn').forEach(function(b){b.classList.remove('active');});
+  var el=document.getElementById(active); if(el) el.classList.add('active');
+}
+var __activeMainTab = 0; // 0=Lijst, 1=Overzicht, 2=Meer
+function slideToTab(tabIndex){
+  var app=document.querySelector('.app');
+  if(!app || tabIndex === __activeMainTab) return;
+
+  var previous = __activeMainTab;
+  app.classList.remove('nav-slide-forward','nav-slide-backward','more-screen-enter','main-screen-enter');
+  void app.offsetWidth;
+
+  // Meer is één zelfstandig scherm. Laat niet tegelijk de algemene app-animatie
+  // én het Meer-scherm bewegen; dat gaf de indruk dat Meer dubbel open ging.
+  if(tabIndex === 2){
+    app.classList.add('more-screen-enter');
+  } else if(previous === 2 && tabIndex === 0){
+    // Bij teruggaan naar Lijst schuift alleen het hoofdscherm één keer binnen.
+    app.classList.add('main-screen-enter');
+  } else {
+    var direction = tabIndex > previous ? 'forward' : 'backward';
+    app.classList.add(direction === 'backward' ? 'nav-slide-backward' : 'nav-slide-forward');
+  }
+
+  __activeMainTab = tabIndex;
+  clearTimeout(window.__tabSlideTimer);
+  window.__tabSlideTimer=setTimeout(function(){
+    app.classList.remove('nav-slide-forward','nav-slide-backward','more-screen-enter','main-screen-enter');
+  },380);
+}
+function showMainListView(){
+  __resetMoreNavigation();
+  slideToTab(0);
+  var app=document.querySelector('.app');
+  if(app) app.classList.remove('overview-active','more-active');
+  setBottomNav('navList');
+  var moreView=document.getElementById('moreView');
+  if(moreView) moreView.scrollTop=0;
+}
+function showOverviewView(){
+  __resetMoreNavigation();
+  slideToTab(1);
+  var app=document.querySelector('.app');
+  if(app) app.classList.remove('more-active'), app.classList.add('overview-active');
+  setBottomNav('navOverview');
+  updateOverviewView();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function showMoreView(){
+  slideToTab(2);
+  var app=document.querySelector('.app');
+  if(app) app.classList.remove('overview-active'), app.classList.add('more-active');
+  setBottomNav('navMore');
+  __resetMoreNavigation();
+  var menu=document.getElementById('familyMenu');
+  /* In Meer the family menu is the screen content, never a dropdown. */
+  if(menu){ menu.style.display='block'; menu.classList.remove('menu-open'); }
+  var moreView=document.getElementById('moreView');
+  if(moreView) moreView.scrollTop=0;
+}
+
+/* Verplaats het bestaande menu naar de Meer-weergave zodra de DOM klaar is.
+   Zo blijven alle bestaande submenu-functies en account/familie-logica intact. */
+function initMoreView(){
+  var menu=document.getElementById('familyMenu');
+  var more=document.getElementById('moreView');
+  if(menu && more && menu.parentElement !== more) more.appendChild(menu);
+}
+document.addEventListener('DOMContentLoaded', function(){
+  initMoreView();
+  /* De nav mag geen kind van .app blijven: .app gebruikt een transform voor de
+     login-animatie, waardoor position:fixed anders aan de scrollcontainer wordt gekoppeld. */
+  var nav=document.querySelector('.bottomNav');
+  if(nav && nav.parentElement !== document.body){ document.body.appendChild(nav); }
+});
+
+
+
+function updateOverviewDashboard(){
+  var total = Array.isArray(boodschappen) ? boodschappen.length : 0;
+  var completed = Array.isArray(boodschappen) ? boodschappen.filter(function(item){ return item && item.completed; }).length : 0;
+  var history = readOverviewHistory();
+  var lists = (typeof readSavedLists === "function") ? readSavedLists() : [];
+
+  var remainingEl=document.getElementById("smartInsightRemaining");
+  var completedInsightEl=document.getElementById("smartInsightCompleted");
+  var mainInsightEl=document.getElementById("smartInsightMain");
+  var subInsightEl=document.getElementById("smartInsightSub");
+  var remaining=Math.max(0,total-completed);
+  var completionPct=total>0 ? Math.round((completed/total)*100) : 0;
+  if(remainingEl) remainingEl.textContent=String(remaining);
+  if(completedInsightEl) completedInsightEl.textContent=String(completionPct)+"%";
+  if(mainInsightEl) mainInsightEl.textContent = total===0 ? "Je lijst is klaar voor nieuwe boodschappen." : (completionPct===100 ? "Alles op je lijst is voltooid." : "Je bent "+completionPct+"% klaar met je lijst.");
+  if(subInsightEl) subInsightEl.textContent = total===0 ? "Voeg producten toe om je voortgang hier te zien." : (remaining===1 ? "Nog 1 product te gaan." : "Nog "+remaining+" producten te gaan.");
+
+  var now=Date.now(), weekStart=now-7*24*60*60*1000;
+  var weekTrips=Array.isArray(history) ? history.filter(function(trip){ return Number(trip.savedAt||0)>=weekStart; }) : [];
+  var weekInsightEl=document.getElementById("smartInsightWeek");
+  if(weekInsightEl) weekInsightEl.textContent=String(weekTrips.length);
+  var weekProducts=weekTrips.reduce(function(sum,trip){ return sum+((trip.items||[]).length); },0);
+  var weekCompleted=weekTrips.reduce(function(sum,trip){
+    return sum+(trip.items||[]).filter(function(item){return item && item.completed;}).length;
+  },0);
+  var weekListsEl=document.getElementById("overviewWeekLists");
+  var weekProductsEl=document.getElementById("overviewWeekProducts");
+  var weekCompletedEl=document.getElementById("overviewWeekCompleted");
+  if(weekListsEl) weekListsEl.textContent=String(weekTrips.length);
+  if(weekProductsEl) weekProductsEl.textContent=String(weekProducts);
+  if(weekCompletedEl) weekCompletedEl.textContent=String(weekCompleted);
+
+  var activity=document.getElementById("overviewActivity");
+  if(activity){
+    activity.innerHTML="";
+    var entries=[];
+    if(Array.isArray(history)){
+      history.slice(0,3).forEach(function(trip){
+        var date=new Date(trip.savedAt);
+        entries.push({time:date,name:(trip.items||[]).length+" product"+((trip.items||[]).length===1?"":"en")+" opgeslagen"});
+      });
+    }
+    if(!entries.length){
+      activity.innerHTML='<div class="overview-dashboard-muted">Je laatste activiteiten verschijnen hier zodra je boodschappen gebruikt.</div>';
+    }else{
+      entries.forEach(function(entry){
+        var row=document.createElement("div");
+        row.className="overview-activity-row";
+        row.innerHTML='<i class="fa-solid fa-check"></i><span><b></b><small></small></span>';
+        row.querySelector("b").textContent=entry.name;
+        row.querySelector("small").textContent=entry.time.toLocaleString(localStorage.getItem('appLanguage')==='en'?'en-US':'nl-NL',{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'});
+        activity.appendChild(row);
+      });
+    }
+  }
+}
+
+
 async function updateOverviewSavedLists(){
   var box=document.getElementById('overviewSavedLists');
   if(!box) return;
@@ -8416,79 +8553,6 @@ document.addEventListener('visibilitychange',function(){
 })();
 </script>
 
-
-<script id="navigation-functions-fix">
-(function () {
-  function setActiveNav(id) {
-    document.querySelectorAll(".bottomNavBtn").forEach(function(btn) {
-      btn.classList.toggle("active", btn.id === id);
-    });
-  }
-
-  window.showMainListView = function () {
-    var app = document.querySelector(".app");
-    if (!app) return;
-
-    app.classList.remove("overview-active", "more-active");
-    setActiveNav("navList");
-
-    var overview = document.getElementById("overviewView");
-    if (overview) overview.style.display = "";
-
-    var menu = document.getElementById("familyMenu");
-    if (menu) {
-      menu.style.display = "none";
-      if (typeof __showOnlyMenuPage === "function") {
-        __showOnlyMenuPage("familyMenuMain");
-      }
-    }
-
-    if (typeof showList === "function") {
-      try { showList(); } catch (e) { console.warn("showList:", e); }
-    }
-  };
-
-  window.showOverviewView = function () {
-    var app = document.querySelector(".app");
-    if (!app) return;
-
-    app.classList.remove("more-active");
-    app.classList.add("overview-active");
-    setActiveNav("navOverview");
-
-    var menu = document.getElementById("familyMenu");
-    if (menu) menu.style.display = "none";
-
-    var overview = document.getElementById("overviewView");
-    if (overview) overview.style.display = "";
-
-    if (typeof refreshOverviewGreeting === "function") {
-      try { refreshOverviewGreeting(); } catch (e) {}
-    }
-  };
-
-  window.showMoreView = function () {
-    var app = document.querySelector(".app");
-    if (!app) return;
-
-    app.classList.remove("overview-active");
-    app.classList.add("more-active");
-    setActiveNav("navMore");
-
-    var overview = document.getElementById("overviewView");
-    if (overview) overview.style.display = "none";
-
-    var menu = document.getElementById("familyMenu");
-    if (menu) {
-      menu.style.display = "block";
-      if (typeof __cancelMenuTransition === "function") __cancelMenuTransition();
-      if (typeof __showOnlyMenuPage === "function") {
-        __showOnlyMenuPage("familyMenuMain");
-      }
-    }
-  };
-})();
-</script>
 
 </body>
 
