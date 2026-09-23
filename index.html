@@ -3206,7 +3206,21 @@ body.dark-theme .smartInsightsItem .siIcon{color:#9bc8a8!important}
 #overviewActionOverlay.is-closing .overviewActionSheet{transform:translate3d(0,100%,0)}
 #overviewActionOverlay .overviewActionSheet > *{animation:none!important}
 #overviewActionOverlay .overviewActionClose{width:40px!important;height:40px!important;min-width:40px!important;min-height:40px!important;padding:0!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important;line-height:1!important}
-</style></head>
+</style>
+<style id="atomic-list-switch">
+/* Houd het lijstscherm tijdens het wisselen verborgen tot de nieuwe lijstnaam
+   en producten klaar zijn. Daardoor zie je nooit eerst de oude lijst en daarna
+   pas BBQ/opgeslagen lijst. */
+body.list-switching #mainList,
+body.list-switching .listView,
+body.list-switching #shoppingList {
+  visibility:hidden !important;
+}
+body.list-switching .app {
+  opacity:1 !important;
+}
+</style>
+</head>
 
 <body>
 <div id="loginScreen">
@@ -8936,6 +8950,47 @@ document.addEventListener('visibilitychange',function(){
 </script>
 
 
+
+<script id="atomic-list-switch-runtime">
+(function(){
+  var switchingUntil = 0;
+  function beginSwitch(){
+    switchingUntil = Date.now() + 800;
+    document.body.classList.add("list-switching");
+  }
+  function finishSwitch(){
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){
+        document.body.classList.remove("list-switching");
+      });
+    });
+  }
+
+  // Capture clicks on saved/shared list cards before their handlers run.
+  // The existing handlers continue unchanged; this only hides the old list.
+  document.addEventListener("click", function(e){
+    var el=e.target.closest && e.target.closest(
+      '[data-list-id],[data-list-name],[data-shared-list],.savedListItem,.sharedListItem,.saved-list-item,.shared-list-item'
+    );
+    if(el){
+      beginSwitch();
+      setTimeout(finishSwitch, 450);
+    }
+  }, true);
+
+  // If the app exposes the selected name, wait until the browser has painted it.
+  var last="";
+  setInterval(function(){
+    var name = window.currentListName;
+    if(name && name !== last){
+      last=name;
+      if(document.body.classList.contains("list-switching")){
+        setTimeout(finishSwitch, 120);
+      }
+    }
+  }, 60);
+})();
+</script>
 </body>
 
 <style id="overview-dashboard-final">
