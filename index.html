@@ -3238,29 +3238,6 @@ body.dark-theme .smartInsightsItem .siIcon{color:#9bc8a8!important}
 }
 </style>
 
-
-<style id="definitive-overview-slide-fix">
-#overviewActionOverlay{opacity:1!important;transition:none!important;}
-#overviewActionOverlay .overviewActionSheet{
-  transform:translate3d(0,100%,0)!important;
-  opacity:1!important;
-  transition:transform 260ms cubic-bezier(.22,1,.36,1)!important;
-  will-change:transform!important;
-}
-#overviewActionOverlay.is-open .overviewActionSheet,
-#overviewActionOverlay.open .overviewActionSheet,
-#overviewActionOverlay.active .overviewActionSheet{
-  transform:translate3d(0,0,0)!important;
-}
-#overviewActionOverlay .overviewActionSheet,
-#overviewActionOverlay .overviewActionSheet *{
-  animation-delay:0s!important;
-}
-#overviewActionOverlay .overviewActionSheet > *{
-  transition:none!important;
-  animation:none!important;
-}
-</style>
 </head>
 
 <body>
@@ -7205,7 +7182,7 @@ async function register() {
     alert("De wachtwoorden komen niet overeen.");
     return;
   }
-  if (password.length < 5) {
+  if (password.length < 6) {
     alert("Het wachtwoord moet minimaal 6 tekens bevatten.");
     return;
   }
@@ -7774,9 +7751,7 @@ function __overviewAddProduct(product){
 
 async function openQuickAddFromOverview(){
   var overlay=__overviewOverlay("Snel opnieuw toevoegen");
-  
-  overlay.classList.add("is-open");
-var body=overlay.querySelector(".overviewActionBody");
+  var body=overlay.querySelector(".overviewActionBody");
 
   var sources=[];
   try{
@@ -7828,9 +7803,7 @@ var body=overlay.querySelector(".overviewActionBody");
 
 async function openShoppingHistoryFromOverview(){
   var overlay=__overviewOverlay("Boodschappenhistorie");
-  
-  overlay.classList.add("is-open");
-var body=overlay.querySelector(".overviewActionBody");
+  var body=overlay.querySelector(".overviewActionBody");
   var history=await readOverviewHistory();
   var saved=[];
   try{saved=await readSavedLists();}catch(_){}
@@ -8949,16 +8922,6 @@ document.addEventListener('visibilitychange',function(){
 </script>
 
 
-
-<script id="definitive-greeting-helper">
-window.__getGreetingText = function(){
-  const h = new Date().getHours();
-  if (h >= 0 && h < 5) return "Goedenacht";
-  if (h >= 5 && h < 12) return "Goedemorgen";
-  if (h >= 12 && h < 18) return "Goedemiddag";
-  return "Goedenavond";
-};
-</script>
 </body>
 
 <style id="overview-dashboard-final">
