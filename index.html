@@ -5790,13 +5790,20 @@ async function getOrCreateHousehold() {
 
 function openSharedListsSubmenu(event) {
   if (event) event.stopPropagation();
-  // Toon het scherm onmiddellijk. Firebase mag de inhoud daarna vullen;
-  // de navigatie zelf wacht nergens meer op.
+
+  // De hele Gedeelde-lijstenpagina wordt direct als één geheel getoond.
+  // De lijstcontainer krijgt eerst één vaste status; Firebase vult daarna alleen
+  // de inhoud van die container en veroorzaakt geen extra paginabeweging.
+  const box=document.getElementById("sharedListsContainer");
+  if(box) box.innerHTML='<div class="sharedListEmpty">Gedeelde lijsten laden…</div>';
+
   switchMenuPage("sharedListsMenuSub", event);
+
   const countEl=document.getElementById("sharedMemberCount");
   if(countEl){
     countEl.textContent = (activeListType==="shared" && currentSharedListId) ? "…" : "—";
   }
+
   renderSharedLists().catch(error => console.error("Gedeelde lijsten laden mislukt:", error));
 }
 function closeSharedListsSubmenu(event) {
@@ -6400,6 +6407,9 @@ async function returnToFamilyListFromSharedMenu(event){
   __showOnlyMenuPage("familyMenuMain");
 
   showMainListView();
+  currentListName="Boodschappenlijst";
+  const header=document.querySelector(".headerBar h1");
+  if(header) header.textContent="Boodschappenlijst";
   await loadList();
 }
 
@@ -6431,13 +6441,17 @@ async function returnToFamilyList(event){
 
   if(menu){
     menu.classList.remove("menu-open");
+    menu.style.display="none";
   }
 
-  await new Promise(resolve=>setTimeout(resolve,290));
   if(activePage){ activePage.style.display="none"; __resetMenuPageClasses(activePage); }
   __cancelMenuTransition();
   __showOnlyMenuPage("familyMenuMain");
 
+  // Na het sluiten van een Deellijst is de gewone boodschappenlijst weer actief.
+  currentListName="Boodschappenlijst";
+  const header=document.querySelector(".headerBar h1");
+  if(header) header.textContent="Boodschappenlijst";
   await loadList();
 }
 
@@ -7791,15 +7805,28 @@ async function openQuickAddFromOverview(){
 
 
 async function openShoppingHistoryFromOverview(){
+  // Haal de volledige inhoud eerst op. De sheet wordt pas zichtbaar wanneer
+  // titel én inhoud al klaarstaan, zodat er geen tweede "laadbeweging" ontstaat.
+  var localHistory=[];
+  try{ localHistory=JSON.parse(localStorage.getItem(__overviewAccountKey("history"))||"[]")||[]; }catch(_){}
+  var localSaved=readSavedListsLocal();
+  var localEntries=localHistory.length ? localHistory : localSaved.map(function(x){
+    return {savedAt:x.savedAt,items:x.items,name:x.name};
+  });
+
+  var entries=localEntries;
+  try{
+    var remote=await readOverviewHistory();
+    if(Array.isArray(remote) && remote.length) entries=remote;
+  }catch(_){}
+
   var overlay=__overviewOverlay("Boodschappenhistorie");
   var body=overlay.querySelector(".overviewActionBody");
+  body.innerHTML="";
 
-  function renderHistory(entries){
-    body.innerHTML="";
-    if(!entries.length){
-      body.innerHTML='<div class="overviewActionMuted">Je hebt nog geen eerdere boodschappen.</div>';
-      return;
-    }
+  if(!entries.length){
+    body.innerHTML='<div class="overviewActionMuted">Je hebt nog geen eerdere boodschappen.</div>';
+  }else{
     entries.slice(0,20).forEach(function(entry){
       var card=document.createElement("div");
       card.className="overviewHistoryCard";
@@ -7822,22 +7849,10 @@ async function openShoppingHistoryFromOverview(){
     });
   }
 
-  var localHistory=[];
-  try{ localHistory=JSON.parse(localStorage.getItem(__overviewAccountKey("history"))||"[]")||[]; }catch(_){}
-  var localSaved=readSavedListsLocal();
-  var localEntries=localHistory.length ? localHistory : localSaved.map(function(x){return {savedAt:x.savedAt,items:x.items,name:x.name};});
-  renderHistory(localEntries);
   __overviewOpenSheet(overlay);
-
-  try{
-    var history=await readOverviewHistory();
-    var saved=await readSavedLists();
-    var entries=history.length ? history : saved.map(function(x){return {savedAt:x.savedAt,items:x.items,name:x.name};});
-    renderHistory(entries);
-  }catch(_){}
 }
 
-/* Klikbare onderdelen in het overzicht gebruiken deze functies direct. */
+
 function __calendarWeekStartMs(nowMs){
   var d=new Date(nowMs||Date.now());
   d.setHours(0,0,0,0);
