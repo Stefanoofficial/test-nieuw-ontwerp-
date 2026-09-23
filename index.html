@@ -7958,7 +7958,7 @@ var __overviewNameCache = "";
 
 async function refreshOverviewGreeting(){
   var h = new Date().getHours();
-  var greeting = h === 0 ? "Goedenacht" : (h>=5 && h<12 ? "Goedemorgen" : (h>=12 && h<18 ? "Goedemiddag" : "Goedenavond"));
+  var greeting = h < 5 ? "Goedenacht" : (h<12 ? "Goedemorgen" : (h<18 ? "Goedemiddag" : "Goedenavond"));
   var el = document.getElementById("overviewGreetingNew");
   if (!el) return;
 
