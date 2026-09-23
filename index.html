@@ -3195,18 +3195,73 @@ body.dark-theme .smartInsightsItem .siIcon{color:#9bc8a8!important}
 
 
 
-
-
-<style id="overview-no-delay">
-#overviewActionOverlay{transition:opacity 180ms ease;}
+<style id="overview-sheet-single-animation">
+#overviewActionOverlay{
+  opacity:0;
+  pointer-events:none;
+  transition:opacity 220ms ease;
+}
 #overviewActionOverlay .overviewActionSheet{
- transform:translate3d(0,100%,0);
- transition:transform 280ms cubic-bezier(.22,1,.36,1);
- will-change:transform;
+  transform:translate3d(0,110%,0);
+  opacity:1;
+  transition:transform 340ms cubic-bezier(.22,1,.36,1);
+  will-change:transform;
+  backface-visibility:hidden;
+}
+#overviewActionOverlay.is-open{
+  opacity:1;
+  pointer-events:auto;
+}
+#overviewActionOverlay.is-open .overviewActionSheet{
+  transform:translate3d(0,0,0);
+}
+#overviewActionOverlay.is-closing{
+  opacity:0;
+  pointer-events:none;
+}
+#overviewActionOverlay.is-closing .overviewActionSheet{
+  transform:translate3d(0,110%,0);
+}
+#overviewActionOverlay .overviewActionSheet > *{
+  animation:none!important;
+  transition:none!important;
+  transform:none!important;
+}
+#overviewActionOverlay .overviewActionClose{
+  width:40px!important;height:40px!important;
+  min-width:40px!important;min-height:40px!important;
+  padding:0!important;margin:0!important;
+  display:inline-flex!important;
+  align-items:center!important;justify-content:center!important;
+  box-sizing:border-box!important;
+  line-height:1!important;
+}
+</style>
+
+
+<style id="definitive-overview-slide-fix">
+#overviewActionOverlay{opacity:1!important;transition:none!important;}
+#overviewActionOverlay .overviewActionSheet{
+  transform:translate3d(0,100%,0)!important;
+  opacity:1!important;
+  transition:transform 260ms cubic-bezier(.22,1,.36,1)!important;
+  will-change:transform!important;
 }
 #overviewActionOverlay.is-open .overviewActionSheet,
-#overviewActionOverlay.open .overviewActionSheet{transform:translate3d(0,0,0);}
-</style></head>
+#overviewActionOverlay.open .overviewActionSheet,
+#overviewActionOverlay.active .overviewActionSheet{
+  transform:translate3d(0,0,0)!important;
+}
+#overviewActionOverlay .overviewActionSheet,
+#overviewActionOverlay .overviewActionSheet *{
+  animation-delay:0s!important;
+}
+#overviewActionOverlay .overviewActionSheet > *{
+  transition:none!important;
+  animation:none!important;
+}
+</style>
+</head>
 
 <body>
 <div id="loginScreen">
@@ -7150,7 +7205,7 @@ async function register() {
     alert("De wachtwoorden komen niet overeen.");
     return;
   }
-  if (password.length < 6) {
+  if (password.length < 5) {
     alert("Het wachtwoord moet minimaal 6 tekens bevatten.");
     return;
   }
@@ -7719,7 +7774,9 @@ function __overviewAddProduct(product){
 
 async function openQuickAddFromOverview(){
   var overlay=__overviewOverlay("Snel opnieuw toevoegen");
-  var body=overlay.querySelector(".overviewActionBody");
+  
+  overlay.classList.add("is-open");
+var body=overlay.querySelector(".overviewActionBody");
 
   var sources=[];
   try{
@@ -7771,7 +7828,9 @@ async function openQuickAddFromOverview(){
 
 async function openShoppingHistoryFromOverview(){
   var overlay=__overviewOverlay("Boodschappenhistorie");
-  var body=overlay.querySelector(".overviewActionBody");
+  
+  overlay.classList.add("is-open");
+var body=overlay.querySelector(".overviewActionBody");
   var history=await readOverviewHistory();
   var saved=[];
   try{saved=await readSavedLists();}catch(_){}
@@ -8890,15 +8949,17 @@ document.addEventListener('visibilitychange',function(){
 </script>
 
 
-<script id="greeting-midnight-helper">
-window.getOverviewGreeting = window.getOverviewGreeting || function(hour){
- hour=(typeof hour==="number")?hour:new Date().getHours();
- if(hour>=0 && hour<5) return "Goedenacht";
- if(hour>=5 && hour<12) return "Goedemorgen";
- if(hour>=12 && hour<18) return "Goedemiddag";
- return "Goedenavond";
+
+<script id="definitive-greeting-helper">
+window.__getGreetingText = function(){
+  const h = new Date().getHours();
+  if (h >= 0 && h < 5) return "Goedenacht";
+  if (h >= 5 && h < 12) return "Goedemorgen";
+  if (h >= 12 && h < 18) return "Goedemiddag";
+  return "Goedenavond";
 };
-</script></body>
+</script>
+</body>
 
 <style id="overview-dashboard-final">
 .overview-dashboard-card{background:#fff;border:1px solid #e1ece4;border-radius:16px;padding:15px;margin:0 0 11px;box-shadow:0 2px 8px rgba(40,70,50,.05)}
