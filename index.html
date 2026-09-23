@@ -3190,12 +3190,17 @@ body.dark-theme .smartInsightsIntro span{color:#aeb8b1!important}
 body.dark-theme .smartInsightsItem strong{color:#dce9df!important}
 body.dark-theme .smartInsightsItem span{color:#aeb8b1!important}
 body.dark-theme .smartInsightsItem .siIcon{color:#9bc8a8!important}
-</style><style id="overview-slide-animation-fix">
+</style>
+
+
+
+
+<style id="overview-sheet-single-animation">
 #overviewActionOverlay{
   opacity:0;
+  pointer-events:none;
   transition:opacity 220ms ease;
 }
-#overviewActionOverlay.is-open{opacity:1}
 #overviewActionOverlay .overviewActionSheet{
   transform:translate3d(0,110%,0);
   opacity:1;
@@ -3203,29 +3208,35 @@ body.dark-theme .smartInsightsItem .siIcon{color:#9bc8a8!important}
   will-change:transform;
   backface-visibility:hidden;
 }
+#overviewActionOverlay.is-open{
+  opacity:1;
+  pointer-events:auto;
+}
 #overviewActionOverlay.is-open .overviewActionSheet{
   transform:translate3d(0,0,0);
 }
 #overviewActionOverlay.is-closing{
   opacity:0;
+  pointer-events:none;
 }
 #overviewActionOverlay.is-closing .overviewActionSheet{
   transform:translate3d(0,110%,0);
 }
-#overviewActionOverlay .overviewActionClose{
-  width:40px;height:40px;min-width:40px;min-height:40px;
-  padding:0;margin:0;border:0;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  box-sizing:border-box;line-height:1;font-size:26px;
-  font-family:Arial,sans-serif;
+#overviewActionOverlay .overviewActionSheet > *{
+  animation:none!important;
+  transition:none!important;
+  transform:none!important;
 }
-@media (prefers-reduced-motion:reduce){
-  #overviewActionOverlay,
-  #overviewActionOverlay .overviewActionSheet{transition:none!important}
+#overviewActionOverlay .overviewActionClose{
+  width:40px!important;height:40px!important;
+  min-width:40px!important;min-height:40px!important;
+  padding:0!important;margin:0!important;
+  display:inline-flex!important;
+  align-items:center!important;justify-content:center!important;
+  box-sizing:border-box!important;
+  line-height:1!important;
 }
 </style>
-
-
 
 </head>
 
@@ -7672,6 +7683,7 @@ async function readOverviewHistory(){
 function __overviewOverlay(title){
   var old=document.getElementById("overviewActionOverlay");
   if(old) old.remove();
+
   var overlay=document.createElement("div");
   overlay.id="overviewActionOverlay";
   overlay.className="overviewActionOverlay";
@@ -7679,10 +7691,12 @@ function __overviewOverlay(title){
   overlay.querySelector("h3").textContent=title;
 
   var sheet=overlay.querySelector(".overviewActionSheet");
-  // Animate only the single sheet element. No separate header/body movement.
+
+  // Important: the sheet is inserted but NOT animated yet.
+  // Its complete contents are filled first; only then do we call open().
   overlay.style.opacity="0";
-  overlay.style.transition="opacity 220ms ease";
-  sheet.style.transform="translate3d(0,100%,0)";
+  overlay.style.pointerEvents="none";
+  sheet.style.transform="translate3d(0,110%,0)";
   sheet.style.opacity="1";
   sheet.style.transition="transform 340ms cubic-bezier(.22,1,.36,1)";
   sheet.style.willChange="transform";
@@ -7693,23 +7707,35 @@ function __overviewOverlay(title){
     overlay.classList.remove("is-open");
     overlay.classList.add("is-closing");
     overlay.style.opacity="0";
+    overlay.style.pointerEvents="none";
     sheet.style.transform="translate3d(0,110%,0)";
     setTimeout(function(){ if(overlay.parentNode) overlay.remove(); },350);
   };
 
+  var openSheet=function(){
+    if(overlay.dataset.closing==="1" || overlay.dataset.opened==="1") return;
+    overlay.dataset.opened="1";
+    overlay.style.pointerEvents="auto";
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){
+        overlay.classList.add("is-open");
+        overlay.style.opacity="1";
+        sheet.style.transform="translate3d(0,0,0)";
+      });
+    });
+  };
+
   overlay.querySelector(".overviewActionClose").addEventListener("click",closeSheet);
   overlay.addEventListener("click",function(e){if(e.target===overlay) closeSheet();});
-  document.body.appendChild(overlay);
 
-  // Start the overlay and the complete sheet together.
-  requestAnimationFrame(function(){
-    requestAnimationFrame(function(){
-      overlay.classList.add("is-open");
-      overlay.style.opacity="1";
-      sheet.style.transform="translate3d(0,0,0)";
-    });
-  });
+  document.body.appendChild(overlay);
+  overlay.__openSheet=openSheet;
+  overlay.__closeSheet=closeSheet;
   return overlay;
+}
+
+function __overviewOpenSheet(overlay){
+  if(overlay && typeof overlay.__openSheet==="function") overlay.__openSheet();
 }
 
 function __overviewAddProduct(product){
@@ -7726,7 +7752,6 @@ function __overviewAddProduct(product){
 async function openQuickAddFromOverview(){
   var overlay=__overviewOverlay("Snel opnieuw toevoegen");
   var body=overlay.querySelector(".overviewActionBody");
-  body.innerHTML='<div class="overviewActionMuted">Je meest gebruikte producten laden…</div>';
 
   var sources=[];
   try{
@@ -7754,6 +7779,7 @@ async function openQuickAddFromOverview(){
   body.innerHTML="";
   if(!products.length){
     body.innerHTML='<div class="overviewActionMuted">Er zijn nog geen producten om opnieuw toe te voegen.</div>';
+    __overviewOpenSheet(overlay);
     return;
   }
   var grid=document.createElement("div");
@@ -7772,12 +7798,12 @@ async function openQuickAddFromOverview(){
     grid.appendChild(btn);
   });
   body.appendChild(grid);
+  __overviewOpenSheet(overlay);
 }
 
 async function openShoppingHistoryFromOverview(){
   var overlay=__overviewOverlay("Boodschappenhistorie");
   var body=overlay.querySelector(".overviewActionBody");
-  body.innerHTML='<div class="overviewActionMuted">Je eerdere boodschappen laden…</div>';
   var history=await readOverviewHistory();
   var saved=[];
   try{saved=await readSavedLists();}catch(_){}
@@ -7786,6 +7812,7 @@ async function openShoppingHistoryFromOverview(){
   body.innerHTML="";
   if(!entries.length){
     body.innerHTML='<div class="overviewActionMuted">Je hebt nog geen eerdere boodschappen.</div>';
+    __overviewOpenSheet(overlay);
     return;
   }
   entries.slice(0,20).forEach(function(entry){
@@ -7808,6 +7835,7 @@ async function openShoppingHistoryFromOverview(){
     });
     body.appendChild(card);
   });
+  __overviewOpenSheet(overlay);
 }
 
 /* Klikbare onderdelen in het overzicht gebruiken deze functies direct. */
