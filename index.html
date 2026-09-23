@@ -4792,6 +4792,7 @@ async function loadList() {
     selectedIndex = -1;
     showList();
     updateStatus();
+    if (typeof updateOverviewDashboard === "function") updateOverviewDashboard();
     await updateMemberCount();
     return true;
   } catch (error) {
@@ -5459,6 +5460,7 @@ async function saveList() {
     try {
       await database.ref("sharedLists/" + currentSharedListId + "/boodschappen").set(boodschappen);
       updateStatus();
+      if (typeof updateOverviewDashboard === "function") updateOverviewDashboard();
       return true;
     } catch (error) {
       console.error("Gedeelde lijst opslaan mislukt:", error);
@@ -5487,6 +5489,7 @@ async function saveList() {
       .set(boodschappen);
 
     updateStatus();
+    if (typeof updateOverviewDashboard === "function") updateOverviewDashboard();
     return true;
   } catch (error) {
     console.error("Boodschappen opslaan mislukt:", error);
@@ -5531,6 +5534,7 @@ async function toggleItem(index) {
     // Render immediately in its new position; the item gets a subtle slide-down animation.
     showList("completed");
     await saveList();
+    if (typeof updateOverviewDashboard === "function") updateOverviewDashboard();
   } else {
     item.completed = false;
     item.completedBy = "";
@@ -5539,6 +5543,7 @@ async function toggleItem(index) {
 
     showList("uncompleted");
     await saveList();
+    if (typeof updateOverviewDashboard === "function") updateOverviewDashboard();
   }
 }
 
@@ -7037,6 +7042,7 @@ async function loadPrivateList() {
     selectedIndex = -1;
     showList();
     updatePrivateStatus();
+    if (typeof updateOverviewDashboard === "function") updateOverviewDashboard();
     updateMemberCount();
   } catch (error) {
     console.error("Privélijst laden mislukt:", error);
@@ -7065,6 +7071,7 @@ async function savePrivateList() {
     new Date().toISOString()
   );
   updatePrivateStatus();
+  if (typeof updateOverviewDashboard === "function") updateOverviewDashboard();
 }
 
 function updatePrivateStatus() {
@@ -7567,56 +7574,88 @@ document.addEventListener('DOMContentLoaded', function(){
 
 
 function updateOverviewDashboard(){
-  var total = Array.isArray(boodschappen) ? boodschappen.length : 0;
-  var completed = Array.isArray(boodschappen) ? boodschappen.filter(function(item){ return item && item.completed; }).length : 0;
-  var history = readOverviewHistory();
-  var lists = (typeof readSavedLists === "function") ? readSavedLists() : [];
+  // Gebruik altijd dezelfde actuele lijst als het Lijst-scherm. De oude versie
+  // kon nog 0 tonen wanneer het overzicht werd geopend terwijl de lijst net
+  // uit Firebase/localStorage was geladen.
+  var current = Array.isArray(boodschappen) ? boodschappen.filter(function(item){ return item && item.text; }) : [];
 
-  var remainingEl=document.getElementById("smartInsightRemaining");
-  var completedInsightEl=document.getElementById("smartInsightCompleted");
-  var mainInsightEl=document.getElementById("smartInsightMain");
-  var subInsightEl=document.getElementById("smartInsightSub");
-  var remaining=Math.max(0,total-completed);
-  var completionPct=total>0 ? Math.round((completed/total)*100) : 0;
+  // Fallback: als de lijst net visueel is opgebouwd maar de async state nog
+  // niet beschikbaar is, haal de status uit de zichtbare productregels.
+  if (!current.length) {
+    var rendered = Array.from(document.querySelectorAll('#list .item, #shoppingList .item, .item'));
+    if (rendered.length) {
+      current = rendered.map(function(row){
+        return { text: row.textContent || '', completed: row.classList.contains('completed') };
+      });
+    }
+  }
+
+  var total = current.length;
+  var completed = current.filter(function(item){ return item && item.completed === true; }).length;
+  var remaining = Math.max(0, total - completed);
+  var completionPct = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+  var remainingEl=document.getElementById('smartInsightRemaining');
+  var completedInsightEl=document.getElementById('smartInsightCompleted');
+  var mainInsightEl=document.getElementById('smartInsightMain');
+  var subInsightEl=document.getElementById('smartInsightSub');
+
   if(remainingEl) remainingEl.textContent=String(remaining);
-  if(completedInsightEl) completedInsightEl.textContent=String(completionPct)+"%";
-  if(mainInsightEl) mainInsightEl.textContent = total===0 ? "Je lijst is klaar voor nieuwe boodschappen." : (completionPct===100 ? "Alles op je lijst is voltooid." : "Je bent "+completionPct+"% klaar met je lijst.");
-  if(subInsightEl) subInsightEl.textContent = total===0 ? "Voeg producten toe om je voortgang hier te zien." : (remaining===1 ? "Nog 1 product te gaan." : "Nog "+remaining+" producten te gaan.");
+  if(completedInsightEl) completedInsightEl.textContent=String(completionPct)+'%';
+  if(mainInsightEl){
+    mainInsightEl.textContent = total===0
+      ? 'Je lijst is klaar voor nieuwe boodschappen.'
+      : (completionPct===100 ? 'Alles op je lijst is voltooid.' : 'Je bent '+completionPct+'% klaar met je lijst.');
+  }
+  if(subInsightEl){
+    subInsightEl.textContent = total===0
+      ? 'Voeg producten toe om je voortgang hier te zien.'
+      : (remaining===1 ? 'Nog 1 product te gaan.' : 'Nog '+remaining+' producten te gaan.');
+  }
 
+  var history = (typeof readOverviewHistory === 'function') ? readOverviewHistory() : [];
   var now=Date.now(), weekStart=now-7*24*60*60*1000;
   var weekTrips=Array.isArray(history) ? history.filter(function(trip){ return Number(trip.savedAt||0)>=weekStart; }) : [];
-  var weekInsightEl=document.getElementById("smartInsightWeek");
+  var weekInsightEl=document.getElementById('smartInsightWeek');
   if(weekInsightEl) weekInsightEl.textContent=String(weekTrips.length);
+
   var weekProducts=weekTrips.reduce(function(sum,trip){ return sum+((trip.items||[]).length); },0);
   var weekCompleted=weekTrips.reduce(function(sum,trip){
     return sum+(trip.items||[]).filter(function(item){return item && item.completed;}).length;
   },0);
-  var weekListsEl=document.getElementById("overviewWeekLists");
-  var weekProductsEl=document.getElementById("overviewWeekProducts");
-  var weekCompletedEl=document.getElementById("overviewWeekCompleted");
+  // Tel ook de huidige lijst mee. Zo zie je direct dat zojuist afgevinkte
+  // producten deze week zijn voltooid, zonder eerst een lijst op te slaan.
+  var currentCompletedThisWeek=current.filter(function(item){
+    return item && item.completed && item.completedAt && Number(item.completedAt)>=weekStart;
+  }).length;
+  weekCompleted += currentCompletedThisWeek;
+
+  var weekListsEl=document.getElementById('overviewWeekLists');
+  var weekProductsEl=document.getElementById('overviewWeekProducts');
+  var weekCompletedEl=document.getElementById('overviewWeekCompleted');
   if(weekListsEl) weekListsEl.textContent=String(weekTrips.length);
   if(weekProductsEl) weekProductsEl.textContent=String(weekProducts);
   if(weekCompletedEl) weekCompletedEl.textContent=String(weekCompleted);
 
-  var activity=document.getElementById("overviewActivity");
+  var activity=document.getElementById('overviewActivity');
   if(activity){
-    activity.innerHTML="";
+    activity.innerHTML='';
     var entries=[];
     if(Array.isArray(history)){
       history.slice(0,3).forEach(function(trip){
         var date=new Date(trip.savedAt);
-        entries.push({time:date,name:(trip.items||[]).length+" product"+((trip.items||[]).length===1?"":"en")+" opgeslagen"});
+        entries.push({time:date,name:(trip.items||[]).length+' product'+((trip.items||[]).length===1?'':'en')+' opgeslagen'});
       });
     }
     if(!entries.length){
       activity.innerHTML='<div class="overview-dashboard-muted">Je laatste activiteiten verschijnen hier zodra je boodschappen gebruikt.</div>';
     }else{
       entries.forEach(function(entry){
-        var row=document.createElement("div");
-        row.className="overview-activity-row";
+        var row=document.createElement('div');
+        row.className='overview-activity-row';
         row.innerHTML='<i class="fa-solid fa-check"></i><span><b></b><small></small></span>';
-        row.querySelector("b").textContent=entry.name;
-        row.querySelector("small").textContent=entry.time.toLocaleString(localStorage.getItem('appLanguage')==='en'?'en-US':'nl-NL',{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'});
+        row.querySelector('b').textContent=entry.name;
+        row.querySelector('small').textContent=entry.time.toLocaleString(localStorage.getItem('appLanguage')==='en'?'en-US':'nl-NL',{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'});
         activity.appendChild(row);
       });
     }
@@ -7688,7 +7727,7 @@ async function updateOverviewView(){
   // This also fixes a race where the dashboard could show 0 while the list
   // itself had already been loaded asynchronously.
   try {
-    if (auth && auth.currentUser && typeof loadList === "function") {
+    if (auth && auth.currentUser && typeof loadList === "function" && (!Array.isArray(boodschappen) || boodschappen.length === 0)) {
       await loadList();
     }
   } catch (_) {}
