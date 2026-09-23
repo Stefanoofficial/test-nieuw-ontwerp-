@@ -7958,7 +7958,7 @@ var __overviewNameCache = "";
 
 async function refreshOverviewGreeting(){
   var h = new Date().getHours();
-  var greeting = h>=5 && h<12 ? "Goedemorgen" : (h>=12 && h<18 ? "Goedemiddag" : "Goedenavond");
+  var greeting = h === 0 ? "Goedenacht" : (h>=5 && h<12 ? "Goedemorgen" : (h>=12 && h<18 ? "Goedemiddag" : "Goedenavond"));
   var el = document.getElementById("overviewGreetingNew");
   if (!el) return;
 
@@ -7984,6 +7984,9 @@ async function refreshOverviewGreeting(){
 
   el.textContent = name ? greeting + ", " + name + " 👋" : greeting + " 👋";
 }
+
+// Keep the greeting current when the app remains open across a time change.
+setInterval(function(){ refreshOverviewGreeting(); }, 30000);
 
 async function updateOverviewView(){
   refreshOverviewGreeting();
