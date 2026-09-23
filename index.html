@@ -1151,6 +1151,19 @@ body.dark-theme .moreActionDelete{background:#442b2b;color:#f1b4b0;}
 body.dark-theme .overviewCard{background:#202620;border-color:rgba(255,255,255,.08)}body.dark-theme .overviewTitle{color:#bfe3c7}body.dark-theme .overviewStat{background:#28332b}body.dark-theme .overviewStat strong{color:#bfe3c7}body.dark-theme .overviewStat span,.overviewEmpty{color:#b8c0ba}body.dark-theme .overviewProgress{background:#303a32}
 @media(max-width:600px){.bottomNav{height:76px;padding-left:8px;padding-right:8px}.bottomNavBtn{border-radius:20px;font-size:12px}.bottomNavBtn i{font-size:23px}.app{padding-bottom:92px!important}.themeButton{bottom:92px!important}.themePicker{bottom:144px!important}}
 
+
+/* UX vereenvoudiging: geavanceerde inzichten blijven beschikbaar, maar zijn niet meer dominant. */
+.overview-more-insights-btn{
+  width:100%; border:0; background:transparent; padding:12px 4px;
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  color:var(--green,#4f8f5b); font-weight:700; font-size:14px; cursor:pointer;
+}
+.overview-more-insights-btn i{transition:transform .2s ease;}
+.overview-more-insights-btn[aria-expanded="true"] i{transform:rotate(180deg);}
+.overview-more-insights{padding-top:2px;}
+.useModeIntro{margin:0 0 14px; line-height:1.5; color:#667066;}
+body.dark-theme .useModeIntro{color:#b8c0ba;}
+
 </style>
 <style>
 /* Zoekbalk: kruisje alleen zichtbaar wanneer er tekst is */
@@ -3217,14 +3230,15 @@ body.dark-theme .smartInsightsItem .siIcon{color:#9bc8a8!important}
 
 <div id="useModeModal" class="useModeModal" aria-hidden="true">
   <div class="useModeBox" role="dialog" aria-modal="true" aria-labelledby="useModeTitle">
-    <h2 id="useModeTitle">Hoe wil je Boodschappenlijst gebruiken?</h2>
+    <h2 id="useModeTitle">Samen boodschappen doen?</h2>
+    <p class="useModeIntro">Je kunt de app gewoon alleen gebruiken. Wil je later samen met anderen werken, dan kun je dat instellen via <strong>Meer → Mijn familie</strong>.</p>
 
     <button type="button" class="useModeButton" onclick="chooseUseMode('family')">
       <i class="fa-solid fa-house"></i><span>Nieuwe familie</span>
     </button>
 
     <button type="button" class="useModeButton" onclick="chooseUseMode('code')">
-      <i class="fa-solid fa-keyboard"></i><span>Familiecode invoeren</span>
+      <i class="fa-solid fa-keyboard"></i><span>Aansluiten met familiecode</span>
     </button>
 
     <button type="button" class="useModeButton" onclick="chooseUseMode('private')">
@@ -3265,7 +3279,7 @@ body.dark-theme .smartInsightsItem .siIcon{color:#9bc8a8!important}
     </button>
     <button type="button" class="familyMenuItem familyMenuPrimary" onclick="openSharedListsSubmenu(event)">
       <i class="fa-solid fa-people-group"></i>
-      <span>Deellijst</span>
+      <span>Gedeelde lijsten</span>
       <i class="fa-solid fa-chevron-right familyMenuArrow"></i>
     </button>
     <button type="button" class="familyMenuItem familyMenuPrimary" onclick="openSavedListsSubmenu(event)">
@@ -3334,7 +3348,7 @@ body.dark-theme .smartInsightsItem .siIcon{color:#9bc8a8!important}
       <span class="familyListBackCircle"><i class="fa-solid fa-chevron-left"></i></span>
       <span>Familielijst</span>
     </button>
-    <div class="familyMenuSubTitle">Deellijst</div>
+    <div class="familyMenuSubTitle">Gedeelde lijsten</div>
     <button type="button" class="familyMenuItem savedListSaveBtn" onclick="createSharedList()">
       <i class="fa-solid fa-plus"></i>
       <span>Nieuwe lijst</span>
@@ -3345,7 +3359,7 @@ body.dark-theme .smartInsightsItem .siIcon{color:#9bc8a8!important}
   </div>
 
   <div id="sharedListActiveMenuSub" class="familyMenuPage sharedListsMenuPage" style="display:none;">
-    <div class="familyMenuSubTitle" id="sharedListActiveMenuTitle">Deellijst</div>
+    <div class="familyMenuSubTitle" id="sharedListActiveMenuTitle">Gedeelde lijst</div>
     <button type="button" class="familyMenuItem" onclick="showSharedListMembers()">
       <i class="fa-solid fa-user-group"></i>
       <span>Leden (<span id="sharedMemberCountActive">0</span>)</span>
@@ -3477,7 +3491,7 @@ body.dark-theme .smartInsightsItem .siIcon{color:#9bc8a8!important}
       <div class="aboutInfoSectionTitle">Wat kun je ermee?</div>
       <div class="aboutInfoLine"><i class="fa-solid fa-list-check"></i><span>Producten toevoegen met slimme productsuggesties.</span></div>
       <div class="aboutInfoLine"><i class="fa-solid fa-users"></i><span>Samenwerken met je familie.</span></div>
-      <div class="aboutInfoLine"><i class="fa-solid fa-people-group"></i><span>Deellijsten maken voor vrienden, familie of een feestje.</span></div>
+      <div class="aboutInfoLine"><i class="fa-solid fa-people-group"></i><span>Gedeelde lijsten maken voor vrienden, familie of een feestje.</span></div>
       <div class="aboutInfoLine"><i class="fa-solid fa-folder-open"></i><span>Lijsten opslaan en later opnieuw gebruiken.</span></div>
       <div class="aboutInfoLine"><i class="fa-solid fa-chart-column"></i><span>Een overzicht bekijken van je boodschappen.</span></div>
     </div>
@@ -3501,10 +3515,10 @@ body.dark-theme .smartInsightsItem .siIcon{color:#9bc8a8!important}
     </div>
     <div class="helpSection">
       <div class="helpQuestion"><i class="fa-solid fa-users"></i><span>Familie gebruiken</span></div>
-      <p>Via Mijn familie kun je een nieuwe familie maken of met een familiecode aansluiten bij een bestaande familie.</p>
+      <p>Via Mijn familie kun je later een nieuwe familie maken of met een familiecode aansluiten bij een bestaande familie. Je kunt de app ook gewoon alleen gebruiken.</p>
     </div>
     <div class="helpSection">
-      <div class="helpQuestion"><i class="fa-solid fa-people-group"></i><span>Deellijsten</span></div>
+      <div class="helpQuestion"><i class="fa-solid fa-people-group"></i><span>Gedeelde lijsten</span></div>
       <p>Maak een aparte lijst voor bijvoorbeeld een feestje. Je kunt deelnemers toevoegen en de lijst samen gebruiken.</p>
     </div>
     <div class="helpSection">
@@ -3573,6 +3587,10 @@ body.dark-theme .smartInsightsItem .siIcon{color:#9bc8a8!important}
       </div>
     </button>
 
+    <button type="button" class="overview-more-insights-btn" onclick="toggleMoreInsights(this)" aria-expanded="false">
+      <span>Meer inzichten</span><i class="fa-solid fa-chevron-down"></i>
+    </button>
+    <div id="overviewMoreInsights" class="overview-more-insights" hidden>
     <section class="overview-dashboard-card smart-overview-card" aria-label="Slimme inzichten">
       <h3 class="overview-dashboard-heading"><i class="fa-solid fa-lightbulb"></i> Slimme inzichten</h3>
       <div class="smartInsightsIntro">
@@ -3606,6 +3624,7 @@ body.dark-theme .smartInsightsItem .siIcon{color:#9bc8a8!important}
         <button type="button" class="overview-dashboard-stat overview-stat-clickable" onclick="openWeekCompleted()" aria-label="Bekijk voltooide boodschappen van deze week"><strong id="overviewWeekCompleted">0</strong><span>Voltooid</span><i class="fa-solid fa-chevron-right"></i></button>
       </div>
     </section>
+    </div>
 
   </div>
   </div>
@@ -4626,8 +4645,11 @@ async function loadList() {
     if (!currentHouseholdId) {
       const householdId = await getOrCreateHousehold();
       if (!householdId) {
-        openUseModeModal();
-        return false;
+        // Nieuwe gebruikers starten direct met een persoonlijke lijst.
+        // Samenwerken blijft beschikbaar via Meer → Mijn familie.
+        if (user) localStorage.setItem("boodschappenUseMode_" + user.uid, "private");
+        await loadPrivateList();
+        return true;
       }
     }
 
@@ -4663,8 +4685,9 @@ async function loadList() {
           console.error("Oude familie-koppeling verwijderen mislukt:", cleanupError);
         }
       }
-      openUseModeModal();
-      return false;
+      if (user) localStorage.setItem("boodschappenUseMode_" + user.uid, "private");
+      await loadPrivateList();
+      return true;
     }
 
     const status = document.getElementById("status");
@@ -5325,10 +5348,9 @@ async function saveList() {
   if (!currentHouseholdId) {
     const householdId = await getOrCreateHousehold();
     if (!householdId) {
-      const status = document.getElementById("status");
-      if (status) status.innerText = "Kies eerst Nieuwe familie of Familiecode invoeren.";
-      openUseModeModal();
-      return false;
+      // Zonder familie is de gewone lijst een persoonlijke lijst.
+      await savePrivateList();
+      return true;
     }
   }
 
@@ -5402,8 +5424,8 @@ async function addProduct() {
   if (activeListType !== "shared" && !currentHouseholdId && !isPrivateMode()) {
     const householdId = await getOrCreateHousehold();
     if (!householdId) {
-      openUseModeModal();
-      return;
+      const user = auth.currentUser;
+      if (user) localStorage.setItem("boodschappenUseMode_" + user.uid, "private");
     }
   }
 
@@ -6676,10 +6698,11 @@ async function showFamilyMembers() {
 
     boodschappen = [];
     selectedIndex = -1;
-    showList();
-    updatePrivateStatus();
+    const currentUser = auth.currentUser;
+    if (currentUser) localStorage.setItem("boodschappenUseMode_" + currentUser.uid, "private");
+    activeListType = "private";
+    await loadPrivateList();
     await updateMemberCount();
-    openUseModeModal();
   } catch (error) {
     console.error("Familie verlaten mislukt:", error);
     const detail = error && error.code ? "\n\nFoutcode: " + error.code : "";
@@ -6779,6 +6802,14 @@ function unlockPageScroll() {
   document.body.classList.remove("modal-locked");
   document.body.style.top = "";
   window.scrollTo(0, scrollY);
+}
+
+function toggleMoreInsights(button){
+  const panel=document.getElementById("overviewMoreInsights");
+  if(!panel || !button) return;
+  const expanded=button.getAttribute("aria-expanded")==="true";
+  button.setAttribute("aria-expanded", expanded ? "false" : "true");
+  panel.hidden=expanded;
 }
 
 function openUseModeModal() {
@@ -7163,14 +7194,9 @@ function toggleRegisterPassword(fieldId, button) {
         await loadList();
         if (freshLogin && typeof showMainListView === "function") showMainListView();
       } else {
-        const savedMode = localStorage.getItem("boodschappenUseMode_" + user.uid);
-        if (savedMode === "private") {
-          await loadPrivateList();
-        } else if (savedMode === "skip") {
-          openAppWithoutList();
-        } else {
-          openUseModeModal();
-        }
+        // Eerste gebruik: direct een persoonlijke lijst, zonder keuzescherm.
+        localStorage.setItem("boodschappenUseMode_" + user.uid, "private");
+        await loadPrivateList();
       }
       await updateMemberCount();
       watchMemberCount();
@@ -8373,7 +8399,10 @@ async function handleBarcode(code){
 async function addScannedProduct(product){
   if(activeListType !== 'shared' && !currentHouseholdId && !isPrivateMode()){
     const householdId=await getOrCreateHousehold();
-    if(!householdId){openUseModeModal();return;}
+    if(!householdId){
+      const user=auth.currentUser;
+      if(user) localStorage.setItem("boodschappenUseMode_"+user.uid,"private");
+    }
   }
   boodschappen.push({
     text:product.text,
