@@ -8416,6 +8416,80 @@ document.addEventListener('visibilitychange',function(){
 })();
 </script>
 
+
+<script id="navigation-functions-fix">
+(function () {
+  function setActiveNav(id) {
+    document.querySelectorAll(".bottomNavBtn").forEach(function(btn) {
+      btn.classList.toggle("active", btn.id === id);
+    });
+  }
+
+  window.showMainListView = function () {
+    var app = document.querySelector(".app");
+    if (!app) return;
+
+    app.classList.remove("overview-active", "more-active");
+    setActiveNav("navList");
+
+    var overview = document.getElementById("overviewView");
+    if (overview) overview.style.display = "";
+
+    var menu = document.getElementById("familyMenu");
+    if (menu) {
+      menu.style.display = "none";
+      if (typeof __showOnlyMenuPage === "function") {
+        __showOnlyMenuPage("familyMenuMain");
+      }
+    }
+
+    if (typeof showList === "function") {
+      try { showList(); } catch (e) { console.warn("showList:", e); }
+    }
+  };
+
+  window.showOverviewView = function () {
+    var app = document.querySelector(".app");
+    if (!app) return;
+
+    app.classList.remove("more-active");
+    app.classList.add("overview-active");
+    setActiveNav("navOverview");
+
+    var menu = document.getElementById("familyMenu");
+    if (menu) menu.style.display = "none";
+
+    var overview = document.getElementById("overviewView");
+    if (overview) overview.style.display = "";
+
+    if (typeof refreshOverviewGreeting === "function") {
+      try { refreshOverviewGreeting(); } catch (e) {}
+    }
+  };
+
+  window.showMoreView = function () {
+    var app = document.querySelector(".app");
+    if (!app) return;
+
+    app.classList.remove("overview-active");
+    app.classList.add("more-active");
+    setActiveNav("navMore");
+
+    var overview = document.getElementById("overviewView");
+    if (overview) overview.style.display = "none";
+
+    var menu = document.getElementById("familyMenu");
+    if (menu) {
+      menu.style.display = "block";
+      if (typeof __cancelMenuTransition === "function") __cancelMenuTransition();
+      if (typeof __showOnlyMenuPage === "function") {
+        __showOnlyMenuPage("familyMenuMain");
+      }
+    }
+  };
+})();
+</script>
+
 </body>
 
 <style id="overview-dashboard-final">
