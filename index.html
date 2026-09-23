@@ -3195,50 +3195,18 @@ body.dark-theme .smartInsightsItem .siIcon{color:#9bc8a8!important}
 
 
 
-<style id="overview-sheet-single-animation">
-#overviewActionOverlay{
-  opacity:0;
-  pointer-events:none;
-  transition:opacity 220ms ease;
-}
-#overviewActionOverlay .overviewActionSheet{
-  transform:translate3d(0,110%,0);
-  opacity:1;
-  transition:transform 340ms cubic-bezier(.22,1,.36,1);
-  will-change:transform;
-  backface-visibility:hidden;
-}
-#overviewActionOverlay.is-open{
-  opacity:1;
-  pointer-events:auto;
-}
-#overviewActionOverlay.is-open .overviewActionSheet{
-  transform:translate3d(0,0,0);
-}
-#overviewActionOverlay.is-closing{
-  opacity:0;
-  pointer-events:none;
-}
-#overviewActionOverlay.is-closing .overviewActionSheet{
-  transform:translate3d(0,110%,0);
-}
-#overviewActionOverlay .overviewActionSheet > *{
-  animation:none!important;
-  transition:none!important;
-  transform:none!important;
-}
-#overviewActionOverlay .overviewActionClose{
-  width:40px!important;height:40px!important;
-  min-width:40px!important;min-height:40px!important;
-  padding:0!important;margin:0!important;
-  display:inline-flex!important;
-  align-items:center!important;justify-content:center!important;
-  box-sizing:border-box!important;
-  line-height:1!important;
-}
-</style>
 
-</head>
+
+<style id="overview-sheet-single-animation">
+#overviewActionOverlay{opacity:0;pointer-events:none;transition:opacity 180ms ease}
+#overviewActionOverlay .overviewActionSheet{transform:translate3d(0,100%,0);opacity:1;transition:transform 300ms cubic-bezier(.22,1,.36,1);will-change:transform}
+#overviewActionOverlay.is-open{opacity:1;pointer-events:auto}
+#overviewActionOverlay.is-open .overviewActionSheet{transform:translate3d(0,0,0)}
+#overviewActionOverlay.is-closing{opacity:0;pointer-events:none}
+#overviewActionOverlay.is-closing .overviewActionSheet{transform:translate3d(0,100%,0)}
+#overviewActionOverlay .overviewActionSheet > *{animation:none!important}
+#overviewActionOverlay .overviewActionClose{width:40px!important;height:40px!important;min-width:40px!important;min-height:40px!important;padding:0!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important;line-height:1!important}
+</style></head>
 
 <body>
 <div id="loginScreen">
@@ -5857,6 +5825,14 @@ function closeSharedListsSubmenu(event) {
 
   const h = document.querySelector(".headerBar h1");
   if (h) h.textContent = "Boodschappenlijst";
+  const normalTrash=document.getElementById("mainListTrashButton");
+  if(normalTrash){
+    normalTrash.style.display="inline-flex";
+    normalTrash.classList.remove("sharedModeTrash");
+    normalTrash.setAttribute("aria-label","Lijst wissen");
+    normalTrash.setAttribute("title","Lijst wissen");
+    normalTrash.onclick=function(event){ openClearListConfirm(event); };
+  }
   loadList().catch(()=>{});
 }
 
@@ -6222,6 +6198,7 @@ async function openSharedList(id, showInvite){
     }
 
     boodschappen=normalizeBoodschappen(v.boodschappen||[]);
+    currentListName = String(v.name || "Deellijst");
     currentSharedListInviteCode = v.inviteCode || null;
     if(currentSharedListInviteCode){
       try{ localStorage.setItem("sharedListInviteCode:"+id,String(currentSharedListInviteCode)); }catch(_){}
@@ -6255,6 +6232,7 @@ async function openSharedList(id, showInvite){
         return;
       }
       boodschappen=normalizeBoodschappen(data.boodschappen||[]);
+      currentListName = String(data.name || "Deellijst");
       showList();
       const header=document.querySelector(".headerBar h1"); if(header) header.textContent=data.name||"Deellijst";
       updateSharedMemberCount(data);
@@ -6281,33 +6259,22 @@ async function openSharedList(id, showInvite){
 function updateSharedDeleteButton(isOwner){
   const header=document.querySelector(".headerBar");
   const normalTrash=document.getElementById("mainListTrashButton");
-  if(!header) return;
+  if(!header || !normalTrash) return;
+
+  const sharedActive = activeListType==="shared" && !!currentSharedListId;
+
+  // Eén prullenbak in de header: dezelfde knop voor normaal en gedeeld.
+  // Bij een gedeelde lijst krijgt die knop alleen een andere actie.
+  normalTrash.style.display = "inline-flex";
+  normalTrash.classList.toggle("sharedModeTrash", sharedActive);
+  normalTrash.setAttribute("aria-label", sharedActive ? "Gedeelde lijst verwijderen" : "Lijst wissen");
+  normalTrash.setAttribute("title", sharedActive ? "Gedeelde lijst verwijderen" : "Lijst wissen");
+  normalTrash.onclick = sharedActive
+    ? function(event){ if(event) event.stopPropagation(); deleteCurrentSharedList(); }
+    : function(event){ openClearListConfirm(event); };
 
   const old=document.getElementById("deleteSharedListBtn");
   if(old) old.remove();
-
-  const sharedActive = activeListType==="shared" && !!currentSharedListId;
-  // In een Deellijst mag er nooit ook nog een tweede, normale lijst-prullenbak
-  // zichtbaar zijn. De Deellijst gebruikt dezelfde trash-can als de gewone lijst.
-  if(normalTrash) normalTrash.style.display = sharedActive ? "none" : "inline-flex";
-
-  if(!sharedActive || !isOwner) return;
-
-  const btn=document.createElement("button");
-  btn.type="button";
-  btn.id="deleteSharedListBtn";
-  btn.className="familyButton sharedDeleteIconButton";
-  btn.setAttribute("aria-label","Deellijst verwijderen");
-  btn.setAttribute("title","Deellijst verwijderen");
-  btn.innerHTML='<i class="fa-solid fa-trash-can"></i>';
-  btn.onclick=deleteCurrentSharedList;
-
-  const options=document.getElementById("listOptionsButton");
-  if(options && options.parentElement===header){
-    header.insertBefore(btn, options);
-  }else{
-    header.appendChild(btn);
-  }
 }
 
 async function deleteCurrentSharedList(){
@@ -7770,9 +7737,9 @@ function __overviewAddProduct(product){
 async function openQuickAddFromOverview(){
   var overlay=__overviewOverlay("Snel opnieuw toevoegen");
   var body=overlay.querySelector(".overviewActionBody");
-  __overviewOpenSheet(overlay);
 
-  // Toon de sheet direct. Gebruik eerst lokaal beschikbare data zodat de animatie
+  // Render lokale inhoud volledig vóór de animatie, zodat titel en inhoud
+  // als één geheel omhoog bewegen.
   // niet wacht op Firebase; ververs daarna op de achtergrond met de clouddata.
   function renderQuick(sources){
     var counts={};
@@ -7813,6 +7780,7 @@ async function openQuickAddFromOverview(){
   var localHistory=[];
   try{ localHistory=JSON.parse(localStorage.getItem(__overviewAccountKey("history"))||"[]")||[]; }catch(_){}
   renderQuick([].concat(localSaved.map(function(x){return x.items||[];}), localHistory.map(function(x){return x.items||[];}), [Array.isArray(boodschappen)?boodschappen:[]]));
+  __overviewOpenSheet(overlay);
 
   try{
     var saved=await readSavedLists();
@@ -7825,7 +7793,6 @@ async function openQuickAddFromOverview(){
 async function openShoppingHistoryFromOverview(){
   var overlay=__overviewOverlay("Boodschappenhistorie");
   var body=overlay.querySelector(".overviewActionBody");
-  __overviewOpenSheet(overlay);
 
   function renderHistory(entries){
     body.innerHTML="";
@@ -7860,6 +7827,7 @@ async function openShoppingHistoryFromOverview(){
   var localSaved=readSavedListsLocal();
   var localEntries=localHistory.length ? localHistory : localSaved.map(function(x){return {savedAt:x.savedAt,items:x.items,name:x.name};});
   renderHistory(localEntries);
+  __overviewOpenSheet(overlay);
 
   try{
     var history=await readOverviewHistory();
