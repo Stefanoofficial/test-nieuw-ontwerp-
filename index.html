@@ -3195,50 +3195,18 @@ body.dark-theme .smartInsightsItem .siIcon{color:#9bc8a8!important}
 
 
 
-<style id="overview-sheet-single-animation">
-#overviewActionOverlay{
-  opacity:0;
-  pointer-events:none;
-  transition:opacity 220ms ease;
-}
-#overviewActionOverlay .overviewActionSheet{
-  transform:translate3d(0,110%,0);
-  opacity:1;
-  transition:transform 340ms cubic-bezier(.22,1,.36,1);
-  will-change:transform;
-  backface-visibility:hidden;
-}
-#overviewActionOverlay.is-open{
-  opacity:1;
-  pointer-events:auto;
-}
-#overviewActionOverlay.is-open .overviewActionSheet{
-  transform:translate3d(0,0,0);
-}
-#overviewActionOverlay.is-closing{
-  opacity:0;
-  pointer-events:none;
-}
-#overviewActionOverlay.is-closing .overviewActionSheet{
-  transform:translate3d(0,110%,0);
-}
-#overviewActionOverlay .overviewActionSheet > *{
-  animation:none!important;
-  transition:none!important;
-  transform:none!important;
-}
-#overviewActionOverlay .overviewActionClose{
-  width:40px!important;height:40px!important;
-  min-width:40px!important;min-height:40px!important;
-  padding:0!important;margin:0!important;
-  display:inline-flex!important;
-  align-items:center!important;justify-content:center!important;
-  box-sizing:border-box!important;
-  line-height:1!important;
-}
-</style>
 
-</head>
+
+<style id="overview-no-delay">
+#overviewActionOverlay{transition:opacity 180ms ease;}
+#overviewActionOverlay .overviewActionSheet{
+ transform:translate3d(0,100%,0);
+ transition:transform 280ms cubic-bezier(.22,1,.36,1);
+ will-change:transform;
+}
+#overviewActionOverlay.is-open .overviewActionSheet,
+#overviewActionOverlay.open .overviewActionSheet{transform:translate3d(0,0,0);}
+</style></head>
 
 <body>
 <div id="loginScreen">
@@ -8922,7 +8890,15 @@ document.addEventListener('visibilitychange',function(){
 </script>
 
 
-</body>
+<script id="greeting-midnight-helper">
+window.getOverviewGreeting = window.getOverviewGreeting || function(hour){
+ hour=(typeof hour==="number")?hour:new Date().getHours();
+ if(hour>=0 && hour<5) return "Goedenacht";
+ if(hour>=5 && hour<12) return "Goedemorgen";
+ if(hour>=12 && hour<18) return "Goedemiddag";
+ return "Goedenavond";
+};
+</script></body>
 
 <style id="overview-dashboard-final">
 .overview-dashboard-card{background:#fff;border:1px solid #e1ece4;border-radius:16px;padding:15px;margin:0 0 11px;box-shadow:0 2px 8px rgba(40,70,50,.05)}
