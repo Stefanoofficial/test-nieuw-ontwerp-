@@ -3195,31 +3195,49 @@ body.dark-theme .smartInsightsItem .siIcon{color:#9bc8a8!important}
 
 
 
-
-
 <style id="overview-sheet-single-animation">
-#overviewActionOverlay{opacity:0;pointer-events:none;transition:opacity 180ms ease}
-#overviewActionOverlay .overviewActionSheet{transform:translate3d(0,100%,0);opacity:1;transition:transform 300ms cubic-bezier(.22,1,.36,1);will-change:transform}
-#overviewActionOverlay.is-open{opacity:1;pointer-events:auto}
-#overviewActionOverlay.is-open .overviewActionSheet{transform:translate3d(0,0,0)}
-#overviewActionOverlay.is-closing{opacity:0;pointer-events:none}
-#overviewActionOverlay.is-closing .overviewActionSheet{transform:translate3d(0,100%,0)}
-#overviewActionOverlay .overviewActionSheet > *{animation:none!important}
-#overviewActionOverlay .overviewActionClose{width:40px!important;height:40px!important;min-width:40px!important;min-height:40px!important;padding:0!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important;line-height:1!important}
-</style>
-<style id="atomic-list-switch">
-/* Houd het lijstscherm tijdens het wisselen verborgen tot de nieuwe lijstnaam
-   en producten klaar zijn. Daardoor zie je nooit eerst de oude lijst en daarna
-   pas BBQ/opgeslagen lijst. */
-body.list-switching #mainList,
-body.list-switching .listView,
-body.list-switching #shoppingList {
-  visibility:hidden !important;
+#overviewActionOverlay{
+  opacity:0;
+  pointer-events:none;
+  transition:opacity 220ms ease;
 }
-body.list-switching .app {
-  opacity:1 !important;
+#overviewActionOverlay .overviewActionSheet{
+  transform:translate3d(0,110%,0);
+  opacity:1;
+  transition:transform 340ms cubic-bezier(.22,1,.36,1);
+  will-change:transform;
+  backface-visibility:hidden;
+}
+#overviewActionOverlay.is-open{
+  opacity:1;
+  pointer-events:auto;
+}
+#overviewActionOverlay.is-open .overviewActionSheet{
+  transform:translate3d(0,0,0);
+}
+#overviewActionOverlay.is-closing{
+  opacity:0;
+  pointer-events:none;
+}
+#overviewActionOverlay.is-closing .overviewActionSheet{
+  transform:translate3d(0,110%,0);
+}
+#overviewActionOverlay .overviewActionSheet > *{
+  animation:none!important;
+  transition:none!important;
+  transform:none!important;
+}
+#overviewActionOverlay .overviewActionClose{
+  width:40px!important;height:40px!important;
+  min-width:40px!important;min-height:40px!important;
+  padding:0!important;margin:0!important;
+  display:inline-flex!important;
+  align-items:center!important;justify-content:center!important;
+  box-sizing:border-box!important;
+  line-height:1!important;
 }
 </style>
+
 </head>
 
 <body>
@@ -4331,7 +4349,6 @@ async function deleteAccountFromMenu() {
     explicitLogoutInProgress = true;
     loginFlowActive = false;
     currentHouseholdId = null;
-    if (auth.currentUser) { try { localStorage.removeItem("activeSharedList:" + auth.currentUser.uid); } catch (_) {} }
     currentSharedListId = null;
     currentSharedListInviteCode = null;
     activeListType = "family";
@@ -5802,23 +5819,24 @@ async function getOrCreateHousehold() {
   }
 }
 
-function openSharedListsSubmenu(event) {
+async function openSharedListsSubmenu(event) {
   if (event) event.stopPropagation();
-
-  // De hele Gedeelde-lijstenpagina wordt direct als één geheel getoond.
-  // De lijstcontainer krijgt eerst één vaste status; Firebase vult daarna alleen
-  // de inhoud van die container en veroorzaakt geen extra paginabeweging.
-  const box=document.getElementById("sharedListsContainer");
-  if(box) box.innerHTML='<div class="sharedListEmpty">Gedeelde lijsten laden…</div>';
-
   switchMenuPage("sharedListsMenuSub", event);
-
   const countEl=document.getElementById("sharedMemberCount");
   if(countEl){
-    countEl.textContent = (activeListType==="shared" && currentSharedListId) ? "…" : "—";
+    if(activeListType==="shared" && currentSharedListId){
+      try{
+        const snap=await database.ref("sharedLists/" + currentSharedListId + "/members").once("value");
+        const members=snap.val()||{};
+        countEl.textContent=String(Object.keys(members).filter(uid=>members[uid]===true).length);
+      }catch(_){
+        countEl.textContent="0";
+      }
+    }else{
+      countEl.textContent="—";
+    }
   }
-
-  renderSharedLists().catch(error => console.error("Gedeelde lijsten laden mislukt:", error));
+  await renderSharedLists();
 }
 function closeSharedListsSubmenu(event) {
   if (event) event.stopPropagation();
@@ -5836,7 +5854,6 @@ function closeSharedListsSubmenu(event) {
   }
 
   activeListType = "family";
-  if (auth && auth.currentUser) { try { localStorage.removeItem("activeSharedList:" + auth.currentUser.uid); } catch (_) {} }
   if (currentSharedListUnsubscribe) {
     currentSharedListUnsubscribe();
     currentSharedListUnsubscribe = null;
@@ -5846,14 +5863,6 @@ function closeSharedListsSubmenu(event) {
 
   const h = document.querySelector(".headerBar h1");
   if (h) h.textContent = "Boodschappenlijst";
-  const normalTrash=document.getElementById("mainListTrashButton");
-  if(normalTrash){
-    normalTrash.style.display="inline-flex";
-    normalTrash.classList.remove("sharedModeTrash");
-    normalTrash.setAttribute("aria-label","Lijst wissen");
-    normalTrash.setAttribute("title","Lijst wissen");
-    normalTrash.onclick=function(event){ openClearListConfirm(event); };
-  }
   loadList().catch(()=>{});
 }
 
@@ -6196,7 +6205,6 @@ async function openSharedList(id, showInvite){
   activeListType = "shared";
   currentSharedListId = id;
   currentSharedListInviteCode = null;
-  try { localStorage.setItem("activeSharedList:" + user.uid, String(id)); } catch (_) {}
 
   if(currentSharedListUnsubscribe){
     currentSharedListUnsubscribe();
@@ -6219,7 +6227,6 @@ async function openSharedList(id, showInvite){
     }
 
     boodschappen=normalizeBoodschappen(v.boodschappen||[]);
-    currentListName = String(v.name || "Deellijst");
     currentSharedListInviteCode = v.inviteCode || null;
     if(currentSharedListInviteCode){
       try{ localStorage.setItem("sharedListInviteCode:"+id,String(currentSharedListInviteCode)); }catch(_){}
@@ -6253,7 +6260,6 @@ async function openSharedList(id, showInvite){
         return;
       }
       boodschappen=normalizeBoodschappen(data.boodschappen||[]);
-      currentListName = String(data.name || "Deellijst");
       showList();
       const header=document.querySelector(".headerBar h1"); if(header) header.textContent=data.name||"Deellijst";
       updateSharedMemberCount(data);
@@ -6279,23 +6285,31 @@ async function openSharedList(id, showInvite){
 
 function updateSharedDeleteButton(isOwner){
   const header=document.querySelector(".headerBar");
-  const normalTrash=document.getElementById("mainListTrashButton");
-  if(!header || !normalTrash) return;
-
-  const sharedActive = activeListType==="shared" && !!currentSharedListId;
-
-  // Eén prullenbak in de header: dezelfde knop voor normaal en gedeeld.
-  // Bij een gedeelde lijst krijgt die knop alleen een andere actie.
-  normalTrash.style.display = "inline-flex";
-  normalTrash.classList.toggle("sharedModeTrash", sharedActive);
-  normalTrash.setAttribute("aria-label", sharedActive ? "Gedeelde lijst verwijderen" : "Lijst wissen");
-  normalTrash.setAttribute("title", sharedActive ? "Gedeelde lijst verwijderen" : "Lijst wissen");
-  normalTrash.onclick = sharedActive
-    ? function(event){ if(event) event.stopPropagation(); deleteCurrentSharedList(); }
-    : function(event){ openClearListConfirm(event); };
+  if(!header) return;
 
   const old=document.getElementById("deleteSharedListBtn");
   if(old) old.remove();
+
+  // Alleen tonen wanneer er daadwerkelijk een Deellijst geopend is.
+  // De knop gebruikt bewust dezelfde prullenbakknop als de rest van de app.
+  if(activeListType!=="shared" || !currentSharedListId) return;
+
+  const btn=document.createElement("button");
+  btn.type="button";
+  btn.id="deleteSharedListBtn";
+  btn.className="familyButton sharedDeleteIconButton";
+  btn.setAttribute("aria-label","Deellijst verwijderen");
+  btn.setAttribute("title","Deellijst verwijderen");
+  btn.innerHTML='<i class="fa-solid fa-trash"></i>';
+  btn.onclick=deleteCurrentSharedList;
+
+  // Plaats de knop direct vóór de bestaande drie-puntjesknop.
+  const options=document.getElementById("listOptionsButton");
+  if(options && options.parentElement===header){
+    header.insertBefore(btn, options);
+  }else{
+    header.appendChild(btn);
+  }
 }
 
 async function deleteCurrentSharedList(){
@@ -6360,7 +6374,6 @@ async function deleteCurrentSharedList(){
   activeListType="family";
   currentSharedListId=null;
   currentSharedListInviteCode=null;
-  try { localStorage.removeItem("activeSharedList:" + user.uid); } catch (_) {}
   const delBtn=document.getElementById("deleteSharedListBtn");
   if(delBtn) delBtn.remove();
 
@@ -6406,7 +6419,6 @@ async function returnToFamilyListFromSharedMenu(event){
   // de gewone boodschappenlijst gaan, niet één niveau terug in het menu.
   activeListType="family";
   if(currentSharedListId){ try{ localStorage.removeItem("sharedListInviteCode:"+currentSharedListId); }catch(_){} }
-  try { localStorage.removeItem("activeSharedList:" + auth.currentUser.uid); } catch (_) {}
   currentSharedListId=null;
   currentSharedListInviteCode=null;
   if(currentSharedListUnsubscribe){ currentSharedListUnsubscribe(); currentSharedListUnsubscribe=null; }
@@ -6421,9 +6433,6 @@ async function returnToFamilyListFromSharedMenu(event){
   __showOnlyMenuPage("familyMenuMain");
 
   showMainListView();
-  currentListName="Boodschappenlijst";
-  const header=document.querySelector(".headerBar h1");
-  if(header) header.textContent="Boodschappenlijst";
   await loadList();
 }
 
@@ -6445,7 +6454,6 @@ async function returnToFamilyList(event){
 
   activeListType="family";
   if(currentSharedListId){ try{ localStorage.removeItem("sharedListInviteCode:"+currentSharedListId); }catch(_){} }
-  try { localStorage.removeItem("activeSharedList:" + auth.currentUser.uid); } catch (_) {}
   currentSharedListId=null;
   currentSharedListInviteCode=null;
   if(currentSharedListUnsubscribe){ currentSharedListUnsubscribe(); currentSharedListUnsubscribe=null; }
@@ -6455,17 +6463,13 @@ async function returnToFamilyList(event){
 
   if(menu){
     menu.classList.remove("menu-open");
-    menu.style.display="none";
   }
 
+  await new Promise(resolve=>setTimeout(resolve,290));
   if(activePage){ activePage.style.display="none"; __resetMenuPageClasses(activePage); }
   __cancelMenuTransition();
   __showOnlyMenuPage("familyMenuMain");
 
-  // Na het sluiten van een Deellijst is de gewone boodschappenlijst weer actief.
-  currentListName="Boodschappenlijst";
-  const header=document.querySelector(".headerBar h1");
-  if(header) header.textContent="Boodschappenlijst";
   await loadList();
 }
 
@@ -7392,23 +7396,6 @@ function toggleRegisterPassword(fieldId, button) {
         return;
       }
 
-      // Herstel een Deellijst die actief was toen de webapp werd vernieuwd.
-      // Zo springt de kop niet tijdelijk terug naar “Boodschappenlijst”.
-      const savedActiveSharedId = localStorage.getItem("activeSharedList:" + user.uid);
-      if (savedActiveSharedId && !freshLogin) {
-        try {
-          await openSharedList(savedActiveSharedId, false);
-          if (activeListType === "shared" && currentSharedListId === savedActiveSharedId) {
-            await updateMemberCount();
-            watchMemberCount();
-            return;
-          }
-        } catch (restoreError) {
-          console.warn("Actieve Deellijst herstellen mislukt:", restoreError);
-        }
-        try { localStorage.removeItem("activeSharedList:" + user.uid); } catch (_) {}
-      }
-
       // Toon de persoonlijke lijst direct na een nieuwe login.
       // Zo hoeft de gebruiker niet te wachten op de extra Firebase-controle
       // voor een eventuele familie. Als er wél een familie is, schakelen we
@@ -7766,107 +7753,92 @@ async function openQuickAddFromOverview(){
   var overlay=__overviewOverlay("Snel opnieuw toevoegen");
   var body=overlay.querySelector(".overviewActionBody");
 
-  // Render lokale inhoud volledig vóór de animatie, zodat titel en inhoud
-  // als één geheel omhoog bewegen.
-  // niet wacht op Firebase; ververs daarna op de achtergrond met de clouddata.
-  function renderQuick(sources){
-    var counts={};
-    sources.flat().forEach(function(item){
-      var text=typeof item==="string"?item:(item&&item.text);
-      if(!text) return;
-      text=String(text).trim();
-      var key=text.toLowerCase();
-      if(!counts[key]) counts[key]={text:text,count:0};
-      counts[key].count++;
-    });
-    var products=Object.keys(counts).map(function(k){return counts[k];})
-      .sort(function(a,b){return b.count-a.count || a.text.localeCompare(b.text,"nl");}).slice(0,10);
-    body.innerHTML="";
-    if(!products.length){
-      body.innerHTML='<div class="overviewActionMuted">Er zijn nog geen producten om opnieuw toe te voegen.</div>';
-      return;
-    }
-    var grid=document.createElement("div");
-    grid.className="overviewActionProductGrid";
-    products.forEach(function(p){
-      var btn=document.createElement("button");
-      btn.type="button"; btn.className="overviewActionProduct";
-      btn.innerHTML='<span></span><i class="fa-solid fa-plus"></i>';
-      btn.querySelector("span").textContent=p.text;
-      btn.addEventListener("click",function(){
-        __overviewAddProduct(p.text);
-        btn.classList.add("added");
-        btn.querySelector("i").className="fa-solid fa-check";
-        setTimeout(function(){btn.classList.remove("added");btn.querySelector("i").className="fa-solid fa-plus";},900);
-      });
-      grid.appendChild(btn);
-    });
-    body.appendChild(grid);
-  }
-
-  var localSaved=readSavedListsLocal();
-  var localHistory=[];
-  try{ localHistory=JSON.parse(localStorage.getItem(__overviewAccountKey("history"))||"[]")||[]; }catch(_){}
-  renderQuick([].concat(localSaved.map(function(x){return x.items||[];}), localHistory.map(function(x){return x.items||[];}), [Array.isArray(boodschappen)?boodschappen:[]]));
-  __overviewOpenSheet(overlay);
-
+  var sources=[];
   try{
     var saved=await readSavedLists();
-    var history=await readOverviewHistory();
-    renderQuick([].concat(saved.map(function(x){return x.items||[];}), history.map(function(x){return x.items||[];}), [Array.isArray(boodschappen)?boodschappen:[]]));
+    sources=sources.concat(saved.map(function(x){return x.items||[];}));
   }catch(_){}
-}
-
-
-async function openShoppingHistoryFromOverview(){
-  // Haal de volledige inhoud eerst op. De sheet wordt pas zichtbaar wanneer
-  // titel én inhoud al klaarstaan, zodat er geen tweede "laadbeweging" ontstaat.
-  var localHistory=[];
-  try{ localHistory=JSON.parse(localStorage.getItem(__overviewAccountKey("history"))||"[]")||[]; }catch(_){}
-  var localSaved=readSavedListsLocal();
-  var localEntries=localHistory.length ? localHistory : localSaved.map(function(x){
-    return {savedAt:x.savedAt,items:x.items,name:x.name};
-  });
-
-  var entries=localEntries;
   try{
-    var remote=await readOverviewHistory();
-    if(Array.isArray(remote) && remote.length) entries=remote;
+    var history=await readOverviewHistory();
+    sources=sources.concat(history.map(function(x){return x.items||[];}));
   }catch(_){}
+  sources.push(Array.isArray(boodschappen)?boodschappen:[]);
 
-  var overlay=__overviewOverlay("Boodschappenhistorie");
-  var body=overlay.querySelector(".overviewActionBody");
+  var counts={};
+  sources.flat().forEach(function(item){
+    var text=typeof item==="string"?item:(item&&item.text);
+    if(!text) return;
+    text=String(text).trim();
+    var key=text.toLowerCase();
+    if(!counts[key]) counts[key]={text:text,count:0};
+    counts[key].count++;
+  });
+  var products=Object.keys(counts).map(function(k){return counts[k];})
+    .sort(function(a,b){return b.count-a.count || a.text.localeCompare(b.text,"nl");}).slice(0,10);
+
   body.innerHTML="";
-
-  if(!entries.length){
-    body.innerHTML='<div class="overviewActionMuted">Je hebt nog geen eerdere boodschappen.</div>';
-  }else{
-    entries.slice(0,20).forEach(function(entry){
-      var card=document.createElement("div");
-      card.className="overviewHistoryCard";
-      var date=entry.savedAt?new Date(entry.savedAt).toLocaleDateString("nl-NL",{day:"numeric",month:"long",year:"numeric"}):"";
-      var items=(entry.items||[]).map(function(x){return typeof x==="string"?x:(x&&x.text)||"";}).filter(Boolean);
-      card.innerHTML='<div class="overviewHistoryCardTop"><strong></strong><small></small></div><div class="overviewHistoryItems"></div><button type="button" class="overviewHistoryUse">Opnieuw gebruiken</button>';
-      card.querySelector("strong").textContent=entry.name || (items.length+" product"+(items.length===1?"":"en"));
-      card.querySelector("small").textContent=date;
-      card.querySelector(".overviewHistoryItems").textContent=items.slice(0,6).join(" · ")+(items.length>6?" · …":"");
-      card.querySelector(".overviewHistoryUse").addEventListener("click",async function(){
-        boodschappen=normalizeBoodschappen(entry.items||[]);
-        currentListName=String(entry.name||"Boodschappenlijst");
-        selectedIndex=-1;
-        overlay.remove();
-        showMainListView();
-        showList();
-        await saveList();
-      });
-      body.appendChild(card);
-    });
+  if(!products.length){
+    body.innerHTML='<div class="overviewActionMuted">Er zijn nog geen producten om opnieuw toe te voegen.</div>';
+    __overviewOpenSheet(overlay);
+    return;
   }
-
+  var grid=document.createElement("div");
+  grid.className="overviewActionProductGrid";
+  products.forEach(function(p){
+    var btn=document.createElement("button");
+    btn.type="button"; btn.className="overviewActionProduct";
+    btn.innerHTML='<span></span><i class="fa-solid fa-plus"></i>';
+    btn.querySelector("span").textContent=p.text;
+    btn.addEventListener("click",function(){
+      __overviewAddProduct(p.text);
+      btn.classList.add("added");
+      btn.querySelector("i").className="fa-solid fa-check";
+      setTimeout(function(){btn.classList.remove("added");btn.querySelector("i").className="fa-solid fa-plus";},900);
+    });
+    grid.appendChild(btn);
+  });
+  body.appendChild(grid);
   __overviewOpenSheet(overlay);
 }
 
+async function openShoppingHistoryFromOverview(){
+  var overlay=__overviewOverlay("Boodschappenhistorie");
+  var body=overlay.querySelector(".overviewActionBody");
+  var history=await readOverviewHistory();
+  var saved=[];
+  try{saved=await readSavedLists();}catch(_){}
 
+  var entries=history.length ? history : saved.map(function(x){return {savedAt:x.savedAt,items:x.items,name:x.name};});
+  body.innerHTML="";
+  if(!entries.length){
+    body.innerHTML='<div class="overviewActionMuted">Je hebt nog geen eerdere boodschappen.</div>';
+    __overviewOpenSheet(overlay);
+    return;
+  }
+  entries.slice(0,20).forEach(function(entry){
+    var card=document.createElement("div");
+    card.className="overviewHistoryCard";
+    var date=entry.savedAt?new Date(entry.savedAt).toLocaleDateString("nl-NL",{day:"numeric",month:"long",year:"numeric"}):"";
+    var items=(entry.items||[]).map(function(x){return typeof x==="string"?x:(x&&x.text)||"";}).filter(Boolean);
+    card.innerHTML='<div class="overviewHistoryCardTop"><strong></strong><small></small></div><div class="overviewHistoryItems"></div><button type="button" class="overviewHistoryUse">Opnieuw gebruiken</button>';
+    card.querySelector("strong").textContent=entry.name || (items.length+" product"+(items.length===1?"":"en"));
+    card.querySelector("small").textContent=date;
+    card.querySelector(".overviewHistoryItems").textContent=items.slice(0,6).join(" · ")+(items.length>6?" · …":"");
+    card.querySelector(".overviewHistoryUse").addEventListener("click",async function(){
+      boodschappen=normalizeBoodschappen(entry.items||[]);
+      currentListName=String(entry.name||"Boodschappenlijst");
+      selectedIndex=-1;
+      overlay.remove();
+      showMainListView();
+      showList();
+      await saveList();
+    });
+    body.appendChild(card);
+  });
+  __overviewOpenSheet(overlay);
+}
+
+/* Klikbare onderdelen in het overzicht gebruiken deze functies direct. */
 function __calendarWeekStartMs(nowMs){
   var d=new Date(nowMs||Date.now());
   d.setHours(0,0,0,0);
@@ -7986,7 +7958,7 @@ var __overviewNameCache = "";
 
 async function refreshOverviewGreeting(){
   var h = new Date().getHours();
-  var greeting = h<5 ? "Goedenacht" : (h<12 ? "Goedemorgen" : (h<18 ? "Goedemiddag" : "Goedenavond"));
+  var greeting = h>=5 && h<12 ? "Goedemorgen" : (h>=12 && h<18 ? "Goedemiddag" : "Goedenavond");
   var el = document.getElementById("overviewGreetingNew");
   if (!el) return;
 
@@ -8950,47 +8922,6 @@ document.addEventListener('visibilitychange',function(){
 </script>
 
 
-
-<script id="atomic-list-switch-runtime">
-(function(){
-  var switchingUntil = 0;
-  function beginSwitch(){
-    switchingUntil = Date.now() + 800;
-    document.body.classList.add("list-switching");
-  }
-  function finishSwitch(){
-    requestAnimationFrame(function(){
-      requestAnimationFrame(function(){
-        document.body.classList.remove("list-switching");
-      });
-    });
-  }
-
-  // Capture clicks on saved/shared list cards before their handlers run.
-  // The existing handlers continue unchanged; this only hides the old list.
-  document.addEventListener("click", function(e){
-    var el=e.target.closest && e.target.closest(
-      '[data-list-id],[data-list-name],[data-shared-list],.savedListItem,.sharedListItem,.saved-list-item,.shared-list-item'
-    );
-    if(el){
-      beginSwitch();
-      setTimeout(finishSwitch, 450);
-    }
-  }, true);
-
-  // If the app exposes the selected name, wait until the browser has painted it.
-  var last="";
-  setInterval(function(){
-    var name = window.currentListName;
-    if(name && name !== last){
-      last=name;
-      if(document.body.classList.contains("list-switching")){
-        setTimeout(finishSwitch, 120);
-      }
-    }
-  }, 60);
-})();
-</script>
 </body>
 
 <style id="overview-dashboard-final">
