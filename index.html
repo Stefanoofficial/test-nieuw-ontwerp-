@@ -7962,163 +7962,443 @@ body.dark-theme .clearListCancel{background:#303a33;color:#e5ece7}
 /*
  * Cross-platform barcode scanner without a third-party scanner library.
  * Camera: native getUserMedia().
- * Detection: BarcodeDetector when the browser provides it, with a local
- * EAN-8/EAN-13 decoder as the iOS/Safari fallback.
+ * Decoder: small local EAN-8/EAN-13 decoder for supermarket barcodes.
  */
-let barcodeStream=null, barcodeVideo=null, barcodeCanvas=null, barcodeCtx=null;
-let barcodeScanRunning=false, barcodeScanBusy=false, barcodeScanFrame=0;
-let barcodeLastScan=0, barcodeBusy=false, barcodeDetector=null, barcodeDetectorBusy=false;
+let barcodeStream = null;
+let barcodeVideo = null;
+let barcodeCanvas = null;
+let barcodeCtx = null;
+let barcodeScanRunning = false;
+let barcodeScanBusy = false;
+let barcodeScanFrame = 0;
+let barcodeLastScan = 0;
+let barcodeBusy = false;
 
-const EAN_L={0:[3,2,1,1],1:[2,2,2,1],2:[2,1,2,2],3:[1,4,1,1],4:[1,1,3,2],5:[1,2,3,1],6:[1,1,1,4],7:[1,3,1,2],8:[1,2,1,3],9:[3,1,1,2]};
-const EAN_G={0:[1,1,2,3],1:[1,2,2,2],2:[2,2,1,2],3:[1,1,4,1],4:[2,3,1,1],5:[1,3,2,1],6:[4,1,1,1],7:[2,1,3,1],8:[3,1,2,1],9:[2,1,1,3]};
-const EAN_PARITY={'LLLLLL':'0','LLGLGG':'1','LLGGLG':'2','LLGGGL':'3','LGLLGG':'4','LGGLLG':'5','LGGGLL':'6','LGLGLG':'7','LGLGGL':'8','LGGLGL':'9'};
+const EAN_L = {
+  0:[3,2,1,1], 1:[2,2,2,1], 2:[2,1,2,2], 3:[1,4,1,1], 4:[1,1,3,2],
+  5:[1,2,3,1], 6:[1,1,1,4], 7:[1,3,1,2], 8:[1,2,1,3], 9:[3,1,1,2]
+};
+const EAN_G = {
+  0:[1,1,2,3], 1:[1,2,2,2], 2:[2,2,1,2], 3:[1,1,4,1], 4:[2,3,1,1],
+  5:[1,3,2,1], 6:[4,1,1,1], 7:[2,1,3,1], 8:[3,1,2,1], 9:[2,1,1,3]
+};
+const EAN_R = EAN_L;
+const EAN_PARITY = {
+  'LLLLLL':'0','LLGLGG':'1','LLGGLG':'2','LLGGGL':'3','LGLLGG':'4',
+  'LGGLLG':'5','LGGGLL':'6','LGLGLG':'7','LGLGGL':'8','LGGLGL':'9'
+};
 
-function setBarcodeStatus(text){const el=document.getElementById('barcodeStatus');if(el)el.textContent=text;}
-function checksumEAN(code){const s=String(code||'').replace(/\D/g,'');if(s.length===13){let sum=0;for(let i=0;i<12;i++)sum+=+s[i]*(i%2?3:1);return (10-sum%10)%10===+s[12];}if(s.length===8){let sum=0;for(let i=0;i<7;i++)sum+=+s[i]*(i%2?1:3);return (10-sum%10)%10===+s[7];}return false;}
+function setBarcodeStatus(text){
+  const el=document.getElementById('barcodeStatus');
+  if(el) el.textContent=text;
+}
 
 function stopBarcodeCamera(){
-  barcodeScanRunning=false;barcodeScanBusy=false;barcodeDetectorBusy=false;
-  if(barcodeScanFrame){cancelAnimationFrame(barcodeScanFrame);barcodeScanFrame=0;}
-  if(barcodeStream){try{barcodeStream.getTracks().forEach(t=>t.stop());}catch(_){} barcodeStream=null;}
-  if(barcodeVideo){try{barcodeVideo.pause();}catch(_){} try{barcodeVideo.srcObject=null;}catch(_){} }
-}
-function ensureBarcodeCanvas(){
-  if(!barcodeCanvas){barcodeCanvas=document.createElement('canvas');barcodeCanvas.width=960;barcodeCanvas.height=540;barcodeCanvas.style.display='none';document.body.appendChild(barcodeCanvas);barcodeCtx=barcodeCanvas.getContext('2d',{willReadFrequently:true});barcodeCtx.imageSmoothingEnabled=false;}
-}
-
-function normalizePattern(runs){
-  const total=runs.reduce((a,b)=>a+b,0); if(!total)return null;
-  return runs.map(v=>v/total*7);
-}
-function patternError(runs,pattern){
-  const n=normalizePattern(runs); if(!n)return 99;
-  let e=0;for(let i=0;i<4;i++)e+=Math.abs(n[i]-pattern[i]);return e/4;
-}
-function decodeDigit(runs,side){
-  const table=side==='L'?EAN_L:EAN_G;let best=null;
-  for(let d=0;d<=9;d++){const err=patternError(runs,table[d]);if(!best||err<best.err)best={digit:String(d),err};}
-  return best&&best.err<0.58?best:null;
-}
-function guardError(runs){if(runs.length!==3)return 99;const t=runs.reduce((a,b)=>a+b,0);const m=t/3;return runs.reduce((e,r)=>e+Math.abs(r-m),0)/t;}
-function centerGuardError(runs){if(runs.length!==5)return 99;const t=runs.reduce((a,b)=>a+b,0);const m=t/5;return runs.reduce((e,r)=>e+Math.abs(r-m),0)/t;}
-
-function decodeEANFromRuns(runs){
-  const n=runs.length;
-  for(let i=0;i<n;i++){
-    if(i+59<=n && guardError(runs.slice(i,i+3))<0.34){
-      let pos=i+3,left='',parity='',ok=true;
-      for(let d=0;d<6;d++){const rr=runs.slice(pos,pos+4);pos+=4;const l=decodeDigit(rr,'L'),g=decodeDigit(rr,'G');if(!l&&!g){ok=false;break;}if(l&&(!g||l.err<=g.err)){left+=l.digit;parity+='L';}else{left+=g.digit;parity+='G';}}
-      if(ok&&centerGuardError(runs.slice(pos,pos+5))<0.34){pos+=5;let right='';for(let d=0;d<6;d++){const r=decodeDigit(runs.slice(pos,pos+4),'L');pos+=4;if(!r){ok=false;break;}right+=r.digit;}if(ok&&guardError(runs.slice(pos,pos+3))<0.34){const first=EAN_PARITY[parity],code=first+left+right;if(first&&checksumEAN(code))return code;}}
-    }
-    if(i+43<=n&&guardError(runs.slice(i,i+3))<0.34){
-      let pos=i+3,left='',ok=true;for(let d=0;d<4;d++){const l=decodeDigit(runs.slice(pos,pos+4),'L');pos+=4;if(!l){ok=false;break;}left+=l.digit;}
-      if(ok&&centerGuardError(runs.slice(pos,pos+5))<0.34){pos+=5;let right='';for(let d=0;d<4;d++){const r=decodeDigit(runs.slice(pos,pos+4),'L');pos+=4;if(!r){ok=false;break;}right+=r.digit;}if(ok&&guardError(runs.slice(pos,pos+3))<0.34){const code=left+right;if(checksumEAN(code))return code;}}
-    }
-  }
-  return null;
-}
-
-function runsFromBits(bits){
-  if(!bits.length)return null;const runs=[];let last=bits[0],count=1;
-  for(let i=1;i<bits.length;i++){if(bits[i]===last)count++;else{runs.push(count);last=bits[i];count=1;}}runs.push(count);
-  return runs.filter(v=>v>0);
-}
-function rowThresholdDecode(row,start,end){
-  const vals=[];for(let x=start;x<end;x++){const p=x*4;vals.push(row[p]*.299+row[p+1]*.587+row[p+2]*.114);}
-  if(vals.length<120)return null;
-  const sorted=vals.slice().sort((a,b)=>a-b);const p15=sorted[Math.floor(sorted.length*.15)],p85=sorted[Math.floor(sorted.length*.85)];
-  if(p85-p15<22)return null;
-  // Try several thresholds; this is much more tolerant of glossy/uneven packaging.
-  for(const threshold of [p15+(p85-p15)*.38,(p15+p85)/2,p15+(p85-p15)*.62]){
-    const bits=vals.map(v=>v<threshold),runs=runsFromBits(bits);if(!runs||runs.length<20||runs.length>260)continue;
-    const code=decodeEANFromRuns(runs);if(code)return code;
-    const rev=decodeEANFromRuns(runs.slice().reverse());if(rev)return rev;
-  }
-  return null;
-}
-function tryDecodeCanvas(){
-  if(!barcodeCtx||!barcodeVideo||barcodeVideo.readyState<2||!barcodeVideo.videoWidth)return null;
-  const vw=barcodeVideo.videoWidth,vh=barcodeVideo.videoHeight;
-  const w=Math.min(960,vw),h=Math.max(540,Math.round(vh*(w/vw)));
-  if(barcodeCanvas.width!==w||barcodeCanvas.height!==h){barcodeCanvas.width=w;barcodeCanvas.height=h;}
-  barcodeCtx.drawImage(barcodeVideo,0,0,w,h);
-  // EAN is horizontal: sample many horizontal lines through the centre area.
-  const ys=[.28,.34,.40,.44,.48,.50,.52,.56,.60,.66,.72];
-  const sx=Math.floor(w*.03),ex=Math.floor(w*.97);
-  for(const ratio of ys){const y=Math.max(0,Math.min(h-1,Math.round(h*ratio)));const row=barcodeCtx.getImageData(0,y,w,1).data;const code=rowThresholdDecode(row,sx,ex);if(code)return code;}
-  return null;
-}
-
-async function tryNativeBarcodeDetector(){
-  if(!('BarcodeDetector' in window)||barcodeDetectorBusy||!barcodeVideo||barcodeVideo.readyState<2)return null;
-  try{
-    if(!barcodeDetector)barcodeDetector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e']});
-    barcodeDetectorBusy=true;const found=await barcodeDetector.detect(barcodeVideo);barcodeDetectorBusy=false;
-    const hit=found&&found.find(x=>checksumEAN(x.rawValue||''));return hit?hit.rawValue:null;
-  }catch(e){barcodeDetectorBusy=false;return null;}
-}
-
-async function scanBarcodeFrame(){
-  if(!barcodeScanRunning||barcodeScanBusy)return;
-  barcodeScanBusy=true;
-  try{
-    let code=await tryNativeBarcodeDetector();
-    if(!code)code=tryDecodeCanvas();
-    if(code){barcodeScanRunning=false;stopBarcodeCamera();await handleBarcode(code);return;}
-  }catch(e){console.warn('Barcode decode:',e);}
+  barcodeScanRunning=false;
   barcodeScanBusy=false;
-}
-function scheduleBarcodeScan(){
-  if(!barcodeScanRunning)return;
-  const now=performance.now();
-  if(now-barcodeLastScan>90){barcodeLastScan=now;scanBarcodeFrame();}
-  barcodeScanFrame=requestAnimationFrame(scheduleBarcodeScan);
-}
-
-async function openBarcodeScanner(){
-  const overlay=document.getElementById('barcodeOverlay'),video=document.getElementById('barcodeVideo'),input=document.getElementById('barcodeManualInput');
-  if(!overlay||!video)return;
-  overlay.classList.add('open');overlay.setAttribute('aria-hidden','false');if(input)input.value='';const result=document.getElementById('barcodeResult');if(result)result.classList.remove('open');
-  setBarcodeStatus('Camera wordt gestart…');stopBarcodeCamera();barcodeBusy=false;
-  if(!window.isSecureContext){setBarcodeStatus('Camera werkt alleen via een beveiligde verbinding (HTTPS).');return;}
-  if(!navigator.mediaDevices?.getUserMedia){setBarcodeStatus('Deze browser ondersteunt geen cameratoegang. Voer de barcode hieronder handmatig in.');return;}
-  try{
-    barcodeVideo=video;video.muted=true;video.autoplay=true;video.playsInline=true;video.setAttribute('playsinline','');video.setAttribute('webkit-playsinline','');ensureBarcodeCanvas();
-    let constraints={audio:false,video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080},aspectRatio:{ideal:16/9}}};
-    try{barcodeStream=await navigator.mediaDevices.getUserMedia(constraints);}catch(_){barcodeStream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:'environment'}});}
-    const track=barcodeStream.getVideoTracks()[0];
-    if(track?.applyConstraints){try{await track.applyConstraints({advanced:[{focusMode:'continuous'}]});}catch(_){} }
-    video.srcObject=barcodeStream;
-    await new Promise(resolve=>{if(video.readyState>=2)return resolve();video.addEventListener('loadeddata',resolve,{once:true});setTimeout(resolve,2500);});
-    await video.play();
-    barcodeScanRunning=true;barcodeScanBusy=false;barcodeLastScan=0;
-    setBarcodeStatus('Camera actief — richt de barcode horizontaal binnen het kader.');scheduleBarcodeScan();
-  }catch(err){
-    console.error('Camera:',err);stopBarcodeCamera();const name=err?.name||'';
-    if(name==='NotAllowedError'||name==='PermissionDeniedError')setBarcodeStatus('Cameratoegang is geweigerd. Geef Safari/Chrome toegang tot de camera en probeer opnieuw.');
-    else if(name==='NotFoundError'||name==='DevicesNotFoundError')setBarcodeStatus('Geen camera gevonden. Je kunt de barcode hieronder handmatig invoeren.');
-    else if(name==='NotReadableError'||name==='TrackStartError')setBarcodeStatus('De camera wordt door een andere functie gebruikt. Sluit die functie en probeer opnieuw.');
-    else setBarcodeStatus('Camera kon niet starten. Controleer cameratoegang of voer de barcode hieronder handmatig in.');
+  if(barcodeScanFrame){ cancelAnimationFrame(barcodeScanFrame); barcodeScanFrame=0; }
+  if(barcodeStream){
+    try{ barcodeStream.getTracks().forEach(t=>t.stop()); }catch(_){ }
+    barcodeStream=null;
+  }
+  if(barcodeVideo){
+    try{ barcodeVideo.pause(); }catch(_){ }
+    try{ barcodeVideo.srcObject=null; }catch(_){ }
   }
 }
-function closeBarcodeScanner(){stopBarcodeCamera();barcodeBusy=false;const overlay=document.getElementById('barcodeOverlay');if(overlay){overlay.classList.remove('open');overlay.setAttribute('aria-hidden','true');}}
-async function lookupManualBarcode(){const input=document.getElementById('barcodeManualInput'),code=(input?.value||'').replace(/\D/g,'');if(code.length<8){setBarcodeStatus('Voer een geldige barcode in.');return;}barcodeBusy=true;await handleBarcode(code);}
+
+function ensureBarcodeCanvas(){
+  if(!barcodeCanvas){
+    barcodeCanvas=document.createElement('canvas');
+    barcodeCanvas.width=640;
+    barcodeCanvas.height=480;
+    barcodeCanvas.style.display='none';
+    document.body.appendChild(barcodeCanvas);
+    barcodeCtx=barcodeCanvas.getContext('2d',{willReadFrequently:true});
+  }
+}
+
+function checksumEAN(code){
+  const s=String(code||'').replace(/\D/g,'');
+  if(s.length===13){
+    let sum=0;
+    for(let i=0;i<12;i++) sum += Number(s[i]) * (i%2===0 ? 1 : 3);
+    return (10-(sum%10))%10 === Number(s[12]);
+  }
+  if(s.length===8){
+    let sum=0;
+    for(let i=0;i<7;i++) sum += Number(s[i]) * (i%2===0 ? 3 : 1);
+    return (10-(sum%10))%10 === Number(s[7]);
+  }
+  return false;
+}
+
+function patternError(runs, pattern){
+  const total=runs.reduce((a,b)=>a+b,0);
+  const m=total/7;
+  let err=0;
+  for(let i=0;i<4;i++) err += Math.abs(runs[i] - pattern[i]*m)/m;
+  return err/4;
+}
+
+function decodeDigit(runs, side){
+  let best=null;
+  const table=side==='L'?EAN_L:side==='G'?EAN_G:EAN_R;
+  for(let d=0;d<=9;d++){
+    const err=patternError(runs,table[d]);
+    if(!best || err<best.err) best={digit:String(d),err};
+  }
+  return best && best.err<=0.48 ? best : null;
+}
+
+function guardError(runs){
+  if(runs.length!==3) return 99;
+  const m=(runs[0]+runs[1]+runs[2])/3;
+  return (Math.abs(runs[0]-m)+Math.abs(runs[1]-m)+Math.abs(runs[2]-m))/m;
+}
+function centerGuardError(runs){
+  if(runs.length!==5) return 99;
+  const m=runs.reduce((a,b)=>a+b,0)/5;
+  return runs.reduce((e,r)=>e+Math.abs(r-m)/m,0)/5;
+}
+
+function decodeEANFromRuns(runs, startBlackIndex){
+  const n=runs.length;
+  const colorAt=(idx)=> ((startBlackIndex + idx)%2===0 ? 'black':'white');
+  for(let i=0;i<n;i++){
+    if(colorAt(i)!=='black') continue;
+
+    // EAN-13: 3 + 24 + 5 + 24 + 3 runs.
+    if(i+59<=n){
+      const start=runs.slice(i,i+3);
+      if(guardError(start)<1.0){
+        let pos=i+3, left='', parity='', ok=true;
+        for(let d=0;d<6;d++){
+          const rr=runs.slice(pos,pos+4); pos+=4;
+          const l=decodeDigit(rr,'L');
+          const g=decodeDigit(rr,'G');
+          if(!l && !g){ok=false;break;}
+          if(l && (!g || l.err<=g.err)){ left+=l.digit; parity+='L'; }
+          else { left+=g.digit; parity+='G'; }
+        }
+        if(ok && pos+5+24+3<=n && centerGuardError(runs.slice(pos,pos+5))<1.0){
+          pos+=5;
+          let right='';
+          for(let d=0;d<6;d++){
+            const rr=runs.slice(pos,pos+4); pos+=4;
+            const r=decodeDigit(rr,'R');
+            if(!r){ok=false;break;}
+            right+=r.digit;
+          }
+          if(ok && guardError(runs.slice(pos,pos+3))<1.0){
+            const first=EAN_PARITY[parity];
+            if(first){
+              const code=first+left+right;
+              if(checksumEAN(code)) return code;
+            }
+          }
+        }
+      }
+    }
+
+    // EAN-8: 3 + 16 + 5 + 16 + 3 runs.
+    if(i+43<=n){
+      if(guardError(runs.slice(i,i+3))<1.0){
+        let pos=i+3, left='', ok=true;
+        for(let d=0;d<4;d++){
+          const l=decodeDigit(runs.slice(pos,pos+4),'L'); pos+=4;
+          if(!l){ok=false;break;}
+          left+=l.digit;
+        }
+        if(ok && centerGuardError(runs.slice(pos,pos+5))<1.0){
+          pos+=5;
+          let right='';
+          for(let d=0;d<4;d++){
+            const r=decodeDigit(runs.slice(pos,pos+4),'R'); pos+=4;
+            if(!r){ok=false;break;}
+            right+=r.digit;
+          }
+          if(ok && guardError(runs.slice(pos,pos+3))<1.0){
+            const code=left+right;
+            if(checksumEAN(code)) return code;
+          }
+        }
+      }
+    }
+  }
+  return null;
+}
+
+function makeRunsFromBits(bits){
+  if(!bits.length) return null;
+  const runs=[];
+  let last=bits[0], count=1;
+  for(let i=1;i<bits.length;i++){
+    if(bits[i]===last) count++;
+    else { runs.push(count); last=bits[i]; count=1; }
+  }
+  runs.push(count);
+  // Remove single-pixel noise by merging tiny runs with the nearest neighbour.
+  for(let pass=0;pass<2;pass++){
+    for(let i=1;i<runs.length-1;i++){
+      if(runs[i]<=1){
+        runs[i-1]+=runs[i]+runs[i+1];
+        runs.splice(i,2);
+        i=Math.max(0,i-2);
+      }
+    }
+  }
+  return runs;
+}
+
+function sampleBarcodeRow(data,width,height,y,threshold){
+  const bits=[];
+  const startX=Math.floor(width*0.06), endX=Math.floor(width*0.94);
+  for(let x=startX;x<endX;x++){
+    const p=(y*width+x)*4;
+    const g=(data[p]*0.299 + data[p+1]*0.587 + data[p+2]*0.114);
+    bits.push(g<threshold);
+  }
+  return bits;
+}
+
+function tryDecodeCanvas(){
+  if(!barcodeCtx || !barcodeVideo || barcodeVideo.readyState<2 || !barcodeVideo.videoWidth) return null;
+  const vw=barcodeVideo.videoWidth, vh=barcodeVideo.videoHeight;
+  const maxW=720;
+  const w=Math.min(maxW,vw);
+  const h=Math.max(240,Math.round(vh*(w/vw)));
+  if(barcodeCanvas.width!==w || barcodeCanvas.height!==h){barcodeCanvas.width=w;barcodeCanvas.height=h;}
+  barcodeCtx.drawImage(barcodeVideo,0,0,w,h);
+
+  const ys=[0.30,0.36,0.42,0.48,0.50,0.52,0.58,0.64,0.70];
+  for(const ratio of ys){
+    const y=Math.min(h-1,Math.max(0,Math.round(h*ratio)));
+    const row=barcodeCtx.getImageData(0,y,w,1).data;
+    const vals=[];
+    for(let x=0;x<w;x+=2){
+      const p=x*4;
+      vals.push(row[p]*0.299 + row[p+1]*0.587 + row[p+2]*0.114);
+    }
+    if(!vals.length) continue;
+    const sorted=vals.slice().sort((a,b)=>a-b);
+    const p10=sorted[Math.floor(sorted.length*0.10)];
+    const p90=sorted[Math.floor(sorted.length*0.90)];
+    if(p90-p10<35) continue;
+    const threshold=(p10+p90)/2;
+    const bits=[];
+    const startX=Math.floor(w*0.06), endX=Math.floor(w*0.94);
+    for(let x=startX;x<endX;x++){
+      const p=x*4;
+      const g=row[p]*0.299 + row[p+1]*0.587 + row[p+2]*0.114;
+      bits.push(g<threshold);
+    }
+    const runs=makeRunsFromBits(bits);
+    if(!runs || runs.length<30 || runs.length>180) continue;
+    const startBlack = bits[0] ? 0 : 1;
+    const code=decodeEANFromRuns(runs,startBlack);
+    if(code) return code;
+  }
+  return null;
+}
+
+async function scheduleBarcodeScan(){
+  if(!barcodeScanRunning) return;
+  const now=performance.now();
+  if(!barcodeScanBusy && now-barcodeLastScan>180){
+    barcodeLastScan=now;
+    barcodeScanBusy=true;
+    try{
+      ensureBarcodeCanvas();
+      if(barcodeVideo && barcodeVideo.readyState>=2 && barcodeVideo.videoWidth){
+        const vw=barcodeVideo.videoWidth, vh=barcodeVideo.videoHeight;
+        const maxW=960;
+        const w=Math.min(maxW,vw);
+        const h=Math.max(240,Math.round(vh*(w/vw)));
+        if(barcodeCanvas.width!==w || barcodeCanvas.height!==h){
+          barcodeCanvas.width=w; barcodeCanvas.height=h;
+        }
+        barcodeCtx.drawImage(barcodeVideo,0,0,w,h);
+        const imageData=barcodeCtx.getImageData(0,0,w,h);
+
+        // The decoder reads a frame only. It never owns or stops the camera stream.
+        const code=window.decodeBarcodeFrameWasm
+          ? await window.decodeBarcodeFrameWasm(imageData)
+          : null;
+
+        if(code){
+          barcodeScanRunning=false;
+          stopBarcodeCamera();
+          await handleBarcode(code);
+          return;
+        }
+
+        // Keep the existing lightweight decoder as a local fallback.
+        const fallback=tryDecodeCanvas();
+        if(fallback){
+          barcodeScanRunning=false;
+          stopBarcodeCamera();
+          await handleBarcode(fallback);
+          return;
+        }
+      }
+    }catch(err){
+      console.warn('Barcode frame decode:',err);
+    }finally{
+      barcodeScanBusy=false;
+    }
+  }
+  if(barcodeScanRunning) barcodeScanFrame=requestAnimationFrame(scheduleBarcodeScan);
+}
+async function openBarcodeScanner(){
+  const overlay=document.getElementById('barcodeOverlay');
+  const video=document.getElementById('barcodeVideo');
+  const input=document.getElementById('barcodeManualInput');
+  if(!overlay || !video) return;
+
+  overlay.classList.add('open');
+  overlay.setAttribute('aria-hidden','false');
+  if(input) input.value='';
+  const result=document.getElementById('barcodeResult');
+  if(result) result.classList.remove('open');
+  setBarcodeStatus('Camera wordt gestart…');
+  stopBarcodeCamera();
+  barcodeBusy=false;
+
+  if(!window.isSecureContext){
+    setBarcodeStatus('Camera werkt alleen via een beveiligde verbinding (HTTPS).');
+    return;
+  }
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    setBarcodeStatus('Deze browser ondersteunt geen cameratoegang. Voer de barcode hieronder handmatig in.');
+    return;
+  }
+
+  try{
+    barcodeVideo=video;
+    barcodeVideo.muted=true;
+    barcodeVideo.autoplay=true;
+    barcodeVideo.playsInline=true;
+    barcodeVideo.setAttribute('playsinline','');
+    barcodeVideo.setAttribute('webkit-playsinline','');
+    ensureBarcodeCanvas();
+
+    let constraints={audio:false,video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}}};
+    try{
+      barcodeStream=await navigator.mediaDevices.getUserMedia(constraints);
+    }catch(firstErr){
+      // Some older Safari/Android implementations are happier with a simpler constraint.
+      barcodeStream=await navigator.mediaDevices.getUserMedia({audio:false,video:true});
+    }
+
+    barcodeVideo.srcObject=barcodeStream;
+    await new Promise((resolve)=>{
+      if(barcodeVideo.readyState>=1) return resolve();
+      barcodeVideo.addEventListener('loadedmetadata',resolve,{once:true});
+      setTimeout(resolve,2000);
+    });
+    try{ await barcodeVideo.play(); }catch(playErr){
+      setBarcodeStatus('Tik op de camera om het beeld te starten.');
+      return;
+    }
+
+    barcodeScanRunning=true;
+    barcodeScanBusy=false;
+    barcodeLastScan=0;
+    setBarcodeStatus('Camera actief — richt een EAN-barcode binnen het kader.');
+    scheduleBarcodeScan();
+  }catch(err){
+    console.error('Camera:',err);
+    stopBarcodeCamera();
+    const name=err && err.name ? err.name : '';
+    if(name==='NotAllowedError' || name==='PermissionDeniedError'){
+      setBarcodeStatus('Cameratoegang is geweigerd. Geef Safari/Chrome toegang tot de camera en probeer opnieuw.');
+    }else if(name==='NotFoundError' || name==='DevicesNotFoundError'){
+      setBarcodeStatus('Geen camera gevonden. Je kunt de barcode hieronder handmatig invoeren.');
+    }else if(name==='NotReadableError' || name==='TrackStartError'){
+      setBarcodeStatus('De camera wordt door een andere functie gebruikt. Sluit die functie en probeer opnieuw.');
+    }else{
+      setBarcodeStatus('Camera kon niet starten. Controleer cameratoegang of voer de barcode hieronder handmatig in.');
+    }
+  }
+}
+
+function closeBarcodeScanner(){
+  stopBarcodeCamera();
+  barcodeBusy=false;
+  const overlay=document.getElementById('barcodeOverlay');
+  if(overlay){overlay.classList.remove('open');overlay.setAttribute('aria-hidden','true');}
+}
+
+async function lookupManualBarcode(){
+  const input=document.getElementById('barcodeManualInput');
+  const code=(input?.value||'').replace(/\D/g,'');
+  if(code.length<8){setBarcodeStatus('Voer een geldige barcode in.');return;}
+  barcodeBusy=true;
+  await handleBarcode(code);
+}
+
 async function handleBarcode(code){
   setBarcodeStatus('Product wordt opgezocht…');
   try{
-    const response=await fetch('https://world.openfoodfacts.org/api/v2/product/'+encodeURIComponent(code)+'.json?fields=code,product_name,brands,image_front_small_url,image_front_url');if(!response.ok)throw new Error('Netwerkfout');
-    const data=await response.json(),p=data?.product;
-    if(!p||data.status!==1||!p.product_name){const result=document.getElementById('barcodeResult');result.textContent='Geen product gevonden voor deze barcode. Je kunt de barcode wel bewaren als je het product handmatig toevoegt.';result.classList.add('open');setBarcodeStatus('Geen product gevonden.');barcodeBusy=false;return;}
-    const name=String(p.product_name).trim(),brand=String(p.brands||'').split(',')[0].trim(),imageUrl=String(p.image_front_small_url||p.image_front_url||'').trim();
-    await addScannedProduct({text:name,barcode:code,brand,imageUrl});const result=document.getElementById('barcodeResult');result.textContent=(brand?brand+' · ':'')+name+' is toegevoegd aan je lijst.';result.classList.add('open');setBarcodeStatus('Gevonden ✓');setTimeout(closeBarcodeScanner,900);
-  }catch(err){console.error('Product lookup:',err);setBarcodeStatus('Product kon niet worden opgezocht. Controleer je internetverbinding.');}finally{barcodeBusy=false;}
+    const response=await fetch('https://world.openfoodfacts.org/api/v2/product/'+encodeURIComponent(code)+'.json?fields=code,product_name,brands,image_front_small_url,image_front_url');
+    if(!response.ok) throw new Error('Netwerkfout');
+    const data=await response.json();
+    const p=data && data.product;
+    if(!p || data.status!==1 || !p.product_name){
+      const result=document.getElementById('barcodeResult');
+      result.textContent='Geen product gevonden voor deze barcode. Je kunt de barcode wel bewaren als je het product handmatig toevoegt.';
+      result.classList.add('open');
+      setBarcodeStatus('Geen product gevonden.');
+      barcodeBusy=false;
+      return;
+    }
+    const name=String(p.product_name).trim();
+    const brand=String(p.brands||'').split(',')[0].trim();
+    const imageUrl=String(p.image_front_small_url || p.image_front_url || '').trim();
+    await addScannedProduct({text:name,barcode:code,brand,imageUrl});
+    const result=document.getElementById('barcodeResult');
+    result.textContent=(brand?brand+' · ':'')+name+' is toegevoegd aan je lijst.';
+    result.classList.add('open');
+    setBarcodeStatus('Gevonden ✓');
+    setTimeout(closeBarcodeScanner,900);
+  }catch(err){
+    console.error('Product lookup:',err);
+    setBarcodeStatus('Product kon niet worden opgezocht. Controleer je internetverbinding.');
+  }finally{
+    barcodeBusy=false;
+  }
 }
+
 async function addScannedProduct(product){
-  if(activeListType!=='shared'&&!currentHouseholdId&&!isPrivateMode()){const householdId=await getOrCreateHousehold();if(!householdId){openUseModeModal();return;}}
-  boodschappen.push({text:product.text,completed:false,completedBy:'',completedByUid:'',completedAt:null,barcode:product.barcode||'',imageUrl:product.imageUrl||'',brand:product.brand||''});showList();await saveList();
+  if(activeListType !== 'shared' && !currentHouseholdId && !isPrivateMode()){
+    const householdId=await getOrCreateHousehold();
+    if(!householdId){openUseModeModal();return;}
+  }
+  boodschappen.push({
+    text:product.text,
+    completed:false,
+    completedBy:'',
+    completedByUid:'',
+    completedAt:null,
+    barcode:product.barcode || '',
+    imageUrl:product.imageUrl || '',
+    brand:product.brand || ''
+  });
+  showList();
+  await saveList();
 }
-document.addEventListener('keydown',function(e){if(e.key==='Escape'){const overlay=document.getElementById('barcodeOverlay');if(overlay?.classList.contains('open'))closeBarcodeScanner();}});
-document.addEventListener('visibilitychange',function(){if(document.hidden)stopBarcodeCamera();});
+
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape'){
+    const overlay=document.getElementById('barcodeOverlay');
+    if(overlay && overlay.classList.contains('open')) closeBarcodeScanner();
+  }
+});
+
+document.addEventListener('visibilitychange',function(){
+  if(document.hidden) stopBarcodeCamera();
+});
 </script>
 
 
@@ -8144,6 +8424,44 @@ document.addEventListener('visibilitychange',function(){if(document.hidden)stopB
   new MutationObserver(sync).observe(document.documentElement,{subtree:true,attributes:true,attributeFilter:['class','style','aria-hidden']});
   document.addEventListener('DOMContentLoaded',sync);
   setTimeout(sync,0);
+})();
+</script>
+
+
+<script id="wasm-barcode-decoder">
+(function(){
+  "use strict";
+  let readerPromise=null, reader=null;
+
+  async function getReader(){
+    if(reader) return reader;
+    if(!readerPromise){
+      readerPromise = import("https://esm.sh/zxing-wasm@3.1.4/reader")
+        .then(m => {
+          reader = m;
+          return m;
+        });
+    }
+    return readerPromise;
+  }
+
+  window.decodeBarcodeFrameWasm = async function(imageData){
+    try{
+      const m=await getReader();
+      const results=await m.readBarcodes(imageData,{
+        formats:["EAN13","EAN8","UPCA","UPCE"],
+        tryHarder:true,
+        maxNumberOfSymbols:1
+      });
+      if(results && results.length){
+        const value=String(results[0].text || results[0].rawValue || "").replace(/\D/g,"");
+        if(value.length>=8) return value;
+      }
+    }catch(e){
+      console.warn("WASM barcode decoder:",e);
+    }
+    return null;
+  };
 })();
 </script>
 
