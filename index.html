@@ -1891,6 +1891,39 @@ body.dark-theme .settingsToggle { background:#59635c; }
 .accountMenuEmail {
   padding:2px 8px 7px; color:#8b928d; font-size:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
+
+.moreMenuSectionLabel {
+  padding: 13px 10px 5px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  color: #7a867e;
+}
+.moreMenuSectionLabel:first-child { padding-top: 4px; }
+.moreMenuLogoutWrap {
+  margin: 14px 8px 4px;
+  padding-top: 10px;
+  border-top: 1px solid #edf1ed;
+}
+.moreMenuLogout {
+  width: 100%;
+  min-height: 50px;
+  border: 0;
+  border-radius: 15px;
+  background: #f4f7f4;
+  color: #536158;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  font: 700 15px/1 inherit;
+  cursor: pointer;
+}
+.moreMenuLogout i { font-size: 16px; }
+.moreMenuLogout:active { transform: scale(.985); }
+body.dark-theme .moreMenuSectionLabel { color:#9eaaa2; }
+body.dark-theme .moreMenuLogoutWrap { border-top-color: rgba(255,255,255,.10); }
+body.dark-theme .moreMenuLogout { background:#2c332e; color:#dce7df; }
 body.dark-theme .accountMenuHint, body.dark-theme .aboutMenuHint, body.dark-theme .accountMenuEmail { color:#aab4ad; }
 body.dark-theme .familyDialogDanger { background:#b92e2e; }
 
@@ -3272,6 +3305,7 @@ body.dark-theme .smartInsightsItem .siIcon{color:#9bc8a8!important}
     </button>
     <div id="familyMenu" class="familyMenu">
   <div id="familyMenuMain" class="familyMenuPage">
+    <div class="moreMenuSectionLabel">SAMEN</div>
     <button type="button" class="familyMenuItem familyMenuPrimary" onclick="openFamilySubmenu(event)">
       <i class="fa-solid fa-users"></i>
       <span>Mijn familie</span>
@@ -3282,11 +3316,15 @@ body.dark-theme .smartInsightsItem .siIcon{color:#9bc8a8!important}
       <span>Gedeelde lijsten</span>
       <i class="fa-solid fa-chevron-right familyMenuArrow"></i>
     </button>
+
+    <div class="moreMenuSectionLabel">MIJN LIJSTEN</div>
     <button type="button" class="familyMenuItem familyMenuPrimary" onclick="openSavedListsSubmenu(event)">
       <i class="fa-solid fa-folder-open"></i>
-      <span>Opgeslagen</span>
+      <span>Opgeslagen lijsten</span>
       <i class="fa-solid fa-chevron-right familyMenuArrow"></i>
     </button>
+
+    <div class="moreMenuSectionLabel">ACCOUNT &amp; APP</div>
     <button type="button" class="familyMenuItem familyMenuPrimary" onclick="openAccountSubmenu(event)">
       <i class="fa-solid fa-user"></i>
       <span>Mijn account</span>
@@ -3297,9 +3335,16 @@ body.dark-theme .smartInsightsItem .siIcon{color:#9bc8a8!important}
       <span>Instellingen</span>
       <i class="fa-solid fa-chevron-right familyMenuArrow"></i>
     </button>
+
+    <div class="moreMenuSectionLabel">HULP</div>
     <button type="button" class="familyMenuItem familyMenuPrimary" onclick="openFeedbackSubmenu(event)">
       <i class="fa-solid fa-comment-dots"></i>
       <span>Feedback</span>
+      <i class="fa-solid fa-chevron-right familyMenuArrow"></i>
+    </button>
+    <button type="button" class="familyMenuItem familyMenuPrimary" onclick="showAboutHelp(event)">
+      <i class="fa-solid fa-circle-question"></i>
+      <span>Help &amp; uitleg</span>
       <i class="fa-solid fa-chevron-right familyMenuArrow"></i>
     </button>
     <button type="button" class="familyMenuItem familyMenuPrimary" onclick="openAboutSubmenu(event)">
@@ -3307,6 +3352,13 @@ body.dark-theme .smartInsightsItem .siIcon{color:#9bc8a8!important}
       <span>Over de app</span>
       <i class="fa-solid fa-chevron-right familyMenuArrow"></i>
     </button>
+
+    <div class="moreMenuLogoutWrap">
+      <button type="button" class="moreMenuLogout" onclick="logoutFromMenu()">
+        <i class="fa-solid fa-right-from-bracket"></i>
+        <span>Uitloggen</span>
+      </button>
+    </div>
   </div>
 
   <div id="familyMenuSub" class="familyMenuPage familyMenuSub" style="display:none;">
@@ -3427,10 +3479,6 @@ body.dark-theme .smartInsightsItem .siIcon{color:#9bc8a8!important}
     <button type="button" class="familyMenuItem" onclick="changeAccountPassword()">
       <i class="fa-solid fa-key"></i>
       <span>Wachtwoord</span>
-    </button>
-    <button type="button" class="familyMenuItem familyMenuDanger" onclick="logoutFromMenu()">
-      <i class="fa-solid fa-right-from-bracket"></i>
-      <span>Uitloggen</span>
     </button>
     <button type="button" class="familyMenuItem familyMenuDanger" onclick="deleteAccountFromMenu()">
       <i class="fa-solid fa-trash"></i>
