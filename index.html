@@ -8089,7 +8089,11 @@ async function updateOverviewView(){
 .overviewActionSheet{width:min(520px,100%);max-height:min(78vh,720px);overflow:auto;background:#fff;border-radius:26px;padding:18px 16px 22px;box-shadow:0 20px 55px rgba(0,0,0,.2);color:#314338}
 .overviewActionHeader{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
 .overviewActionHeader h3{margin:0;font-size:22px;font-weight:850}
-.overviewActionClose{width:40px;height:40px;border:0;border-radius:50%;background:#eef5ef;color:#405c48;font-size:28px;line-height:1;cursor:pointer}
+.overviewActionClose{width:40px;height:40px;border:0;border-radius:50%;background:#eef5ef;color:#405c48;position:relative;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer;flex:0 0 40px}
+.overviewActionClose{font-size:0}
+.overviewActionClose::before,.overviewActionClose::after{content:"";position:absolute;left:50%;top:50%;width:21px;height:3.5px;border-radius:999px;background:#405c48;transform-origin:center}
+.overviewActionClose::before{transform:translate(-50%,-50%) rotate(45deg)}
+.overviewActionClose::after{transform:translate(-50%,-50%) rotate(-45deg)}
 .overviewActionMuted{padding:22px 8px;text-align:center;color:#718078;font-size:15px}
 .overviewActionProductGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .overviewActionProduct{min-height:52px;border:0;border-radius:15px;background:#edf6ef;color:#3f5b45;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;font:inherit;font-weight:750;text-align:left;cursor:pointer}
