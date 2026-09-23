@@ -3190,7 +3190,36 @@ body.dark-theme .smartInsightsIntro span{color:#aeb8b1!important}
 body.dark-theme .smartInsightsItem strong{color:#dce9df!important}
 body.dark-theme .smartInsightsItem span{color:#aeb8b1!important}
 body.dark-theme .smartInsightsItem .siIcon{color:#9bc8a8!important}
-</style></head>
+</style>
+<style id="smooth-slide-fix">
+/* Laat de volledige bottom sheet als één geheel bewegen. */
+.slideSheet,.bottomSheet,.sheetPanel,.modalSheet{
+  will-change:transform,opacity;
+  transform:translate3d(0,100%,0);
+  opacity:0;
+  transition:transform 280ms cubic-bezier(.22,1,.36,1),opacity 180ms ease;
+}
+.slideSheet.is-open,.bottomSheet.is-open,.sheetPanel.is-open,.modalSheet.is-open,
+.slideSheet.open,.bottomSheet.open,.sheetPanel.open,.modalSheet.open{
+  transform:translate3d(0,0,0);
+  opacity:1;
+}
+/* Kruisje exact in het midden van de ronde knop. */
+.sheetClose,.bottomSheetClose,.modalClose,.slideClose{
+  width:40px;height:40px;min-width:40px;min-height:40px;
+  padding:0;border-radius:50%;box-sizing:border-box;
+  display:inline-flex;align-items:center;justify-content:center;
+  line-height:1;
+}
+.sheetClose i,.bottomSheetClose i,.modalClose i,.slideClose i,
+.sheetClose svg,.bottomSheetClose svg,.modalClose svg,.slideClose svg{
+  display:block;margin:0;line-height:1;transform:none;
+}
+/* Geen losse animaties op onderdelen van de sheet. */
+.slideSheet *,.bottomSheet *,.sheetPanel *,.modalSheet *{animation:none;}
+</style>
+
+</head>
 
 <body>
 <div id="loginScreen">
