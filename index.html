@@ -4308,6 +4308,7 @@ async function deleteAccountFromMenu() {
     selectedIndex = -1;
     __activeMainTab = 0;
     if (typeof __resetMoreNavigation === "function") __resetMoreNavigation();
+    if (typeof collapseMoreInsights === "function") collapseMoreInsights();
 
     const status = document.getElementById("status");
     if (status) status.innerText = "";
@@ -5444,6 +5445,11 @@ function showList(animationType = "") {
   });
 
   updateListProgress();
+  // Keep the overview in sync with the actual list, even when the list was
+  // loaded before the user switched to Overzicht.
+  if (typeof updateOverviewDashboard === "function") {
+    try { updateOverviewDashboard(); } catch (_) {}
+  }
 }
 
 async function saveList() {
@@ -6925,6 +6931,21 @@ function unlockPageScroll() {
   window.scrollTo(0, scrollY);
 }
 
+function collapseMoreInsights(){
+  const panel=document.getElementById("overviewMoreInsights");
+  const button=document.querySelector(".overview-more-insights-btn");
+  if(!panel || !button) return;
+  panel.hidden=true;
+  button.setAttribute("aria-expanded", "false");
+  const label=button.querySelector("span");
+  const icon=button.querySelector("i");
+  if(label) label.textContent="Meer inzichten";
+  if(icon){
+    icon.classList.add("fa-chevron-down");
+    icon.classList.remove("fa-chevron-up");
+  }
+}
+
 function toggleMoreInsights(button){
   const panel=document.getElementById("overviewMoreInsights");
   if(!panel || !button) return;
@@ -7299,6 +7320,7 @@ function toggleRegisterPassword(fieldId, button) {
     if (freshLogin) {
       __activeMainTab = 0;
       if (typeof __resetMoreNavigation === "function") __resetMoreNavigation();
+      if (typeof collapseMoreInsights === "function") collapseMoreInsights();
       if (typeof showMainListView === "function") showMainListView();
       document.body.classList.remove("more-active", "overview-active");
     }
@@ -7495,13 +7517,13 @@ function showMainListView(){
   var moreView=document.getElementById('moreView');
   if(moreView) moreView.scrollTop=0;
 }
-function showOverviewView(){
+async function showOverviewView(){
   __resetMoreNavigation();
   slideToTab(1);
   var app=document.querySelector('.app');
   if(app) app.classList.remove('more-active'), app.classList.add('overview-active');
   setBottomNav('navOverview');
-  updateOverviewView();
+  await updateOverviewView();
   window.scrollTo({top:0,behavior:'smooth'});
 }
 function showMoreView(){
@@ -7509,11 +7531,21 @@ function showMoreView(){
   var app=document.querySelector('.app');
   if(app) app.classList.remove('overview-active'), app.classList.add('more-active');
   setBottomNav('navMore');
-  __resetMoreNavigation();
+
   var menu=document.getElementById('familyMenu');
-  /* In Meer the family menu is the screen content, never a dropdown. */
-  if(menu){ menu.style.display='block'; menu.classList.remove('menu-open'); }
   var moreView=document.getElementById('moreView');
+  // In Meer the family menu is the screen content, never a dropdown.
+  // Re-attach it every time so it cannot disappear after a navigation/login
+  // transition or an old DOM move.
+  if(menu && moreView && menu.parentElement !== moreView){
+    moreView.appendChild(menu);
+  }
+  __resetMoreNavigation();
+  if(menu){
+    menu.style.display='block';
+    menu.classList.remove('menu-open');
+    __showOnlyMenuPage('familyMenuMain');
+  }
   if(moreView) moreView.scrollTop=0;
 }
 
@@ -7652,6 +7684,14 @@ async function refreshOverviewGreeting(){
 
 async function updateOverviewView(){
   refreshOverviewGreeting();
+  // Ensure the overview reads the same current list the user sees on Lijst.
+  // This also fixes a race where the dashboard could show 0 while the list
+  // itself had already been loaded asynchronously.
+  try {
+    if (auth && auth.currentUser && typeof loadList === "function") {
+      await loadList();
+    }
+  } catch (_) {}
   renderOverviewQuickAdd();
   var history=readOverviewHistory();
   var hs=document.getElementById("overviewHistorySummary");
