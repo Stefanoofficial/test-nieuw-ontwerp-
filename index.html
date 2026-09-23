@@ -7734,25 +7734,32 @@ function __overviewOverlay(title){
   overlay.innerHTML='<div class="overviewActionSheet" role="dialog" aria-modal="true"><div class="overviewActionHeader"><h3></h3><button type="button" class="overviewActionClose" aria-label="Sluiten">×</button></div><div class="overviewActionBody"></div></div>';
   overlay.querySelector("h3").textContent=title;
 
+  var sheet=overlay.querySelector(".overviewActionSheet");
+  // Animate only the single sheet element. No separate header/body movement.
+  overlay.style.opacity="0";
+  overlay.style.transition="opacity 220ms ease";
+  sheet.style.transform="translate3d(0,100%,0)";
+  sheet.style.opacity="1";
+  sheet.style.transition="transform 340ms cubic-bezier(.22,1,.36,1)";
+  sheet.style.willChange="transform";
+
   var closeSheet=function(){
     if(overlay.dataset.closing==="1") return;
     overlay.dataset.closing="1";
-    overlay.classList.remove("is-open");
-    overlay.classList.add("is-closing");
-    var sheet=overlay.querySelector(".overviewActionSheet");
-    var done=function(){ if(overlay.parentNode) overlay.remove(); };
-    if(sheet) sheet.addEventListener("transitionend",done,{once:true});
-    setTimeout(done,320);
+    overlay.style.opacity="0";
+    sheet.style.transform="translate3d(0,100%,0)";
+    setTimeout(function(){ if(overlay.parentNode) overlay.remove(); },350);
   };
 
   overlay.querySelector(".overviewActionClose").addEventListener("click",closeSheet);
   overlay.addEventListener("click",function(e){if(e.target===overlay) closeSheet();});
   document.body.appendChild(overlay);
 
-  // Force the initial off-screen state to render, then animate the whole sheet.
+  // Start the overlay and the complete sheet together.
   requestAnimationFrame(function(){
     requestAnimationFrame(function(){
-      overlay.classList.add("is-open");
+      overlay.style.opacity="1";
+      sheet.style.transform="translate3d(0,0,0)";
     });
   });
   return overlay;
