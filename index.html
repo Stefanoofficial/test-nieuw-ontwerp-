@@ -3190,35 +3190,53 @@ body.dark-theme .smartInsightsIntro span{color:#aeb8b1!important}
 body.dark-theme .smartInsightsItem strong{color:#dce9df!important}
 body.dark-theme .smartInsightsItem span{color:#aeb8b1!important}
 body.dark-theme .smartInsightsItem .siIcon{color:#9bc8a8!important}
-</style>
-<style id="smooth-slide-fix">
-/* Laat de volledige bottom sheet als één geheel bewegen. */
-.slideSheet,.bottomSheet,.sheetPanel,.modalSheet{
-  will-change:transform,opacity;
-  transform:translate3d(0,100%,0);
+</style><style id="overview-slide-animation-fix">
+/* De echte sheets van Snel opnieuw toevoegen / Boodschappenhistorie */
+#overviewActionOverlay{
   opacity:0;
-  transition:transform 280ms cubic-bezier(.22,1,.36,1),opacity 180ms ease;
+  transition:opacity 220ms ease;
 }
-.slideSheet.is-open,.bottomSheet.is-open,.sheetPanel.is-open,.modalSheet.is-open,
-.slideSheet.open,.bottomSheet.open,.sheetPanel.open,.modalSheet.open{
-  transform:translate3d(0,0,0);
+#overviewActionOverlay.is-open{
   opacity:1;
 }
-/* Kruisje exact in het midden van de ronde knop. */
-.sheetClose,.bottomSheetClose,.modalClose,.slideClose{
-  width:40px;height:40px;min-width:40px;min-height:40px;
-  padding:0;border-radius:50%;box-sizing:border-box;
-  display:inline-flex;align-items:center;justify-content:center;
+#overviewActionOverlay .overviewActionSheet{
+  transform:translate3d(0,110%,0);
+  opacity:1;
+  transition:transform 320ms cubic-bezier(.22,1,.36,1);
+  will-change:transform;
+}
+#overviewActionOverlay.is-open .overviewActionSheet{
+  transform:translate3d(0,0,0);
+}
+#overviewActionOverlay.is-closing{
+  opacity:0;
+}
+#overviewActionOverlay.is-closing .overviewActionSheet{
+  transform:translate3d(0,110%,0);
+}
+/* X exact gecentreerd in de cirkel */
+#overviewActionOverlay .overviewActionClose{
+  width:40px;
+  height:40px;
+  min-width:40px;
+  min-height:40px;
+  padding:0;
+  margin:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-sizing:border-box;
   line-height:1;
+  font-size:26px;
+  font-family:Arial,sans-serif;
 }
-.sheetClose i,.bottomSheetClose i,.modalClose i,.slideClose i,
-.sheetClose svg,.bottomSheetClose svg,.modalClose svg,.slideClose svg{
-  display:block;margin:0;line-height:1;transform:none;
+@media (prefers-reduced-motion:reduce){
+  #overviewActionOverlay,
+  #overviewActionOverlay .overviewActionSheet{
+    transition:none!important;
+  }
 }
-/* Geen losse animaties op onderdelen van de sheet. */
-.slideSheet *,.bottomSheet *,.sheetPanel *,.modalSheet *{animation:none;}
 </style>
-
 </head>
 
 <body>
@@ -7669,9 +7687,28 @@ function __overviewOverlay(title){
   overlay.className="overviewActionOverlay";
   overlay.innerHTML='<div class="overviewActionSheet" role="dialog" aria-modal="true"><div class="overviewActionHeader"><h3></h3><button type="button" class="overviewActionClose" aria-label="Sluiten">×</button></div><div class="overviewActionBody"></div></div>';
   overlay.querySelector("h3").textContent=title;
-  overlay.querySelector(".overviewActionClose").addEventListener("click",function(){overlay.remove();});
-  overlay.addEventListener("click",function(e){if(e.target===overlay) overlay.remove();});
+
+  var closeSheet=function(){
+    if(overlay.dataset.closing==="1") return;
+    overlay.dataset.closing="1";
+    overlay.classList.remove("is-open");
+    overlay.classList.add("is-closing");
+    var sheet=overlay.querySelector(".overviewActionSheet");
+    var done=function(){ if(overlay.parentNode) overlay.remove(); };
+    if(sheet) sheet.addEventListener("transitionend",done,{once:true});
+    setTimeout(done,320);
+  };
+
+  overlay.querySelector(".overviewActionClose").addEventListener("click",closeSheet);
+  overlay.addEventListener("click",function(e){if(e.target===overlay) closeSheet();});
   document.body.appendChild(overlay);
+
+  // Force the initial off-screen state to render, then animate the whole sheet.
+  requestAnimationFrame(function(){
+    requestAnimationFrame(function(){
+      overlay.classList.add("is-open");
+    });
+  });
   return overlay;
 }
 
