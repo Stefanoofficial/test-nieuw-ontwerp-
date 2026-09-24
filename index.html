@@ -4011,8 +4011,28 @@ function closeSettingsSubmenu(event) { returnMenuToMain("settingsMenuSub", event
 
 function openSavedListsSubmenu(event) {
   if (event) event.stopPropagation();
+
+  // Opgeslagen lijsten: dezelfde directe Android/WebView-aanpak als
+  // Gedeelde lijsten. Eerst alleen de pagina wisselen; geen submenu-
+  // animatie, transform of Firebase-werk tijdens de eerste render-tick.
   switchMenuPage("savedListsMenuSub", event);
-  renderSavedLists();
+
+  const page = document.getElementById("savedListsMenuSub");
+  if (page) {
+    page.classList.remove("sharedMenuSmoothEnter", "menuSlideOutLeft", "menuSlideInRight", "menuSlideOutRight", "menuSlideInLeft");
+    page.style.animation = "none";
+    page.style.transition = "none";
+    page.style.transform = "none";
+    page.style.opacity = "1";
+  }
+
+  const box = document.getElementById("savedListsContainer");
+  if (box) box.innerHTML = '<div class="savedListsEmpty">Lijsten laden…</div>';
+
+  // Pas na de huidige render-tick de gegevens ophalen.
+  setTimeout(() => {
+    renderSavedLists();
+  }, 0);
 }
 function closeSavedListsSubmenu(event) { returnMenuToMain("savedListsMenuSub", event); }
 
