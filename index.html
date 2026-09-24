@@ -3047,7 +3047,7 @@ body.logged-in {
 <style id="shared-menu-smooth-final">
 /* Gedeelde lijsten opent licht en vloeiend, zonder netwerkwerk te blokkeren. */
 .app.more-active #familyMenu .familyMenuPage.sharedMenuSmoothEnter {
-  animation: sharedMenuSmoothEnter .16s cubic-bezier(.22,.8,.3,1) both !important;
+  animation: sharedMenuSmoothEnter .12s cubic-bezier(.2,.7,.2,1) both !important;
   will-change: transform, opacity !important;
 }
 @keyframes sharedMenuSmoothEnter {
@@ -5865,8 +5865,9 @@ function openSharedListsSubmenu(event) {
     }
   }
 
-  // Niet awaiten: de lijst vult zich op de achtergrond terwijl het scherm al open is.
-  renderSharedLists();
+  // Laat eerst de eerste frames van de interface schilderen. Daarna pas de
+  // lijst renderen, zodat DOM-opbouw/Firebase nooit de opening kan haperen.
+  window.setTimeout(() => { renderSharedLists(); }, 120);
 }
 function closeSharedListsSubmenu(event) {
   if (event) event.stopPropagation();
