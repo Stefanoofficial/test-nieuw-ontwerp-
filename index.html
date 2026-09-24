@@ -2436,6 +2436,25 @@ body.dark-theme .sharedListInviteBox{background:rgba(255,255,255,.06);border-col
 }
 </style>
 
+<style id="more-performance-final">
+/* Meer-menu: bewust direct en stabiel. Geen transform/opacity-animaties op het
+   volledige scherm of de menu-pagina's; dit voorkomt jank in Android WebView. */
+.app.more-active > #moreView,
+.app.more-active #familyMenu,
+.app.more-active .familyMenuPage {
+  animation: none !important;
+  transition: none !important;
+  transform: none !important;
+  will-change: auto !important;
+}
+.app.more-active .familyMenuPage {
+  opacity: 1 !important;
+}
+.app.more-active #familyMenu {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+</style>
 <style id="final-scroll-nav-fix">
 /* Definitieve navigatie-/scrollfix:
    - de app zelf kan scrollen;
@@ -7608,7 +7627,8 @@ async function showOverviewView(){
   window.scrollTo({top:0,behavior:'smooth'});
 }
 function showMoreView(){
-  slideToTab(2);
+  // Meer opent direct: geen hoofdscherm-animatie die de hele inhoud laat haperen.
+  __activeMainTab = 2;
   var app=document.querySelector('.app');
   if(app) app.classList.remove('overview-active'), app.classList.add('more-active');
   setBottomNav('navMore');
