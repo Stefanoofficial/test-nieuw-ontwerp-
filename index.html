@@ -6317,7 +6317,10 @@ async function openSharedList(id, showInvite){
       try{ localStorage.setItem("sharedListInviteCode:"+id,String(currentSharedListInviteCode)); }catch(_){}
     }
     showList();
-    const h=document.querySelector(".headerBar h1"); if(h) h.textContent=v.name||"Deellijst";
+    const sharedName = String(v.name || "Deellijst");
+     currentListName = sharedName;
+     try { localStorage.setItem("activeSharedListName:" + id, sharedName); } catch (_) {}
+     const h=document.querySelector(".headerBar h1"); if(h) h.textContent=sharedName;
     updateSharedDeleteButton(v.owner === user.uid);
     setTimeout(()=>updateSharedDeleteButton(v.owner === user.uid), 0);
     updateSharedMemberCount(v);
@@ -6369,32 +6372,26 @@ async function openSharedList(id, showInvite){
 
 
 function updateSharedDeleteButton(isOwner){
-  const header=document.querySelector(".headerBar");
-  if(!header) return;
+  const btn = document.getElementById("mainListTrashButton");
+  if(!btn) return;
 
-  const old=document.getElementById("deleteSharedListBtn");
-  if(old) old.remove();
-
-  // Alleen tonen wanneer er daadwerkelijk een Deellijst geopend is.
-  // De knop gebruikt bewust dezelfde prullenbakknop als de rest van de app.
-  if(activeListType!=="shared" || !currentSharedListId) return;
-
-  const btn=document.createElement("button");
-  btn.type="button";
-  btn.id="deleteSharedListBtn";
-  btn.className="familyButton sharedDeleteIconButton";
-  btn.setAttribute("aria-label","Deellijst verwijderen");
-  btn.setAttribute("title","Deellijst verwijderen");
-  btn.innerHTML='<i class="fa-solid fa-trash"></i>';
-  btn.onclick=deleteCurrentSharedList;
-
-  // Plaats de knop direct vóór de bestaande drie-puntjesknop.
-  const options=document.getElementById("listOptionsButton");
-  if(options && options.parentElement===header){
-    header.insertBefore(btn, options);
-  }else{
-    header.appendChild(btn);
+  if(activeListType === "shared" && currentSharedListId){
+    // Gebruik exact dezelfde prullenbakknop als op de gewone boodschappenlijst.
+    // Zo ontstaat er geen tweede prullenbak in de header.
+    btn.style.display = "inline-flex";
+    btn.classList.add("sharedModeTrashButton");
+    btn.setAttribute("aria-label", "Deellijst verwijderen");
+    btn.setAttribute("title", "Deellijst verwijderen");
+    btn.onclick = deleteCurrentSharedList;
+  } else {
+    btn.classList.remove("sharedModeTrashButton");
+    btn.setAttribute("aria-label", "Lijst wissen");
+    btn.setAttribute("title", "Lijst wissen");
+    btn.onclick = openClearListConfirm;
   }
+
+  const old = document.getElementById("deleteSharedListBtn");
+  if(old) old.remove();
 }
 
 async function deleteCurrentSharedList(){
@@ -6459,6 +6456,7 @@ async function deleteCurrentSharedList(){
   activeListType="family";
   currentSharedListId=null;
   currentSharedListInviteCode=null;
+  try { localStorage.removeItem("activeSharedListId"); } catch (_) {}
   const delBtn=document.getElementById("deleteSharedListBtn");
   if(delBtn) delBtn.remove();
 
@@ -7493,8 +7491,27 @@ function toggleRegisterPassword(fieldId, button) {
 
       const householdId = await getOrCreateHousehold();
       if (householdId) {
-        activeListType = "family";
-        await loadList();
+        const rememberedSharedId = !freshLogin ? localStorage.getItem("activeSharedListId") : null;
+        if (rememberedSharedId) {
+          try {
+            const sharedSnap = await database.ref("sharedLists/" + rememberedSharedId).once("value");
+            const sharedData = sharedSnap.val();
+            if (sharedData && sharedData.members && sharedData.members[user.uid] === true) {
+              await openSharedList(rememberedSharedId, false);
+            } else {
+              localStorage.removeItem("activeSharedListId");
+              activeListType = "family";
+              await loadList();
+            }
+          } catch (restoreSharedError) {
+            console.warn("Gedeelde lijst na vernieuwen herstellen mislukt:", restoreSharedError);
+            activeListType = "family";
+            await loadList();
+          }
+        } else {
+          activeListType = "family";
+          await loadList();
+        }
         if (freshLogin && typeof showMainListView === "function") showMainListView();
       } else if (!freshLogin) {
         // Herstelde sessie zonder familie: persoonlijke lijst laden.
@@ -8331,7 +8348,7 @@ body.dark-theme .overviewSavedListLine{color:#c2ccc5;border-bottom-color:rgba(25
       '.boodschap-item, .list-item, .grocery-item'
     );
     rows.forEach(function(row){
-      if(row.querySelector('.article-trash,.product-trash,.shopping-item-trash')) return;
+      if(row.querySelector('.article-trash,.product-trash,.shopping-item-trash,.product-row-trash-can')) return;
       var button=document.createElement('button');
       button.type='button';
       button.className='article-trash';
