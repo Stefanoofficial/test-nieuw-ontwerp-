@@ -5821,23 +5821,35 @@ async function getOrCreateHousehold() {
 
 async function openSharedListsSubmenu(event) {
   if (event) event.stopPropagation();
+
+  // Open the submenu immediately. Do not wait for Firebase before showing it.
   switchMenuPage("sharedListsMenuSub", event);
-  const countEl=document.getElementById("sharedMemberCount");
-  if(countEl){
-    if(activeListType==="shared" && currentSharedListId){
-      try{
-        const snap=await database.ref("sharedLists/" + currentSharedListId + "/members").once("value");
-        const members=snap.val()||{};
-        countEl.textContent=String(Object.keys(members).filter(uid=>members[uid]===true).length);
-      }catch(_){
-        countEl.textContent="0";
+
+  // Start loading the list right away in parallel with the animation.
+  // This makes the screen feel much more responsive on Android/WebView.
+  const renderPromise = renderSharedLists();
+
+  const countEl = document.getElementById("sharedMemberCount");
+  if (countEl) {
+    if (activeListType === "shared" && currentSharedListId) {
+      try {
+        const snap = await database.ref("sharedLists/" + currentSharedListId + "/members").once("value");
+        const members = snap.val() || {};
+        countEl.textContent = String(
+          Object.keys(members).filter(uid => members[uid] === true).length
+        );
+      } catch (_) {
+        countEl.textContent = "0";
       }
-    }else{
-      countEl.textContent="—";
+    } else {
+      countEl.textContent = "—";
     }
   }
-  await renderSharedLists();
+
+  // Keep any existing error handling inside renderSharedLists intact.
+  await renderPromise;
 }
+
 function closeSharedListsSubmenu(event) {
   if (event) event.stopPropagation();
 
