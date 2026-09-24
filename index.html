@@ -3199,12 +3199,12 @@ body.dark-theme .smartInsightsItem .siIcon{color:#9bc8a8!important}
 #overviewActionOverlay{
   opacity:0;
   pointer-events:none;
-  transition:opacity 220ms ease;
+  transition:opacity 150ms ease;
 }
 #overviewActionOverlay .overviewActionSheet{
   transform:translate3d(0,110%,0);
   opacity:1;
-  transition:transform 340ms cubic-bezier(.22,1,.36,1);
+  transition:transform 240ms cubic-bezier(.22,1,.36,1);
   will-change:transform;
   backface-visibility:hidden;
 }
@@ -7698,7 +7698,7 @@ function __overviewOverlay(title){
   overlay.style.pointerEvents="none";
   sheet.style.transform="translate3d(0,110%,0)";
   sheet.style.opacity="1";
-  sheet.style.transition="transform 340ms cubic-bezier(.22,1,.36,1)";
+  sheet.style.transition="transform 240ms cubic-bezier(.22,1,.36,1)";
   sheet.style.willChange="transform";
 
   var closeSheet=function(){
@@ -7709,7 +7709,7 @@ function __overviewOverlay(title){
     overlay.style.opacity="0";
     overlay.style.pointerEvents="none";
     sheet.style.transform="translate3d(0,110%,0)";
-    setTimeout(function(){ if(overlay.parentNode) overlay.remove(); },350);
+    setTimeout(function(){ if(overlay.parentNode) overlay.remove(); },250);
   };
 
   var openSheet=function(){
@@ -7717,11 +7717,9 @@ function __overviewOverlay(title){
     overlay.dataset.opened="1";
     overlay.style.pointerEvents="auto";
     requestAnimationFrame(function(){
-      requestAnimationFrame(function(){
-        overlay.classList.add("is-open");
-        overlay.style.opacity="1";
-        sheet.style.transform="translate3d(0,0,0)";
-      });
+      overlay.classList.add("is-open");
+      overlay.style.opacity="1";
+      sheet.style.transform="translate3d(0,0,0)";
     });
   };
 
