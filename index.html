@@ -3045,14 +3045,14 @@ body.logged-in {
 </style>
 
 <style id="shared-menu-smooth-final">
-/* Gedeelde lijsten opent licht en vloeiend, zonder netwerkwerk te blokkeren. */
+/* Android/WebView: alleen opacity. Geen transform/reflow die de Meer-kaart
+   tijdens het wisselen van submenu kan laten haperen. */
 .app.more-active #familyMenu .familyMenuPage.sharedMenuSmoothEnter {
-  animation: sharedMenuSmoothEnter .12s cubic-bezier(.2,.7,.2,1) both !important;
-  will-change: transform, opacity !important;
+  animation: sharedMenuSmoothEnter .16s ease-out both !important;
 }
 @keyframes sharedMenuSmoothEnter {
-  from { opacity: .72; transform: translate3d(10px,0,0); }
-  to   { opacity: 1; transform: translate3d(0,0,0); }
+  from { opacity: .01; }
+  to   { opacity: 1; }
 }
 @media (prefers-reduced-motion: reduce) {
   .app.more-active #familyMenu .familyMenuPage.sharedMenuSmoothEnter { animation: none !important; }
@@ -4108,8 +4108,7 @@ function switchMenuPage(pageId, event) {
   const menu = document.getElementById("familyMenu");
   if (!page || !menu) return;
 
-  // Stabiele Meer-navigatie: één pagina tegelijk, zonder slide-animatie,
-  // requestAnimationFrame of dynamische height-meting.
+  // Stabiele Meer-navigatie: één pagina tegelijk.
   __cancelMenuTransition();
   menu.style.display = "block";
   __showOnlyMenuPage(pageId);
@@ -5837,37 +5836,32 @@ async function getOrCreateHousehold() {
 function openSharedListsSubmenu(event) {
   if (event) event.stopPropagation();
 
-  // Open de pagina eerst. Geen Firebase-wachtmoment in de tap/animatie.
+  // Belangrijk voor Android/WebView: maak de navigatie zelf zo licht mogelijk.
+  // Geen forced reflow (offsetWidth), geen transform-animatie en geen Firebase-
+  // werk tijdens de eerste frames van het openen.
   switchMenuPage("sharedListsMenuSub", event);
 
   const page = document.getElementById("sharedListsMenuSub");
-  if (page) {
-    page.classList.remove("sharedMenuSmoothEnter");
-    void page.offsetWidth;
-    page.classList.add("sharedMenuSmoothEnter");
-    window.setTimeout(() => page.classList.remove("sharedMenuSmoothEnter"), 180);
-  }
+  if (page) page.classList.add("sharedMenuSmoothEnter");
 
-  // Alles wat netwerk nodig heeft loopt pas nadat de interface zichtbaar is.
-  // Daardoor kan Firebase de eerste frames van de overgang niet blokkeren.
-  const countEl=document.getElementById("sharedMemberCount");
-  if(countEl){
-    if(activeListType==="shared" && currentSharedListId){
-      countEl.textContent="…";
+  const countEl = document.getElementById("sharedMemberCount");
+  if (countEl) countEl.textContent = (activeListType === "shared" && currentSharedListId) ? "…" : "—";
+
+  // Pas nadat de overgang volledig voorbij is, starten we netwerk + DOM-opbouw.
+  // Zo kan een snelle Firebase-response de animatie nooit laten stotteren.
+  window.setTimeout(() => {
+    if (page) page.classList.remove("sharedMenuSmoothEnter");
+    renderSharedLists();
+
+    if (countEl && activeListType === "shared" && currentSharedListId) {
       database.ref("sharedLists/" + currentSharedListId + "/members").once("value")
-        .then(snap=>{
-          const members=snap.val()||{};
-          countEl.textContent=String(Object.keys(members).filter(uid=>members[uid]===true).length);
+        .then(snap => {
+          const members = snap.val() || {};
+          countEl.textContent = String(Object.keys(members).filter(uid => members[uid] === true).length);
         })
-        .catch(()=>{ countEl.textContent="0"; });
-    }else{
-      countEl.textContent="—";
+        .catch(() => { countEl.textContent = "0"; });
     }
-  }
-
-  // Laat eerst de eerste frames van de interface schilderen. Daarna pas de
-  // lijst renderen, zodat DOM-opbouw/Firebase nooit de opening kan haperen.
-  window.setTimeout(() => { renderSharedLists(); }, 120);
+  }, 260);
 }
 function closeSharedListsSubmenu(event) {
   if (event) event.stopPropagation();
