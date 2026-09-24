@@ -3185,20 +3185,6 @@ html, body { -webkit-tap-highlight-color: transparent; }
   overscroll-behavior: contain;
 }
 </style>
-<style id="shared-lists-no-jank-v1">
-/* Gedeelde lijsten: geen kaart-hoogte-animatie tijdens het wisselen.
-   De WebView hoeft daardoor niet tegelijk layout + Firebase-resultaten + animatie
-   te verwerken. */
-.app.more-active #familyMenu.noMenuHeightTransition {
-  transition: none !important;
-  animation: none !important;
-}
-.app.more-active #familyMenu.noMenuHeightTransition .familyMenuPage {
-  transition: none !important;
-  animation: none !important;
-  transform: none !important;
-}
-</style>
 <style id="more-menu-height-transition-v2">
 /* The card keeps the larger height during the horizontal slide. After the
    slide has finished, JS changes this height to the new page height so the
@@ -3286,6 +3272,21 @@ body.dark-theme .smartInsightsItem .siIcon{color:#9bc8a8!important}
 }
 </style>
 
+
+<style id="shared-lists-no-animation-final">
+/* Gedeelde lijsten: geen visuele overgang. De pagina wisselt direct. */
+.app.more-active #familyMenu #sharedListsMenuSub,
+.app.more-active #familyMenu #sharedListsMenuSub * {
+  animation: none !important;
+  transition: none !important;
+}
+.app.more-active #familyMenu #sharedListsMenuSub {
+  transform: none !important;
+  opacity: 1 !important;
+  will-change: auto !important;
+  contain: layout paint !important;
+}
+</style>
 </head>
 
 <body>
@@ -5869,27 +5870,27 @@ async function getOrCreateHousehold() {
 function openSharedListsSubmenu(event) {
   if (event) event.stopPropagation();
 
-  // Gedeelde lijsten moet op Android/WebView direct reageren.
-  // De hapering kwam niet uit Firebase alleen: het Meer-menu animeerde ook
-  // de hoogte van de kaart terwijl de nieuwe pagina werd opgebouwd.
-  const menu = document.getElementById("familyMenu");
-  const page = document.getElementById("sharedListsMenuSub");
-  if (!menu || !page) return;
-
-  // Tijdens deze wissel helemaal geen hoogte- of fade-animatie.
-  menu.classList.add("noMenuHeightTransition");
-  if (page) page.classList.remove("sharedMenuSmoothEnter");
-
+  // Gedeelde lijsten: bewust GEEN animatie en GEEN wachttijd.
+  // Android/WebView krijgt eerst alleen de paginawissel te verwerken.
   switchMenuPage("sharedListsMenuSub", event);
 
-  const countEl = document.getElementById("sharedMemberCount");
-  if (countEl) {
-    countEl.textContent = (activeListType === "shared" && currentSharedListId) ? "…" : "—";
+  const page = document.getElementById("sharedListsMenuSub");
+  if (page) {
+    page.classList.remove("sharedMenuSmoothEnter", "menuSlideOutLeft", "menuSlideInRight", "menuSlideOutRight", "menuSlideInLeft");
+    page.style.animation = "none";
+    page.style.transition = "none";
+    page.style.transform = "none";
+    page.style.opacity = "1";
   }
 
-  // Start het laden meteen, maar asynchroon. De eerste Firebase 'await'
-  // geeft de browser/WebView ruimte om het nieuwe scherm eerst te tekenen.
-  Promise.resolve().then(() => {
+  const countEl = document.getElementById("sharedMemberCount");
+  if (countEl) countEl.textContent = (activeListType === "shared" && currentSharedListId) ? "…" : "—";
+
+  const box = document.getElementById("sharedListsContainer");
+  if (box) box.innerHTML = '<div class="sharedListEmpty">Lijsten laden…</div>';
+
+  // Start pas na de huidige render-tick. Geen 160/260/300 ms kunstmatige vertraging.
+  setTimeout(() => {
     renderSharedLists();
 
     if (countEl && activeListType === "shared" && currentSharedListId) {
@@ -5900,14 +5901,7 @@ function openSharedListsSubmenu(event) {
         })
         .catch(() => { countEl.textContent = "0"; });
     }
-  });
-
-  // Na het eerste render-frame mag de normale Meer-opmaak weer gelden.
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      menu.classList.remove("noMenuHeightTransition");
-    });
-  });
+  }, 0);
 }
 function closeSharedListsSubmenu(event) {
   if (event) event.stopPropagation();
