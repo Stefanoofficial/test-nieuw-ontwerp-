@@ -3044,6 +3044,21 @@ body.logged-in {
 #themePicker { display:none !important; visibility:hidden !important; }
 </style>
 
+<style id="shared-menu-smooth-final">
+/* Gedeelde lijsten opent licht en vloeiend, zonder netwerkwerk te blokkeren. */
+.app.more-active #familyMenu .familyMenuPage.sharedMenuSmoothEnter {
+  animation: sharedMenuSmoothEnter .16s cubic-bezier(.22,.8,.3,1) both !important;
+  will-change: transform, opacity !important;
+}
+@keyframes sharedMenuSmoothEnter {
+  from { opacity: .72; transform: translate3d(10px,0,0); }
+  to   { opacity: 1; transform: translate3d(0,0,0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app.more-active #familyMenu .familyMenuPage.sharedMenuSmoothEnter { animation: none !important; }
+}
+</style>
+
 <style id="menu-slide-stability-final">
 /* === Laatste fix: stabiele horizontale submenu-slides in Meer ===
    In Meer mogen de pagina's tijdens een overgang nooit onder elkaar komen te staan.
@@ -5819,37 +5834,40 @@ async function getOrCreateHousehold() {
   }
 }
 
-async function openSharedListsSubmenu(event) {
+function openSharedListsSubmenu(event) {
   if (event) event.stopPropagation();
 
-  // Open the submenu immediately. Do not wait for Firebase before showing it.
+  // Open de pagina eerst. Geen Firebase-wachtmoment in de tap/animatie.
   switchMenuPage("sharedListsMenuSub", event);
 
-  // Start loading the list right away in parallel with the animation.
-  // This makes the screen feel much more responsive on Android/WebView.
-  const renderPromise = renderSharedLists();
+  const page = document.getElementById("sharedListsMenuSub");
+  if (page) {
+    page.classList.remove("sharedMenuSmoothEnter");
+    void page.offsetWidth;
+    page.classList.add("sharedMenuSmoothEnter");
+    window.setTimeout(() => page.classList.remove("sharedMenuSmoothEnter"), 180);
+  }
 
-  const countEl = document.getElementById("sharedMemberCount");
-  if (countEl) {
-    if (activeListType === "shared" && currentSharedListId) {
-      try {
-        const snap = await database.ref("sharedLists/" + currentSharedListId + "/members").once("value");
-        const members = snap.val() || {};
-        countEl.textContent = String(
-          Object.keys(members).filter(uid => members[uid] === true).length
-        );
-      } catch (_) {
-        countEl.textContent = "0";
-      }
-    } else {
-      countEl.textContent = "—";
+  // Alles wat netwerk nodig heeft loopt pas nadat de interface zichtbaar is.
+  // Daardoor kan Firebase de eerste frames van de overgang niet blokkeren.
+  const countEl=document.getElementById("sharedMemberCount");
+  if(countEl){
+    if(activeListType==="shared" && currentSharedListId){
+      countEl.textContent="…";
+      database.ref("sharedLists/" + currentSharedListId + "/members").once("value")
+        .then(snap=>{
+          const members=snap.val()||{};
+          countEl.textContent=String(Object.keys(members).filter(uid=>members[uid]===true).length);
+        })
+        .catch(()=>{ countEl.textContent="0"; });
+    }else{
+      countEl.textContent="—";
     }
   }
 
-  // Keep any existing error handling inside renderSharedLists intact.
-  await renderPromise;
+  // Niet awaiten: de lijst vult zich op de achtergrond terwijl het scherm al open is.
+  renderSharedLists();
 }
-
 function closeSharedListsSubmenu(event) {
   if (event) event.stopPropagation();
 
