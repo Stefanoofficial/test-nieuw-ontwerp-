@@ -3287,6 +3287,16 @@ body.dark-theme .smartInsightsItem .siIcon{color:#9bc8a8!important}
   contain: layout paint !important;
 }
 </style>
+
+<style id="silent-menu-refresh">
+.refreshableMenuTitle{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.silentRefreshBtn{width:32px;height:32px;flex:0 0 32px;border:0;border-radius:10px;background:#edf5ee;color:#4f7357;display:inline-flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.silentRefreshBtn:active{transform:scale(.94);}
+.silentRefreshBtn:disabled{opacity:.7;cursor:default;}
+.silentRefreshBtn.isRefreshing i{animation:silentRefreshSpin .55s linear infinite;}
+@keyframes silentRefreshSpin{to{transform:rotate(360deg)}}
+body.dark-theme .silentRefreshBtn{background:rgba(255,255,255,.08);color:#dff1e2;}
+</style>
 </head>
 
 <body>
@@ -3503,7 +3513,7 @@ body.dark-theme .smartInsightsItem .siIcon{color:#9bc8a8!important}
       <i class="fa-solid fa-plus"></i>
       <span>Nieuwe lijst</span>
     </button>
-    <div class="familyMenuSubTitle">Mijn deellijsten</div>
+    <div class="familyMenuSubTitle refreshableMenuTitle"><span>Mijn deellijsten</span><button type="button" class="silentRefreshBtn" id="refreshSharedListsBtn" aria-label="Gedeelde lijsten verversen" title="Verversen" onclick="refreshSharedListsSilently(event)"><i class="fa-solid fa-rotate"></i></button></div>
     <div id="sharedListsContainer" class="savedListsContainer"></div>
     <div class="settingsMenuHint">Maak een lijst voor vrienden, familie of een feestje. Iedereen met toegang kan samen producten toevoegen en afvinken.</div>
   </div>
@@ -3553,7 +3563,7 @@ body.dark-theme .smartInsightsItem .siIcon{color:#9bc8a8!important}
       <i class="fa-solid fa-chevron-left"></i>
       <span>Opgeslagen</span>
     </button>
-    <div class="familyMenuSubTitle">Opgeslagen</div>
+    <div class="familyMenuSubTitle refreshableMenuTitle"><span>Opgeslagen</span><button type="button" class="silentRefreshBtn" id="refreshSavedListsBtn" aria-label="Opgeslagen lijsten verversen" title="Verversen" onclick="refreshSavedListsSilently(event)"><i class="fa-solid fa-rotate"></i></button></div>
     <button type="button" class="familyMenuItem savedListSaveBtn" onclick="saveCurrentListAs()">
       <i class="fa-solid fa-floppy-disk"></i>
       <span>Lijst opslaan</span>
@@ -4035,6 +4045,45 @@ function openSavedListsSubmenu(event) {
   }, 0);
 }
 function closeSavedListsSubmenu(event) { returnMenuToMain("savedListsMenuSub", event); }
+
+let __silentRefreshSavedBusy = false;
+let __silentRefreshSharedBusy = false;
+
+function __setSilentRefreshState(id, busy){
+  const btn=document.getElementById(id);
+  if(!btn) return;
+  btn.disabled=!!busy;
+  btn.classList.toggle("isRefreshing", !!busy);
+}
+
+async function refreshSavedListsSilently(event){
+  if(event){ event.preventDefault(); event.stopPropagation(); }
+  if(__silentRefreshSavedBusy) return;
+  __silentRefreshSavedBusy=true;
+  __setSilentRefreshState("refreshSavedListsBtn",true);
+  try{
+    await renderSavedLists();
+  }catch(e){ console.error("Opgeslagen lijsten stil verversen mislukt:",e); }
+  finally{
+    __silentRefreshSavedBusy=false;
+    __setSilentRefreshState("refreshSavedListsBtn",false);
+  }
+}
+
+async function refreshSharedListsSilently(event){
+  if(event){ event.preventDefault(); event.stopPropagation(); }
+  if(__silentRefreshSharedBusy) return;
+  __silentRefreshSharedBusy=true;
+  __setSilentRefreshState("refreshSharedListsBtn",true);
+  try{
+    await renderSharedLists();
+  }catch(e){ console.error("Gedeelde lijsten stil verversen mislukt:",e); }
+  finally{
+    __silentRefreshSharedBusy=false;
+    __setSilentRefreshState("refreshSharedListsBtn",false);
+  }
+}
+
 
 function __measureMorePageHeight(menu, page) {
   if (!menu || !page) return 0;
@@ -4710,6 +4759,18 @@ async function loadSavedList(index) {
   currentListName = String(saved.name || "Boodschappenlijst");
   selectedIndex = -1;
 
+  // Onthoud welke opgeslagen lijst actief is. Daardoor blijft dezelfde
+  // opgeslagen lijst ook na een volledige refresh geopend.
+  const user = auth.currentUser;
+  if (user) {
+    try {
+      localStorage.setItem("boodschappenActiveSavedList_" + user.uid, JSON.stringify({
+        id: saved.id || null,
+        name: currentListName
+      }));
+    } catch (_) {}
+  }
+
   // Na het laden van een opgeslagen lijst meteen naar het hoofdscherm gaan.
   // Zo blijft de gebruiker niet in het menu "Opgeslagen lijsten" staan.
   showMainListView();
@@ -4865,6 +4926,41 @@ async function loadList() {
 
     // Een actieve Deellijst mag nooit door deze familielijst-loader worden overschreven.
     if (activeListType === "shared" && currentSharedListId) return true;
+
+    // Herstel een eerder geopende opgeslagen lijst na een refresh.
+    // Dit gebeurt vóór de normale/familie-lijst wordt geladen, zodat
+    // currentListName niet terugvalt naar "Boodschappenlijst".
+    const savedActiveKey = "boodschappenActiveSavedList_" + auth.currentUser.uid;
+    let activeSaved = null;
+    try {
+      const rawActiveSaved = localStorage.getItem(savedActiveKey);
+      activeSaved = rawActiveSaved ? JSON.parse(rawActiveSaved) : null;
+    } catch (_) { activeSaved = null; }
+
+    if (activeSaved) {
+      try {
+        const savedLists = await readSavedLists();
+        const saved = savedLists.find(item =>
+          (activeSaved.id && item.id === activeSaved.id) ||
+          (!activeSaved.id && item.name === activeSaved.name)
+        );
+        if (saved) {
+          activeListType = "saved";
+          currentSharedListId = null;
+          currentListName = String(saved.name || activeSaved.name || "Boodschappenlijst");
+          boodschappen = normalizeBoodschappen(saved.items || []);
+          selectedIndex = -1;
+          showList();
+          updateStatus();
+          if (typeof updateOverviewDashboard === "function") updateOverviewDashboard();
+          return true;
+        }
+      } catch (error) {
+        console.error("Opgeslagen lijst herstellen mislukt:", error);
+      }
+      try { localStorage.removeItem(savedActiveKey); } catch (_) {}
+    }
+
     activeListType = isPrivateMode() ? "private" : "family";
     currentListName = "Boodschappenlijst";
 
