@@ -3519,7 +3519,7 @@ body.dark-theme .silentRefreshBtn{background:rgba(255,255,255,.08);color:#dff1e2
   </div>
 
   <div id="sharedListActiveMenuSub" class="familyMenuPage sharedListsMenuPage" style="display:none;">
-    <div class="familyMenuSubTitle" id="sharedListActiveMenuTitle">Gedeelde lijst</div>
+    <div class="familyMenuSubTitle refreshableMenuTitle"><span id="sharedListActiveMenuTitle">Gedeelde lijst</span><button type="button" class="silentRefreshBtn" id="refreshActiveSharedListBtn" aria-label="Gedeelde lijst verversen" title="Verversen" onclick="refreshActiveSharedListSilently(event)"><i class="fa-solid fa-rotate"></i></button></div>
     <button type="button" class="familyMenuItem" onclick="showSharedListMembers()">
       <i class="fa-solid fa-user-group"></i>
       <span>Leden (<span id="sharedMemberCountActive">0</span>)</span>
@@ -4081,6 +4081,48 @@ async function refreshSharedListsSilently(event){
   finally{
     __silentRefreshSharedBusy=false;
     __setSilentRefreshState("refreshSharedListsBtn",false);
+  }
+}
+
+async function refreshActiveSharedListSilently(event){
+  if(event){ event.preventDefault(); event.stopPropagation(); }
+  if(__silentRefreshSharedBusy) return;
+  const id=currentSharedListId;
+  const user=auth.currentUser;
+  if(!id || activeListType!=="shared" || !user) return;
+  __silentRefreshSharedBusy=true;
+  __setSilentRefreshState("refreshActiveSharedListBtn",true);
+  try{
+    const snap=await database.ref("sharedLists/" + id).once("value");
+    const data=snap.val();
+    if(!data || !data.members || data.members[user.uid]!==true){
+      activeListType="family";
+      currentSharedListId=null;
+      if(currentSharedListUnsubscribe){ currentSharedListUnsubscribe(); currentSharedListUnsubscribe=null; }
+      await loadList();
+      return;
+    }
+    boodschappen=normalizeBoodschappen(data.boodschappen||[]);
+    currentListName=String(data.name||"Deellijst");
+    try{ localStorage.setItem("activeSharedListName:" + id,currentListName); }catch(_){}
+    currentSharedListInviteCode=data.inviteCode||currentSharedListInviteCode||null;
+    const h=document.querySelector(".headerBar h1");
+    if(h) h.textContent=currentListName;
+    const activeTitle=document.getElementById("sharedListActiveMenuTitle");
+    if(activeTitle) activeTitle.textContent=currentListName;
+    showList();
+    updateSharedMemberCount(data);
+    const activeCount=document.getElementById("sharedMemberCountActive");
+    if(activeCount){
+      const members=data.members||{};
+      activeCount.textContent=String(Object.keys(members).filter(uid=>members[uid]===true).length);
+    }
+    updateSharedDeleteButton(data.owner===user.uid);
+  }catch(e){
+    console.error("Actieve gedeelde lijst stil verversen mislukt:",e);
+  }finally{
+    __silentRefreshSharedBusy=false;
+    __setSilentRefreshState("refreshActiveSharedListBtn",false);
   }
 }
 
