@@ -4797,13 +4797,32 @@ async function loadSavedList(index) {
   if (!saved) return;
   const proceed = await familyConfirm("Lijst laden", 'Wil je de huidige lijst vervangen door "' + (saved.name || "deze lijst") + '"?');
   if (!proceed) return;
+
+  // Een opgeslagen lijst is een zelfstandige lijst. Schakel daarom eerst
+  // expliciet weg van een eventuele gedeelde lijst en stop de realtime
+  // listener. Anders kan de oude gedeelde lijst de inhoud van de opgeslagen
+  // lijst meteen weer overschrijven.
+  mainListLoadGeneration++;
+  if (currentSharedListUnsubscribe) {
+    currentSharedListUnsubscribe();
+    currentSharedListUnsubscribe = null;
+  }
+  activeListType = "saved";
+  currentSharedListId = null;
+  currentSharedListInviteCode = null;
+
+  // Een opgeslagen lijst mag nooit per ongeluk naar een actieve gedeelde
+  // lijst worden opgeslagen. Daarom verwijderen we de oude shared-selectie.
+  const user = auth.currentUser;
+  if (user) {
+    try { localStorage.removeItem("activeSharedListId"); } catch (_) {}
+  }
+
   boodschappen = normalizeBoodschappen(saved.items || []);
   currentListName = String(saved.name || "Boodschappenlijst");
   selectedIndex = -1;
 
-  // Onthoud welke opgeslagen lijst actief is. Daardoor blijft dezelfde
-  // opgeslagen lijst ook na een volledige refresh geopend.
-  const user = auth.currentUser;
+  // Onthoud welke opgeslagen lijst actief is voor een echte pagina-refresh.
   if (user) {
     try {
       localStorage.setItem("boodschappenActiveSavedList_" + user.uid, JSON.stringify({
@@ -4813,12 +4832,14 @@ async function loadSavedList(index) {
     } catch (_) {}
   }
 
-  // Na het laden van een opgeslagen lijst meteen naar het hoofdscherm gaan.
-  // Zo blijft de gebruiker niet in het menu "Opgeslagen lijsten" staan.
+  // Ga direct naar de opgeslagen lijst. NIET saveList() aanroepen: dat zou
+  // de opgeslagen inhoud kunnen wegschrijven naar een vorige shared/family
+  // bestemming. De opgeslagen lijst is al in localStorage opgeslagen.
   showMainListView();
   closeFamilyMenu();
   showList();
-  await saveList();
+  updateStatus();
+  if (typeof updateOverviewDashboard === "function") updateOverviewDashboard();
 }
 
 function toggleFamilyMenu() {
@@ -6430,6 +6451,12 @@ async function openSharedList(id, showInvite){
   const previousSharedId = currentSharedListId;
   activeListType = "shared";
   currentSharedListId = id;
+
+  // Bij een expliciete keuze voor een gedeelde lijst mag de eerder gekozen
+  // opgeslagen lijst niet later door loadList/auth-herstel teruggezet worden.
+  try {
+    localStorage.removeItem("boodschappenActiveSavedList_" + user.uid);
+  } catch (_) {}
 
   // Open een Deellijst direct in het hoofdscherm "Lijst".
   showMainListView();
