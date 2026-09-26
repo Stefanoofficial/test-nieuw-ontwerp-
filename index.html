@@ -1,9 +1,8 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-<link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png">
-<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -4814,58 +4813,23 @@ async function loadSavedListRecord(saved) {
     currentSharedListUnsubscribe();
     currentSharedListUnsubscribe = null;
   }
-  const user = auth.currentUser;
-  setActiveListState("saved", saved.id || null, saved.name || "Boodschappenlijst");
   currentSharedListId = null;
   currentSharedListInviteCode = null;
-  currentListName = String(saved.name || "Boodschappenlijst");
-  boodschappen = normalizeBoodschappen(saved.items || []);
-  selectedIndex = -1;
-  if (user) {
-    try {
-      localStorage.setItem("boodschappenActiveSavedList_" + user.uid, JSON.stringify({ id: saved.id || null, name: currentListName }));
-    } catch (_) {}
-  }
-  // Close the More menu before changing the main list. This prevents the
-  // document-level outside-click handler from selecting another menu item.
-  closeFamilyMenu();
-  showMainListView();
-  setBottomNav("navList");
-  showList();
-  updateStatus();
-  if (typeof updateOverviewDashboard === "function") updateOverviewDashboard();
-}
 
-async function loadSavedListById(savedId) {
-  const lists = await readSavedLists();
-  const saved = lists.find((item, idx) => String(item.id || idx) === String(savedId));
-  if (!saved) return;
-  await loadSavedListRecord(saved);
-}
-
-async function loadSavedListRecord(saved) {
-  const proceed = await familyConfirm("Lijst laden", 'Wil je de huidige lijst vervangen door "' + (saved.name || "deze lijst") + '"?');
-  if (!proceed) return;
-
-  mainListLoadGeneration++;
-  if (currentSharedListUnsubscribe) {
-    currentSharedListUnsubscribe();
-    currentSharedListUnsubscribe = null;
-  }
   const user = auth.currentUser;
-  setActiveListState("saved", saved.id || null, saved.name || "Boodschappenlijst");
-  currentSharedListId = null;
-  currentSharedListInviteCode = null;
-  currentListName = String(saved.name || "Boodschappenlijst");
+  const savedId = saved.id || null;
+  const savedName = String(saved.name || "Boodschappenlijst");
+  setActiveListState("saved", savedId, savedName);
+  currentListName = savedName;
   boodschappen = normalizeBoodschappen(saved.items || []);
   selectedIndex = -1;
+
+  // Opgeslagen lijsten zijn alleen een sessiekeuze; na opnieuw openen blijft
+  // de gewone Boodschappenlijst de basis.
   if (user) {
-    try {
-      localStorage.setItem("boodschappenActiveSavedList_" + user.uid, JSON.stringify({ id: saved.id || null, name: currentListName }));
-    } catch (_) {}
+    try { localStorage.removeItem("boodschappenActiveSavedList_" + user.uid); } catch (_) {}
   }
-  // Close the More menu before changing the main list. This prevents the
-  // document-level outside-click handler from selecting another menu item.
+
   closeFamilyMenu();
   showMainListView();
   setBottomNav("navList");
@@ -5024,61 +4988,19 @@ function clearSearch() {
 async function loadList() {
   const myLoadGeneration = mainListLoadGeneration;
   try {
-    // Een late async callback mag na uitloggen of na het openen van een andere
-    // lijst niets meer in het hoofdscherm schrijven.
     if (!auth.currentUser || explicitLogoutInProgress) return false;
     if (myLoadGeneration !== mainListLoadGeneration) return true;
-
-    // Een expliciet gekozen lijst mag nooit door een oude hoofdloader worden overschreven.
     if (activeListState.type === "shared" && activeListState.id) return true;
     if (activeListState.type === "saved" && activeListState.id) return true;
 
-    // Herstel een eerder geopende opgeslagen lijst na een refresh.
-    // Dit gebeurt vóór de normale/familie-lijst wordt geladen, zodat
-    // currentListName niet terugvalt naar "Boodschappenlijst".
-    const savedActiveKey = "boodschappenActiveSavedList_" + auth.currentUser.uid;
-    let activeSaved = null;
-    try {
-      const rawActiveSaved = localStorage.getItem(savedActiveKey);
-      activeSaved = rawActiveSaved ? JSON.parse(rawActiveSaved) : null;
-    } catch (_) { activeSaved = null; }
-
-    if (activeSaved) {
-      try {
-        const savedLists = await readSavedLists();
-        if (myLoadGeneration !== mainListLoadGeneration || (activeListType === "shared" && currentSharedListId)) return true;
-        const saved = savedLists.find(item =>
-          (activeSaved.id && item.id === activeSaved.id) ||
-          (!activeSaved.id && item.name === activeSaved.name)
-        );
-        if (saved) {
-          setActiveListState("saved", saved.id || activeSaved.id, saved.name || activeSaved.name || "Boodschappenlijst");
-          currentSharedListId = null;
-          currentListName = String(saved.name || activeSaved.name || "Boodschappenlijst");
-          boodschappen = normalizeBoodschappen(saved.items || []);
-          selectedIndex = -1;
-          showList();
-          updateStatus();
-          if (typeof updateOverviewDashboard === "function") updateOverviewDashboard();
-          return true;
-        }
-      } catch (error) {
-        console.error("Opgeslagen lijst herstellen mislukt:", error);
-      }
-      try { localStorage.removeItem(savedActiveKey); } catch (_) {}
-    }
-
-    if (myLoadGeneration !== mainListLoadGeneration || (activeListType === "shared" && currentSharedListId)) return true;
     setActiveListState(isPrivateMode() ? "private" : "family", null, "Boodschappenlijst");
     currentListName = "Boodschappenlijst";
 
-    // Een privé-lijst wordt lokaal opgeslagen en hoeft dus niet via Firebase geladen te worden.
     if (isPrivateMode()) {
       await loadPrivateList();
       return true;
     }
 
-    // Ook de keuze "Overslaan" moet bij vernieuwen behouden blijven.
     const user = auth.currentUser;
     if (!currentHouseholdId && user && localStorage.getItem("boodschappenUseMode_" + user.uid) === "skip") {
       openAppWithoutList();
@@ -5087,30 +5009,24 @@ async function loadList() {
 
     if (!currentHouseholdId) {
       const householdId = await getOrCreateHousehold();
+      if (myLoadGeneration !== mainListLoadGeneration) return true;
       if (!householdId) {
-        // Nieuwe gebruikers starten direct met een persoonlijke lijst.
-        // Samenwerken blijft beschikbaar via Meer → Mijn familie.
         if (user) localStorage.setItem("boodschappenUseMode_" + user.uid, "private");
         await loadPrivateList();
         return true;
       }
     }
 
-    const snapshot = await database
-      .ref("households/" + currentHouseholdId + "/boodschappen")
-      .once("value");
+    const snapshot = await database.ref("households/" + currentHouseholdId + "/boodschappen").once("value");
+    if (myLoadGeneration !== mainListLoadGeneration || activeListState.type !== "family") return true;
 
     const data = snapshot.val();
-
-    if (Array.isArray(data)) {
-      boodschappen = normalizeBoodschappen(data);
-    } else if (data && typeof data === "object") {
-      boodschappen = normalizeBoodschappen(Object.values(data));
-    } else {
-      boodschappen = [];
-    }
+    if (Array.isArray(data)) boodschappen = normalizeBoodschappen(data);
+    else if (data && typeof data === "object") boodschappen = normalizeBoodschappen(Object.values(data));
+    else boodschappen = [];
 
     selectedIndex = -1;
+    currentListName = "Boodschappenlijst";
     showList();
     updateStatus();
     if (typeof updateOverviewDashboard === "function") updateOverviewDashboard();
@@ -5118,28 +5034,23 @@ async function loadList() {
     return true;
   } catch (error) {
     console.error("Lijst laden mislukt:", error);
-
     if (error && (error.code === "PERMISSION_DENIED" || error.code === "permission-denied")) {
       currentHouseholdId = null;
       const user = auth.currentUser;
       if (user) {
-        try {
-          await database.ref("users/" + user.uid + "/householdId").remove();
-        } catch (cleanupError) {
-          console.error("Oude familie-koppeling verwijderen mislukt:", cleanupError);
-        }
+        try { await database.ref("users/" + user.uid + "/householdId").remove(); }
+        catch (cleanupError) { console.error("Oude familie-koppeling verwijderen mislukt:", cleanupError); }
       }
       if (user) localStorage.setItem("boodschappenUseMode_" + user.uid, "private");
+      if (myLoadGeneration !== mainListLoadGeneration) return true;
       await loadPrivateList();
       return true;
     }
-
     const status = document.getElementById("status");
     if (status) status.innerHTML = '<i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i> De familielijst kon niet worden geladen. Probeer opnieuw.';
     return false;
   }
 }
-
 
 function normalizeBoodschappen(data) {
   if (!Array.isArray(data)) return [];
@@ -6170,13 +6081,15 @@ function closeSharedListsSubmenu(event) {
     closeFamilyMenu();
   }
 
-  activeListType = "family";
+  mainListLoadGeneration++;
+  setActiveListState("family", null, "Boodschappenlijst");
   if (currentSharedListUnsubscribe) {
     currentSharedListUnsubscribe();
     currentSharedListUnsubscribe = null;
   }
   currentSharedListId = null;
   currentSharedListInviteCode = null;
+  try { localStorage.removeItem("activeSharedListId"); } catch (_) {}
 
   const h = document.querySelector(".headerBar h1");
   if (h) h.textContent = "Boodschappenlijst";
@@ -6522,6 +6435,7 @@ async function openSharedList(id, showInvite){
   const previousSharedId = currentSharedListId;
   setActiveListState("shared", id, "Deellijst");
   currentSharedListId = id;
+  try { if (user) localStorage.removeItem("boodschappenActiveSavedList_" + user.uid); } catch (_) {}
 
   // Sluit Meer eerst en schakel daarna éénmalig naar Lijst.
   closeFamilyMenu();
@@ -6584,8 +6498,11 @@ async function openSharedList(id, showInvite){
       if(!data.members || data.members[user.uid]!==true){
         currentSharedListId=null;
         if(currentSharedListUnsubscribe){ currentSharedListUnsubscribe(); currentSharedListUnsubscribe=null; }
-        activeListType="family";
-        loadList();
+        if (activeListType === "shared" && currentSharedListId === id) {
+          mainListLoadGeneration++;
+          setActiveListState("family", null, "Boodschappenlijst");
+          loadList();
+        }
         return;
       }
       boodschappen=normalizeBoodschappen(data.boodschappen||[]);
@@ -6742,7 +6659,6 @@ async function returnToFamilyListFromSharedMenu(event){
   // Deze knop staat bovenaan het Deellijst-menu en moet rechtstreeks naar
   // de gewone boodschappenlijst gaan, niet één niveau terug in het menu.
   activeListType="family";
-  try { localStorage.removeItem("activeSharedListId"); } catch (_) {}
   if(currentSharedListId){ try{ localStorage.removeItem("sharedListInviteCode:"+currentSharedListId); }catch(_){} }
   currentSharedListId=null;
   currentSharedListInviteCode=null;
@@ -7733,21 +7649,27 @@ function toggleRegisterPassword(fieldId, button) {
 
       const householdId = await getOrCreateHousehold();
       if (householdId) {
-        // De gewone Boodschappenlijst is altijd de basis bij het opnieuw openen
-        // van de app. Een eerder geopende Deellijst wordt bewust NIET hersteld.
-        // Een Deellijst kan alleen actief worden door hem tijdens deze sessie
-        // bewust te openen of via een gedeelde uitnodigingslink.
-        try { localStorage.removeItem("activeSharedListId"); } catch (_) {}
-        activeListType = "family";
-        currentSharedListId = null;
-        currentSharedListInviteCode = null;
-        if (currentSharedListUnsubscribe) {
-          currentSharedListUnsubscribe();
-          currentSharedListUnsubscribe = null;
+        const rememberedSharedId = !freshLogin ? localStorage.getItem("activeSharedListId") : null;
+        if (rememberedSharedId) {
+          try {
+            const sharedSnap = await database.ref("sharedLists/" + rememberedSharedId).once("value");
+            const sharedData = sharedSnap.val();
+            if (sharedData && sharedData.members && sharedData.members[user.uid] === true) {
+              await openSharedList(rememberedSharedId, false);
+            } else {
+              localStorage.removeItem("activeSharedListId");
+              activeListType = "family";
+              await loadList();
+            }
+          } catch (restoreSharedError) {
+            console.warn("Gedeelde lijst na vernieuwen herstellen mislukt:", restoreSharedError);
+            activeListType = "family";
+            await loadList();
+          }
+        } else {
+          activeListType = "family";
+          await loadList();
         }
-        const h = document.querySelector(".headerBar h1");
-        if (h) h.textContent = "Boodschappenlijst";
-        await loadList();
         if (freshLogin && typeof showMainListView === "function") showMainListView();
       } else if (!freshLogin) {
         // Herstelde sessie zonder familie: persoonlijke lijst laden.
