@@ -6250,20 +6250,7 @@ async function renderSharedLists(){
       btn.className="savedListRow";
       btn.innerHTML='<i class="fa-solid fa-people-group"></i><span></span><i class="fa-solid fa-chevron-right familyMenuArrow"></i>';
       btn.querySelector("span").textContent=v.name||"Deellijst";
-      btn.addEventListener("click",async(event)=>{
-        event.preventDefault();
-        event.stopPropagation();
-        if(__sharedListOpeningId) return;
-        __sharedListOpeningId=id;
-        // Verberg dubbele/stale klikframes onmiddellijk.
-        btn.disabled=true;
-        try{
-          await openSharedList(id,false);
-        }finally{
-          __sharedListOpeningId=null;
-          btn.disabled=false;
-        }
-      });
+      btn.dataset.sharedListId = id;
       box.appendChild(btn);
     });
   }catch(e){
@@ -6273,6 +6260,32 @@ async function renderSharedLists(){
   }
 }
 
+
+// Gebruik één stabiele event-delegatie voor de gedeelde-lijstknoppen.
+// Daardoor blijven de knoppen ook na meerdere keren openen/sluiten werken;
+// oude button-listeners of een disabled DOM-node kunnen de tweede klik niet blokkeren.
+(function installSharedListClickHandler(){
+  const box=document.getElementById("sharedListsContainer");
+  if(!box || box.dataset.sharedClickHandlerInstalled === "1") return;
+  box.dataset.sharedClickHandlerInstalled = "1";
+  box.addEventListener("click", async (event)=>{
+    const btn=event.target.closest("button[data-shared-list-id]");
+    if(!btn || !box.contains(btn)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const id=String(btn.dataset.sharedListId || "");
+    if(!id || !auth.currentUser) return;
+    // Een nieuwe klik krijgt altijd voorrang.
+    __sharedListOpeningId = id;
+    btn.setAttribute("aria-busy","true");
+    try{
+      await openSharedList(id,false);
+    }finally{
+      if(__sharedListOpeningId === id) __sharedListOpeningId = null;
+      btn.removeAttribute("aria-busy");
+    }
+  });
+})();
 
 async function getCurrentSharedListSnapshot(){
   const user=auth.currentUser;
