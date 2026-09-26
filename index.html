@@ -6742,6 +6742,7 @@ async function returnToFamilyListFromSharedMenu(event){
   // Deze knop staat bovenaan het Deellijst-menu en moet rechtstreeks naar
   // de gewone boodschappenlijst gaan, niet één niveau terug in het menu.
   activeListType="family";
+  try { localStorage.removeItem("activeSharedListId"); } catch (_) {}
   if(currentSharedListId){ try{ localStorage.removeItem("sharedListInviteCode:"+currentSharedListId); }catch(_){} }
   currentSharedListId=null;
   currentSharedListInviteCode=null;
@@ -7732,27 +7733,21 @@ function toggleRegisterPassword(fieldId, button) {
 
       const householdId = await getOrCreateHousehold();
       if (householdId) {
-        const rememberedSharedId = !freshLogin ? localStorage.getItem("activeSharedListId") : null;
-        if (rememberedSharedId) {
-          try {
-            const sharedSnap = await database.ref("sharedLists/" + rememberedSharedId).once("value");
-            const sharedData = sharedSnap.val();
-            if (sharedData && sharedData.members && sharedData.members[user.uid] === true) {
-              await openSharedList(rememberedSharedId, false);
-            } else {
-              localStorage.removeItem("activeSharedListId");
-              activeListType = "family";
-              await loadList();
-            }
-          } catch (restoreSharedError) {
-            console.warn("Gedeelde lijst na vernieuwen herstellen mislukt:", restoreSharedError);
-            activeListType = "family";
-            await loadList();
-          }
-        } else {
-          activeListType = "family";
-          await loadList();
+        // De gewone Boodschappenlijst is altijd de basis bij het opnieuw openen
+        // van de app. Een eerder geopende Deellijst wordt bewust NIET hersteld.
+        // Een Deellijst kan alleen actief worden door hem tijdens deze sessie
+        // bewust te openen of via een gedeelde uitnodigingslink.
+        try { localStorage.removeItem("activeSharedListId"); } catch (_) {}
+        activeListType = "family";
+        currentSharedListId = null;
+        currentSharedListInviteCode = null;
+        if (currentSharedListUnsubscribe) {
+          currentSharedListUnsubscribe();
+          currentSharedListUnsubscribe = null;
         }
+        const h = document.querySelector(".headerBar h1");
+        if (h) h.textContent = "Boodschappenlijst";
+        await loadList();
         if (freshLogin && typeof showMainListView === "function") showMainListView();
       } else if (!freshLogin) {
         // Herstelde sessie zonder familie: persoonlijke lijst laden.
