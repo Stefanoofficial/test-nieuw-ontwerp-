@@ -4695,7 +4695,12 @@ async function renderSavedLists() {
     openBtn.innerHTML = '<i class="fa-solid fa-list"></i><span></span><small class="savedListCount"></small><i class="fa-solid fa-chevron-right savedListArrow"></i>';
     openBtn.querySelector("span").textContent = saved.name || "Naamloze lijst";
     openBtn.querySelector(".savedListCount").textContent = String((saved.items || []).length);
-    openBtn.addEventListener("click", () => loadSavedList(index));
+    openBtn.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+      void loadSavedListById(String(saved.id || index));
+    });
 
     const deleteBtn = document.createElement("button");
     deleteBtn.type = "button";
@@ -4791,49 +4796,87 @@ function saveCurrentListAs() {
   });
   setTimeout(() => input && input.focus(), 30);
 }
-async function loadSavedList(index) {
+async function loadSavedListById(savedId) {
   const lists = await readSavedLists();
-  const saved = lists[index];
+  const saved = lists.find((item, idx) => String(item.id || idx) === String(savedId));
   if (!saved) return;
+  await loadSavedListRecord(saved);
+}
+
+async function loadSavedListRecord(saved) {
   const proceed = await familyConfirm("Lijst laden", 'Wil je de huidige lijst vervangen door "' + (saved.name || "deze lijst") + '"?');
   if (!proceed) return;
 
-  // Een opgeslagen lijst is een zelfstandige lijst. Schakel daarom eerst
-  // expliciet weg van een eventuele gedeelde lijst en stop de realtime
-  // listener. Anders kan de oude gedeelde lijst de inhoud van de opgeslagen
-  // lijst meteen weer overschrijven.
   mainListLoadGeneration++;
   if (currentSharedListUnsubscribe) {
     currentSharedListUnsubscribe();
     currentSharedListUnsubscribe = null;
   }
   const user = auth.currentUser;
-  setActiveListState("saved", saved.id || (String(index)), saved.name || "Boodschappenlijst");
+  setActiveListState("saved", saved.id || null, saved.name || "Boodschappenlijst");
   currentSharedListId = null;
   currentSharedListInviteCode = null;
-
-  boodschappen = normalizeBoodschappen(saved.items || []);
   currentListName = String(saved.name || "Boodschappenlijst");
+  boodschappen = normalizeBoodschappen(saved.items || []);
   selectedIndex = -1;
-
-  // Onthoud welke opgeslagen lijst actief is voor een echte pagina-refresh.
   if (user) {
     try {
-      localStorage.setItem("boodschappenActiveSavedList_" + user.uid, JSON.stringify({
-        id: saved.id || null,
-        name: currentListName
-      }));
+      localStorage.setItem("boodschappenActiveSavedList_" + user.uid, JSON.stringify({ id: saved.id || null, name: currentListName }));
     } catch (_) {}
   }
-
-  // Ga direct naar de opgeslagen lijst. NIET saveList() aanroepen: dat zou
-  // de opgeslagen inhoud kunnen wegschrijven naar een vorige shared/family
-  // bestemming. De opgeslagen lijst is al in localStorage opgeslagen.
-  showMainListView();
+  // Close the More menu before changing the main list. This prevents the
+  // document-level outside-click handler from selecting another menu item.
   closeFamilyMenu();
+  showMainListView();
+  setBottomNav("navList");
   showList();
   updateStatus();
   if (typeof updateOverviewDashboard === "function") updateOverviewDashboard();
+}
+
+async function loadSavedListById(savedId) {
+  const lists = await readSavedLists();
+  const saved = lists.find((item, idx) => String(item.id || idx) === String(savedId));
+  if (!saved) return;
+  await loadSavedListRecord(saved);
+}
+
+async function loadSavedListRecord(saved) {
+  const proceed = await familyConfirm("Lijst laden", 'Wil je de huidige lijst vervangen door "' + (saved.name || "deze lijst") + '"?');
+  if (!proceed) return;
+
+  mainListLoadGeneration++;
+  if (currentSharedListUnsubscribe) {
+    currentSharedListUnsubscribe();
+    currentSharedListUnsubscribe = null;
+  }
+  const user = auth.currentUser;
+  setActiveListState("saved", saved.id || null, saved.name || "Boodschappenlijst");
+  currentSharedListId = null;
+  currentSharedListInviteCode = null;
+  currentListName = String(saved.name || "Boodschappenlijst");
+  boodschappen = normalizeBoodschappen(saved.items || []);
+  selectedIndex = -1;
+  if (user) {
+    try {
+      localStorage.setItem("boodschappenActiveSavedList_" + user.uid, JSON.stringify({ id: saved.id || null, name: currentListName }));
+    } catch (_) {}
+  }
+  // Close the More menu before changing the main list. This prevents the
+  // document-level outside-click handler from selecting another menu item.
+  closeFamilyMenu();
+  showMainListView();
+  setBottomNav("navList");
+  showList();
+  updateStatus();
+  if (typeof updateOverviewDashboard === "function") updateOverviewDashboard();
+}
+
+async function loadSavedList(index) {
+  const lists = await readSavedLists();
+  const saved = lists[index];
+  if (!saved) return;
+  await loadSavedListRecord(saved);
 }
 
 function toggleFamilyMenu() {
@@ -6275,11 +6318,9 @@ async function renderSharedLists(){
       btn.onclick = function(event){
         event.preventDefault();
         event.stopPropagation();
+        if (event.stopImmediatePropagation) event.stopImmediatePropagation();
         const selectedId = this.dataset.sharedListId;
         if (!selectedId || !auth.currentUser) return;
-        // Geen await in de click-handler: de knop blijft na iedere render/
-        // wissel direct opnieuw klikbaar. openSharedList bewaakt zelf de
-        // actuele selectie en annuleert oude async resultaten.
         void openSharedList(selectedId, false);
       };
       box.appendChild(btn);
@@ -6479,12 +6520,11 @@ async function openSharedList(id, showInvite){
   const previousSharedId = currentSharedListId;
   setActiveListState("shared", id, "Deellijst");
   currentSharedListId = id;
-  setBottomNav("navList");
-  __resetMoreNavigation();
 
-  // Open een Deellijst direct in het hoofdscherm "Lijst".
-  showMainListView();
+  // Sluit Meer eerst en schakel daarna éénmalig naar Lijst.
   closeFamilyMenu();
+  showMainListView();
+  setBottomNav("navList");
   currentSharedListInviteCode = null;
 
   if(currentSharedListUnsubscribe){
