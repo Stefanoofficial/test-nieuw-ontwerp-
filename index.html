@@ -6055,7 +6055,9 @@ async function getOrCreateHousehold() {
 }
 
 function openSharedListsSubmenu(event) {
-  if (event) event.stopPropagation();
+  if (event) { event.preventDefault(); event.stopPropagation(); }
+  __sharedListsRenderGeneration++;
+  __sharedListOpeningId = null;
 
   // Gedeelde lijsten: bewust GEEN animatie en GEEN wachttijd.
   // Android/WebView krijgt eerst alleen de paginawissel te verwerken.
@@ -6211,53 +6213,61 @@ async function joinSharedListByCode(){
   }
 }
 
+let __sharedListsRenderGeneration = 0;
+let __sharedListOpeningId = null;
+
 async function renderSharedLists(){
+  const renderGeneration = ++__sharedListsRenderGeneration;
   const box=document.getElementById("sharedListsContainer"); if(!box) return;
   const user=auth.currentUser;
   if(!user){ box.innerHTML='<div class="sharedListEmpty">Log eerst in.</div>'; return; }
-
   try{
     const indexSnap=await database.ref("userSharedLists/" + user.uid).once("value");
+    if(renderGeneration !== __sharedListsRenderGeneration) return;
     const index=indexSnap.val()||{};
     const ids=Object.keys(index).filter(id=>index[id]===true);
-
     if(!ids.length){
       box.innerHTML='<div class="sharedListEmpty">Nog geen deellijsten. Maak hierboven je eerste lijst.</div>';
       return;
     }
-
     const results=await Promise.all(ids.map(async id=>{
       try{
         const snap=await database.ref("sharedLists/" + id).once("value");
         return snap.exists() ? [id,snap.val()] : null;
       }catch(e){ return null; }
     }));
-
+    if(renderGeneration !== __sharedListsRenderGeneration) return;
     const mine=results.filter(Boolean).sort((a,b)=>(b[1].createdAt||0)-(a[1].createdAt||0));
     box.innerHTML="";
     if(!mine.length){
       box.innerHTML='<div class="sharedListEmpty">Nog geen deellijsten. Maak hierboven je eerste lijst.</div>';
       return;
     }
-
     mine.forEach(([id,v])=>{
+      if(renderGeneration !== __sharedListsRenderGeneration) return;
       const btn=document.createElement("button");
       btn.type="button";
       btn.className="savedListRow";
       btn.innerHTML='<i class="fa-solid fa-people-group"></i><span></span><i class="fa-solid fa-chevron-right familyMenuArrow"></i>';
       btn.querySelector("span").textContent=v.name||"Deellijst";
-      btn.addEventListener("click",async()=>{
-        // Open the selected Deellijst directly in the main list screen.
-        // The previous version opened the secondary menu instead, which
-        // made it look like the Kerst list did not open.
-        await openSharedList(id,false);
-        if(activeListType==="shared" && currentSharedListId===id){
-          closeFamilyMenu();
+      btn.addEventListener("click",async(event)=>{
+        event.preventDefault();
+        event.stopPropagation();
+        if(__sharedListOpeningId) return;
+        __sharedListOpeningId=id;
+        // Verberg dubbele/stale klikframes onmiddellijk.
+        btn.disabled=true;
+        try{
+          await openSharedList(id,false);
+        }finally{
+          __sharedListOpeningId=null;
+          btn.disabled=false;
         }
       });
       box.appendChild(btn);
     });
   }catch(e){
+    if(renderGeneration !== __sharedListsRenderGeneration) return;
     console.error("Mijn deellijsten laden mislukt:",e);
     box.innerHTML='<div class="sharedListEmpty">De deellijsten konden niet worden geladen.</div>';
   }
@@ -6451,6 +6461,8 @@ async function openSharedList(id, showInvite){
   const previousSharedId = currentSharedListId;
   activeListType = "shared";
   currentSharedListId = id;
+  setBottomNav("navList");
+  __resetMoreNavigation();
 
   // Bij een expliciete keuze voor een gedeelde lijst mag de eerder gekozen
   // opgeslagen lijst niet later door loadList/auth-herstel teruggezet worden.
