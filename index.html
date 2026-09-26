@@ -4962,9 +4962,12 @@ function clearSearch() {
 }
 
 async function loadList() {
+  const myLoadGeneration = mainListLoadGeneration;
   try {
-    // Een late async callback mag na uitloggen niets meer in de lijst tonen.
+    // Een late async callback mag na uitloggen of na het openen van een andere
+    // lijst niets meer in het hoofdscherm schrijven.
     if (!auth.currentUser || explicitLogoutInProgress) return false;
+    if (myLoadGeneration !== mainListLoadGeneration) return true;
 
     // Een actieve Deellijst mag nooit door deze familielijst-loader worden overschreven.
     if (activeListType === "shared" && currentSharedListId) return true;
@@ -4982,6 +4985,7 @@ async function loadList() {
     if (activeSaved) {
       try {
         const savedLists = await readSavedLists();
+        if (myLoadGeneration !== mainListLoadGeneration || (activeListType === "shared" && currentSharedListId)) return true;
         const saved = savedLists.find(item =>
           (activeSaved.id && item.id === activeSaved.id) ||
           (!activeSaved.id && item.name === activeSaved.name)
@@ -5003,6 +5007,7 @@ async function loadList() {
       try { localStorage.removeItem(savedActiveKey); } catch (_) {}
     }
 
+    if (myLoadGeneration !== mainListLoadGeneration || (activeListType === "shared" && currentSharedListId)) return true;
     activeListType = isPrivateMode() ? "private" : "family";
     currentListName = "Boodschappenlijst";
 
@@ -5978,6 +5983,9 @@ let currentSharedListInviteCode = null;
 let currentSharedListUnsubscribe = null;
 // Houd de gewone familielijst en een Deellijst strikt gescheiden.
 let activeListType = "family"; // "family" | "shared" | "private"
+// Beschermt tegen late async laadacties die na het openen van een andere lijst
+// nog oude inhoud terug op het hoofdscherm kunnen zetten.
+let mainListLoadGeneration = 0;
 
 async function getOrCreateHousehold() {
   const user = auth.currentUser;
@@ -6415,18 +6423,17 @@ async function openSharedList(id, showInvite){
   const user=auth.currentUser;
   if(!user) return;
 
-  // Open een Deellijst altijd direct in het hoofdscherm "Lijst".
-  // Dit is vooral belangrijk wanneer de gebruiker vanuit Meer/Deellijst komt:
-  // de geselecteerde deellijst moet meteen zichtbaar zijn, zonder eerst
-  // handmatig onderaan op "Lijst" te hoeven drukken.
-  showMainListView();
-  closeFamilyMenu();
-
-  // De Deellijst krijgt een eigen modus. Hierdoor kan een gelijktijdige
-  // familielijst-load de inhoud van de Deellijst niet meer overschrijven.
+  // Invalideer alle lopende/late hoofdscherm-loads VOORDAT we naar de
+  // lijstweergave gaan. Anders kan een eerder gestarte loadList() na deze
+  // klik alsnog "Opgeslagen Week" of "Boodschappenlijst" terugzetten.
+  mainListLoadGeneration++;
   const previousSharedId = currentSharedListId;
   activeListType = "shared";
   currentSharedListId = id;
+
+  // Open een Deellijst direct in het hoofdscherm "Lijst".
+  showMainListView();
+  closeFamilyMenu();
   currentSharedListInviteCode = null;
 
   if(currentSharedListUnsubscribe){
@@ -6439,7 +6446,9 @@ async function openSharedList(id, showInvite){
   showList();
 
   try {
+    const openGeneration = mainListLoadGeneration;
     const snap=await database.ref("sharedLists/" + id).once("value");
+    if (openGeneration !== mainListLoadGeneration || activeListType !== "shared" || currentSharedListId !== id) return;
     const v=snap.val();
     if(!v || !v.members || v.members[user.uid]!==true){
       activeListType = "family";
