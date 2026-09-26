@@ -3423,12 +3423,6 @@ body.dark-theme .silentRefreshBtn{background:rgba(255,255,255,.08);color:#dff1e2
     <button type="button" class="familyMenuItem familyMenuPrimary" onclick="openSharedListsSubmenu(event)">
       <i class="fa-solid fa-people-group"></i>
       <span>Gedeelde lijsten</span>
-<div id="shared-list-tools" style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0;">
-  <button type="button" onclick="sharedPeople()">👥 Personen (<span id="sharedPeopleCount">0</span>)</button>
-  <button type="button" onclick="sharedEnterCode()">🔑 Code invoeren</button>
-  <button type="button" onclick="sharedShareCode()">📤 Code delen</button>
-</div>
-
       <i class="fa-solid fa-chevron-right familyMenuArrow"></i>
     </button>
 
@@ -9190,28 +9184,6 @@ document.addEventListener('visibilitychange',function(){
 </script>
 
 
-
-<script>
-function sharedPeople() {
-  const count = document.getElementById('sharedPeopleCount')?.textContent || '0';
-  alert('Personen met toegang tot deze gedeelde lijst: ' + count);
-}
-function sharedEnterCode() {
-  const code = prompt('Voer de code van de gedeelde lijst in:');
-  if (!code) return;
-  const fn = window.joinSharedListByCode || window.joinSharedList;
-  if (typeof fn === 'function') fn(code.trim());
-  else alert('Code ingevoerd: ' + code.trim());
-}
-function sharedShareCode() {
-  const code = window.currentSharedListCode || window.currentShareCode || '';
-  if (!code) { alert('Er is nog geen deelcode beschikbaar voor deze lijst.'); return; }
-  const text = 'Deelcode: ' + code;
-  if (navigator.share) navigator.share({title:'Gedeelde boodschappenlijst', text}).catch(()=>{});
-  else if (navigator.clipboard) navigator.clipboard.writeText(code).then(()=>alert('Deelcode gekopieerd.'));
-  else prompt('Deelcode:', code);
-}
-</script>
 </body>
 
 <style id="overview-dashboard-final">
