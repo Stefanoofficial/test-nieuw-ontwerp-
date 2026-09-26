@@ -7843,7 +7843,7 @@ async function showOverviewView(){
   window.scrollTo({top:0,behavior:'smooth'});
 }
 function showMoreView(){
-  // Meer opent direct: geen hoofdscherm-animatie die de hele inhoud laat haperen.
+  // Meer opent direct zonder extra hoofdscherm-animatie.
   __activeMainTab = 2;
   var app=document.querySelector('.app');
   if(app) app.classList.remove('overview-active'), app.classList.add('more-active');
@@ -7851,18 +7851,43 @@ function showMoreView(){
 
   var menu=document.getElementById('familyMenu');
   var moreView=document.getElementById('moreView');
-  // In Meer the family menu is the screen content, never a dropdown.
-  // Re-attach it every time so it cannot disappear after a navigation/login
-  // transition or an old DOM move.
+  // In Meer is het family menu de inhoud van het scherm.
   if(menu && moreView && menu.parentElement !== moreView){
     moreView.appendChild(menu);
   }
-  __resetMoreNavigation();
+
+  __cancelMenuTransition();
   if(menu){
     menu.style.display='block';
     menu.classList.remove('menu-open');
+  }
+
+  // Is er een gedeelde lijst actief? Toon dan direct het bestaande
+  // gedeelde-lijstmenu met Personen, Deelcode en Code invoeren.
+  if (typeof activeListType !== 'undefined' && activeListType === 'shared' && currentSharedListId) {
+    __showOnlyMenuPage('sharedListActiveMenuSub');
+
+    const title = document.getElementById('sharedListActiveMenuTitle');
+    if (title && typeof currentListName !== 'undefined') {
+      title.textContent = currentListName || 'Gedeelde lijst';
+    }
+
+    const count = document.getElementById('sharedMemberCountActive');
+    if (count && typeof database !== 'undefined') {
+      try {
+        database.ref('sharedLists/' + currentSharedListId).once('value').then(function(s){
+          const data=s.val() || {};
+          const members=data.members || {};
+          count.textContent=String(Object.keys(members).filter(function(uid){
+            return members[uid] === true;
+          }).length);
+        }).catch(function(){});
+      } catch (_) {}
+    }
+  } else {
     __showOnlyMenuPage('familyMenuMain');
   }
+
   if(moreView) moreView.scrollTop=0;
 }
 
