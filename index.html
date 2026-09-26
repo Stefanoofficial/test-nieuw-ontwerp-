@@ -3529,23 +3529,22 @@ body.dark-theme .silentRefreshBtn{background:rgba(255,255,255,.08);color:#dff1e2
   </div>
 
   <div id="sharedListActiveMenuSub" class="familyMenuPage sharedListsMenuPage" style="display:none;">
-    <div class="familyMenuSubTitle refreshableMenuTitle"><span id="sharedListActiveMenuTitle">Gedeelde lijst</span><button type="button" class="silentRefreshBtn" id="refreshActiveSharedListBtn" aria-label="Gedeelde lijst verversen" title="Verversen" onclick="refreshActiveSharedListSilently(event)"><i class="fa-solid fa-rotate"></i></button></div>
+    <button type="button" class="settingsMenuBack" onclick="__showOnlyMenuPage('sharedListsMenuSub')">
+      <i class="fa-solid fa-chevron-left"></i>
+      <span>Gedeelde lijsten</span>
+    </button>
+    <div class="familyMenuSubTitle"><span id="sharedListActiveMenuTitle">Gedeelde lijst</span></div>
     <button type="button" class="familyMenuItem" onclick="showSharedListMembers()">
       <i class="fa-solid fa-user-group"></i>
       <span>Personen (<span id="sharedMemberCountActive">0</span>)</span>
     </button>
     <button type="button" class="familyMenuItem" onclick="showSharedListCode()">
-      <i class="fa-solid fa-link"></i>
+      <i class="fa-solid fa-key"></i>
       <span>Deelcode</span>
     </button>
     <button type="button" class="familyMenuItem" onclick="joinSharedListByCode()">
       <i class="fa-solid fa-keyboard"></i>
       <span>Code invoeren</span>
-    </button>
-    <button type="button" class="familyMenuItem" onclick="returnToFamilyList(event)">
-      <i class="fa-solid fa-list"></i>
-      <span>Familielijst</span>
-      <i class="fa-solid fa-chevron-right familyMenuArrow"></i>
     </button>
   </div>
 
@@ -6321,13 +6320,11 @@ async function showSharedListCode(){
   try{ localStorage.setItem("sharedListInviteCode:"+currentSharedListId,code); }catch(_){}
 
   const link=makeSharedListLink(code);
-  const safeName=String(list.name || "Deellijst").replace(/[&<>\"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
 
   const overlay=familyDialogBase(
     "fa-link",
     "Deelcode",
-    `<div class="familyDialogText">Deel “${safeName}” met anderen.</div>
-     <div class="sharedListInviteBox">
+    `<div class="sharedListInviteBox">
        <div class="sharedListLinkLabel">Deelcode</div>
        <div class="sharedListInviteCode" id="sharedCodeDisplay">${code}</div>
        <div class="sharedListActionRow">
@@ -6393,7 +6390,7 @@ async function showSharedListMembers(){
     const list=snap.val();
 
     if(!list || !list.members){
-      await familyAlert("Leden","De leden van deze deellijst konden niet worden geladen.","fa-users");
+      await familyAlert("Personen","De personen van deze deellijst konden niet worden geladen.","fa-users");
       return;
     }
 
@@ -6412,7 +6409,7 @@ async function showSharedListMembers(){
         }catch(_){}
       }
 
-      if(!name) name=uid===user.uid ? (user.displayName || user.email || "Gebruiker") : "Lid";
+      if(!name) name=uid===user.uid ? (user.displayName || "Gebruiker") : "Lid";
 
       const row=document.createElement("div");
       row.className="familyDialogMember";
@@ -6442,7 +6439,7 @@ async function showSharedListMembers(){
 
     const overlay=familyDialogBase(
       "fa-user-group",
-      "Leden",
+      "Personen",
       "",
       '<button type="button" class="familyDialogBtn familyDialogPrimary" id="closeSharedMembers">Sluiten</button>'
     );
@@ -6455,9 +6452,9 @@ async function showSharedListMembers(){
     if(closeBtn) closeBtn.addEventListener("click",close);
     overlay.addEventListener("click",e=>{ if(e.target===overlay) close(); });
   }catch(error){
-    console.error("Deellijstleden konden niet worden geladen:",error);
+    console.error("Personen van deellijst konden niet worden geladen:",error);
     const detail=error && error.code ? "\n\nFoutcode: " + error.code : "";
-    await familyAlert("Leden","De leden van deze deellijst konden niet worden geladen." + detail,"fa-triangle-exclamation");
+    await familyAlert("Personen","De personen van deze deellijst konden niet worden geladen." + detail,"fa-triangle-exclamation");
   }
 }
 
