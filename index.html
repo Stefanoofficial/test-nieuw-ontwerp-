@@ -4807,16 +4807,10 @@ async function loadSavedList(index) {
     currentSharedListUnsubscribe();
     currentSharedListUnsubscribe = null;
   }
-  activeListType = "saved";
+  const user = auth.currentUser;
+  setActiveListState("saved", saved.id || (String(index)), saved.name || "Boodschappenlijst");
   currentSharedListId = null;
   currentSharedListInviteCode = null;
-
-  // Een opgeslagen lijst mag nooit per ongeluk naar een actieve gedeelde
-  // lijst worden opgeslagen. Daarom verwijderen we de oude shared-selectie.
-  const user = auth.currentUser;
-  if (user) {
-    try { localStorage.removeItem("activeSharedListId"); } catch (_) {}
-  }
 
   boodschappen = normalizeBoodschappen(saved.items || []);
   currentListName = String(saved.name || "Boodschappenlijst");
@@ -4990,8 +4984,9 @@ async function loadList() {
     if (!auth.currentUser || explicitLogoutInProgress) return false;
     if (myLoadGeneration !== mainListLoadGeneration) return true;
 
-    // Een actieve Deellijst mag nooit door deze familielijst-loader worden overschreven.
-    if (activeListType === "shared" && currentSharedListId) return true;
+    // Een expliciet gekozen lijst mag nooit door een oude hoofdloader worden overschreven.
+    if (activeListState.type === "shared" && activeListState.id) return true;
+    if (activeListState.type === "saved" && activeListState.id) return true;
 
     // Herstel een eerder geopende opgeslagen lijst na een refresh.
     // Dit gebeurt vóór de normale/familie-lijst wordt geladen, zodat
@@ -5012,7 +5007,7 @@ async function loadList() {
           (!activeSaved.id && item.name === activeSaved.name)
         );
         if (saved) {
-          activeListType = "saved";
+          setActiveListState("saved", saved.id || activeSaved.id, saved.name || activeSaved.name || "Boodschappenlijst");
           currentSharedListId = null;
           currentListName = String(saved.name || activeSaved.name || "Boodschappenlijst");
           boodschappen = normalizeBoodschappen(saved.items || []);
@@ -5029,7 +5024,7 @@ async function loadList() {
     }
 
     if (myLoadGeneration !== mainListLoadGeneration || (activeListType === "shared" && currentSharedListId)) return true;
-    activeListType = isPrivateMode() ? "private" : "family";
+    setActiveListState(isPrivateMode() ? "private" : "family", null, "Boodschappenlijst");
     currentListName = "Boodschappenlijst";
 
     // Een privé-lijst wordt lokaal opgeslagen en hoeft dus niet via Firebase geladen te worden.
@@ -6004,6 +5999,29 @@ let currentSharedListInviteCode = null;
 let currentSharedListUnsubscribe = null;
 // Houd de gewone familielijst en een Deellijst strikt gescheiden.
 let activeListType = "family"; // "family" | "shared" | "private"
+
+// Centrale bron voor welke lijst werkelijk actief is. Opgeslagen en gedeelde
+// lijsten hebben ieder hun eigen id en kunnen elkaar nooit meer overschrijven.
+let activeListState = { type: "family", id: null, name: "Boodschappenlijst" };
+function setActiveListState(type, id, name) {
+  activeListState = { type: type || "family", id: id || null, name: String(name || "Boodschappenlijst") };
+  activeListType = activeListState.type;
+  if (activeListState.type === "shared" && activeListState.id) {
+    try {
+      const uid = auth && auth.currentUser && auth.currentUser.uid;
+      if (uid) localStorage.setItem("activeSharedListId", String(activeListState.id));
+      if (uid) localStorage.removeItem("boodschappenActiveSavedList_" + uid);
+    } catch (_) {}
+  } else if (activeListState.type === "saved") {
+    try {
+      const uid = auth && auth.currentUser && auth.currentUser.uid;
+      if (uid) localStorage.removeItem("activeSharedListId");
+    } catch (_) {}
+  }
+}
+function isCurrentList(type, id) {
+  return activeListState.type === type && (!id || activeListState.id === id);
+}
 // Beschermt tegen late async laadacties die na het openen van een andere lijst
 // nog oude inhoud terug op het hoofdscherm kunnen zetten.
 let mainListLoadGeneration = 0;
@@ -6251,6 +6269,19 @@ async function renderSharedLists(){
       btn.innerHTML='<i class="fa-solid fa-people-group"></i><span></span><i class="fa-solid fa-chevron-right familyMenuArrow"></i>';
       btn.querySelector("span").textContent=v.name||"Deellijst";
       btn.dataset.sharedListId = id;
+      // Gebruik een verse directe handler per render. Zo blijft de knop
+      // betrouwbaar werken na onbeperkt heen-en-weer schakelen tussen
+      // opgeslagen en gedeelde lijsten.
+      btn.onclick = function(event){
+        event.preventDefault();
+        event.stopPropagation();
+        const selectedId = this.dataset.sharedListId;
+        if (!selectedId || !auth.currentUser) return;
+        // Geen await in de click-handler: de knop blijft na iedere render/
+        // wissel direct opnieuw klikbaar. openSharedList bewaakt zelf de
+        // actuele selectie en annuleert oude async resultaten.
+        void openSharedList(selectedId, false);
+      };
       box.appendChild(btn);
     });
   }catch(e){
@@ -6260,32 +6291,6 @@ async function renderSharedLists(){
   }
 }
 
-
-// Gebruik één stabiele event-delegatie voor de gedeelde-lijstknoppen.
-// Daardoor blijven de knoppen ook na meerdere keren openen/sluiten werken;
-// oude button-listeners of een disabled DOM-node kunnen de tweede klik niet blokkeren.
-(function installSharedListClickHandler(){
-  const box=document.getElementById("sharedListsContainer");
-  if(!box || box.dataset.sharedClickHandlerInstalled === "1") return;
-  box.dataset.sharedClickHandlerInstalled = "1";
-  box.addEventListener("click", async (event)=>{
-    const btn=event.target.closest("button[data-shared-list-id]");
-    if(!btn || !box.contains(btn)) return;
-    event.preventDefault();
-    event.stopPropagation();
-    const id=String(btn.dataset.sharedListId || "");
-    if(!id || !auth.currentUser) return;
-    // Een nieuwe klik krijgt altijd voorrang.
-    __sharedListOpeningId = id;
-    btn.setAttribute("aria-busy","true");
-    try{
-      await openSharedList(id,false);
-    }finally{
-      if(__sharedListOpeningId === id) __sharedListOpeningId = null;
-      btn.removeAttribute("aria-busy");
-    }
-  });
-})();
 
 async function getCurrentSharedListSnapshot(){
   const user=auth.currentUser;
@@ -6472,16 +6477,10 @@ async function openSharedList(id, showInvite){
   // klik alsnog "Opgeslagen Week" of "Boodschappenlijst" terugzetten.
   mainListLoadGeneration++;
   const previousSharedId = currentSharedListId;
-  activeListType = "shared";
+  setActiveListState("shared", id, "Deellijst");
   currentSharedListId = id;
   setBottomNav("navList");
   __resetMoreNavigation();
-
-  // Bij een expliciete keuze voor een gedeelde lijst mag de eerder gekozen
-  // opgeslagen lijst niet later door loadList/auth-herstel teruggezet worden.
-  try {
-    localStorage.removeItem("boodschappenActiveSavedList_" + user.uid);
-  } catch (_) {}
 
   // Open een Deellijst direct in het hoofdscherm "Lijst".
   showMainListView();
@@ -6503,7 +6502,7 @@ async function openSharedList(id, showInvite){
     if (openGeneration !== mainListLoadGeneration || activeListType !== "shared" || currentSharedListId !== id) return;
     const v=snap.val();
     if(!v || !v.members || v.members[user.uid]!==true){
-      activeListType = "family";
+      setActiveListState("family", null, "Boodschappenlijst");
       currentSharedListId = previousSharedId || null;
       if (!currentSharedListId) await loadList();
       await familyAlert("Deellijst","Je hebt geen toegang tot deze lijst.","fa-lock");
@@ -6518,6 +6517,7 @@ async function openSharedList(id, showInvite){
     showList();
     const sharedName = String(v.name || "Deellijst");
      currentListName = sharedName;
+     setActiveListState("shared", id, sharedName);
      try { localStorage.setItem("activeSharedListName:" + id, sharedName); } catch (_) {}
      const h=document.querySelector(".headerBar h1"); if(h) h.textContent=sharedName;
     updateSharedDeleteButton(v.owner === user.uid);
@@ -6561,7 +6561,7 @@ async function openSharedList(id, showInvite){
     }
   } catch(error) {
     console.error("Deellijst openen mislukt:", error);
-    activeListType = "family";
+    setActiveListState("family", null, "Boodschappenlijst");
     currentSharedListId = previousSharedId || null;
     currentSharedListInviteCode = null;
     if (!currentSharedListId) await loadList();
