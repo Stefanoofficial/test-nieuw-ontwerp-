@@ -3299,14 +3299,6 @@ body.dark-theme .smartInsightsItem .siIcon{color:#9bc8a8!important}
 body.dark-theme .silentRefreshBtn{background:rgba(255,255,255,.08);color:#dff1e2;}
 </style>
 
-<style id="shared-list-card-actions-style">
-.sharedListCard{position:relative;}
-.sharedListCardMain{display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:0;flex:1;}
-.sharedListCardName{font-weight:600;}
-.sharedListCardActions{display:flex;gap:7px;flex-wrap:wrap;}
-.sharedListCardAction{border:0;background:#eef5ef;color:#49654f;border-radius:999px;padding:6px 10px;font:inherit;font-size:13px;line-height:1.1;cursor:pointer;}
-.sharedListCardAction:active{transform:scale(.98);}
-</style>
 </head>
 
 <body>
@@ -3525,27 +3517,25 @@ body.dark-theme .silentRefreshBtn{background:rgba(255,255,255,.08);color:#dff1e2
     </button>
     <div class="familyMenuSubTitle refreshableMenuTitle"><span>Mijn deellijsten</span><button type="button" class="silentRefreshBtn" id="refreshSharedListsBtn" aria-label="Gedeelde lijsten verversen" title="Verversen" onclick="refreshSharedListsSilently(event)"><i class="fa-solid fa-rotate"></i></button></div>
     <div id="sharedListsContainer" class="savedListsContainer"></div>
-    <div class="settingsMenuHint">Maak een lijst voor vrienden, familie of een feestje. Iedereen met toegang kan samen producten toevoegen en afvinken.</div>
   </div>
 
   <div id="sharedListActiveMenuSub" class="familyMenuPage sharedListsMenuPage" style="display:none;">
-    <div class="familyMenuSubTitle refreshableMenuTitle"><span id="sharedListActiveMenuTitle">Gedeelde lijst</span><button type="button" class="silentRefreshBtn" id="refreshActiveSharedListBtn" aria-label="Gedeelde lijst verversen" title="Verversen" onclick="refreshActiveSharedListSilently(event)"><i class="fa-solid fa-rotate"></i></button></div>
+    <button type="button" class="settingsMenuBack" onclick="__showOnlyMenuPage('sharedListsMenuSub')">
+      <i class="fa-solid fa-chevron-left"></i>
+      <span>Gedeelde lijsten</span>
+    </button>
+    <div class="familyMenuSubTitle"><span id="sharedListActiveMenuTitle">Gedeelde lijst</span></div>
     <button type="button" class="familyMenuItem" onclick="showSharedListMembers()">
       <i class="fa-solid fa-user-group"></i>
       <span>Personen (<span id="sharedMemberCountActive">0</span>)</span>
     </button>
     <button type="button" class="familyMenuItem" onclick="showSharedListCode()">
-      <i class="fa-solid fa-link"></i>
+      <i class="fa-solid fa-key"></i>
       <span>Deelcode</span>
     </button>
     <button type="button" class="familyMenuItem" onclick="joinSharedListByCode()">
       <i class="fa-solid fa-keyboard"></i>
       <span>Code invoeren</span>
-    </button>
-    <button type="button" class="familyMenuItem" onclick="returnToFamilyList(event)">
-      <i class="fa-solid fa-list"></i>
-      <span>Familielijst</span>
-      <i class="fa-solid fa-chevron-right familyMenuArrow"></i>
     </button>
   </div>
 
@@ -6232,56 +6222,43 @@ async function renderSharedLists(){
       if(renderGeneration !== __sharedListsRenderGeneration) return;
       const btn=document.createElement("button");
       btn.type="button";
-      btn.className="savedListRow sharedListCard";
-
-      const memberCount = Object.keys(v.members || {}).filter(uid => v.members[uid] === true).length;
-
-      btn.innerHTML =
-        '<i class="fa-solid fa-people-group"></i>' +
-        '<span class="sharedListCardMain">' +
-          '<span class="sharedListCardName"></span>' +
-          '<span class="sharedListCardActions">' +
-            '<button type="button" class="sharedListCardAction sharedListPeopleAction">👥 Personen (' + memberCount + ')</button>' +
-            '<button type="button" class="sharedListCardAction sharedListCodeAction">🔗 Deelcode</button>' +
-          '</span>' +
-        '</span>' +
-        '<i class="fa-solid fa-chevron-right familyMenuArrow"></i>';
-
-      btn.querySelector(".sharedListCardName").textContent=v.name||"Deellijst";
+      btn.className="savedListRow";
+      btn.innerHTML='<i class="fa-solid fa-people-group"></i><span></span><i class="fa-solid fa-chevron-right familyMenuArrow"></i>';
+      btn.querySelector("span").textContent=v.name||"Deellijst";
       btn.dataset.sharedListId = id;
+      btn.onclick = async function(){
+        const selectedId=this.dataset.sharedListId;
+        const user=auth.currentUser;
+        if(!selectedId || !user) return;
 
-      // Tik op de kaart zelf: open de gedeelde lijst zoals voorheen.
-      btn.onclick = function(event){
-        if (event.target && event.target.closest &&
-            event.target.closest(".sharedListCardAction")) return;
-        event.preventDefault();
-        event.stopPropagation();
-        if (event.stopImmediatePropagation) event.stopImmediatePropagation();
-        const selectedId = this.dataset.sharedListId;
-        if (!selectedId || !auth.currentUser) return;
-        void openSharedList(selectedId, false);
+        try{
+          const snap=await database.ref("sharedLists/" + selectedId).once("value");
+          const data=snap.val();
+          if(!data || !data.members || data.members[user.uid]!==true){
+            await familyAlert("Gedeelde lijst","Je hebt geen toegang tot deze lijst.","fa-lock");
+            return;
+          }
+
+          // Alleen het beheer van deze gedeelde lijst wordt actief.
+          // De boodschappenlijst zelf wordt hier NIET geopend.
+          currentSharedListId=selectedId;
+          currentSharedListInviteCode=data.inviteCode || null;
+          currentListName=String(data.name || "Deellijst");
+          const members=data.members || {};
+          const count=Object.keys(members).filter(uid=>members[uid]===true).length;
+
+          const title=document.getElementById("sharedListActiveMenuTitle");
+          const countEl=document.getElementById("sharedMemberCountActive");
+          if(title) title.textContent=currentListName;
+          if(countEl) countEl.textContent=String(count);
+
+          __cancelMenuTransition();
+          __showOnlyMenuPage("sharedListActiveMenuSub");
+        }catch(error){
+          console.error("Gedeelde-lijstmenu openen mislukt:",error);
+          await familyAlert("Gedeelde lijst","De gedeelde lijst kon niet worden geopend.","fa-triangle-exclamation");
+        }
       };
-
-      // Personen: open deze lijst en toon de bestaande personen-dialoog.
-      btn.querySelector(".sharedListPeopleAction").onclick = async function(event){
-        event.preventDefault();
-        event.stopPropagation();
-        if (event.stopImmediatePropagation) event.stopImmediatePropagation();
-        if (!auth.currentUser) return;
-        await openSharedList(id, false);
-        await showSharedListMembers();
-      };
-
-      // Deelcode: open deze lijst en toon de bestaande deelcode-dialoog.
-      btn.querySelector(".sharedListCodeAction").onclick = async function(event){
-        event.preventDefault();
-        event.stopPropagation();
-        if (event.stopImmediatePropagation) event.stopImmediatePropagation();
-        if (!auth.currentUser) return;
-        await openSharedList(id, false);
-        await showSharedListCode();
-      };
-
       box.appendChild(btn);
     });
   }catch(e){
@@ -6301,7 +6278,7 @@ async function getCurrentSharedListSnapshot(){
 
 async function showSharedListCode(){
   const user=auth.currentUser;
-  if(!user || activeListType!=="shared" || !currentSharedListId) return;
+  if(!user || !currentSharedListId) return;
 
   let list=null;
   try{
@@ -6321,13 +6298,11 @@ async function showSharedListCode(){
   try{ localStorage.setItem("sharedListInviteCode:"+currentSharedListId,code); }catch(_){}
 
   const link=makeSharedListLink(code);
-  const safeName=String(list.name || "Deellijst").replace(/[&<>\"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
 
   const overlay=familyDialogBase(
     "fa-link",
     "Deelcode",
-    `<div class="familyDialogText">Deel “${safeName}” met anderen.</div>
-     <div class="sharedListInviteBox">
+    `<div class="sharedListInviteBox">
        <div class="sharedListLinkLabel">Deelcode</div>
        <div class="sharedListInviteCode" id="sharedCodeDisplay">${code}</div>
        <div class="sharedListActionRow">
@@ -6386,14 +6361,14 @@ async function showSharedListCode(){
 }
 async function showSharedListMembers(){
   const user=auth.currentUser;
-  if(!user || activeListType!=="shared" || !currentSharedListId) return;
+  if(!user || !currentSharedListId) return;
 
   try{
     const snap=await database.ref("sharedLists/" + currentSharedListId).once("value");
     const list=snap.val();
 
     if(!list || !list.members){
-      await familyAlert("Leden","De leden van deze deellijst konden niet worden geladen.","fa-users");
+      await familyAlert("Personen","De personen van deze deellijst konden niet worden geladen.","fa-users");
       return;
     }
 
@@ -6412,7 +6387,7 @@ async function showSharedListMembers(){
         }catch(_){}
       }
 
-      if(!name) name=uid===user.uid ? (user.displayName || user.email || "Gebruiker") : "Lid";
+      if(!name) name=uid===user.uid ? (user.displayName || "Gebruiker") : "Lid";
 
       const row=document.createElement("div");
       row.className="familyDialogMember";
@@ -6442,7 +6417,7 @@ async function showSharedListMembers(){
 
     const overlay=familyDialogBase(
       "fa-user-group",
-      "Leden",
+      "Personen",
       "",
       '<button type="button" class="familyDialogBtn familyDialogPrimary" id="closeSharedMembers">Sluiten</button>'
     );
@@ -6455,9 +6430,9 @@ async function showSharedListMembers(){
     if(closeBtn) closeBtn.addEventListener("click",close);
     overlay.addEventListener("click",e=>{ if(e.target===overlay) close(); });
   }catch(error){
-    console.error("Deellijstleden konden niet worden geladen:",error);
+    console.error("Personen van deellijst konden niet worden geladen:",error);
     const detail=error && error.code ? "\n\nFoutcode: " + error.code : "";
-    await familyAlert("Leden","De leden van deze deellijst konden niet worden geladen." + detail,"fa-triangle-exclamation");
+    await familyAlert("Personen","De personen van deze deellijst konden niet worden geladen." + detail,"fa-triangle-exclamation");
   }
 }
 
@@ -7908,7 +7883,7 @@ function showMoreView(){
 
   // Is er een gedeelde lijst actief? Toon dan direct het bestaande
   // gedeelde-lijstmenu met Personen, Deelcode en Code invoeren.
-  if (typeof activeListType !== 'undefined' && activeListType === 'shared' && currentSharedListId) {
+  if (currentSharedListId) {
     __showOnlyMenuPage('sharedListActiveMenuSub');
 
     const title = document.getElementById('sharedListActiveMenuTitle');
